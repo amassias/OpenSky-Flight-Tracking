@@ -1,234 +1,73 @@
 # Flight Tracker & Departures Viewer - Project Info
 
-## 📋 Project Overview
+## Overview
 
-**Name**: Flight Tracker & Departures Viewer  
-**Version**: 2.0  
-**Last Updated**: October 29, 2025  
-**Language**: Python 3.8+  
-**Type**: Web Application (Single-Page Application)
+Flight Tracker & Departures Viewer is a Python + Vanilla JS web application that uses the OpenSky REST API to:
+- search airports,
+- fetch arrivals/departures,
+- display live traffic in the current map viewport,
+- and visualize selected flight tracks with altitude profiles.
 
-## 🎯 Purpose
+Last updated: 2026-02-06
 
-A real-time flight tracking and departure visualization system that combines:
-1. Worldwide airport departure data
-2. Interactive flight trajectory maps
-3. Live aircraft position tracking
-4. Comprehensive airline information
+## Architecture
 
-## 🗂️ Project Files (Clean & Organized)
+### Backend
+- `server.py`
+  - serves `index.html` and files under `static/`
+  - exposes JSON API endpoints under `/api/*`
+- `api_client.py`
+  - OpenSky OAuth2 + REST requests
+  - request normalization and error handling
+- `data_loader.py`
+  - loads airport and airline datasets from `data/`
+  - cached lookup/search helpers
 
-### Core Application Files
-```
-server.py (48KB)
-├── Main HTTP server (port 8000)
-├── Embedded HTML/CSS/JavaScript
-├── API endpoints for flights and tracks
-└── Serves static aircraft SVG
+### Frontend
+- `index.html`
+  - app shell and UI sections (controls, flights panel, map)
+- `static/js/app.js`
+  - map lifecycle, live markers, flight selection, altitude chart rendering
+- `static/css/style.css`
+  - responsive layout and component styling
 
-fetch_flights_api.py (5.7KB)
-├── OpenSky API integration
-├── OAuth2 authentication
-├── Flight departure data fetcher
-└── Airline name enrichment
+## Data
 
-data_loader.py (5.7KB)
-├── Airport database loader (7,895 airports)
-├── Airline database loader (5,765 airlines)
-├── Efficient caching mechanism
-└── Search and filtering functions
-```
+- `data/iata-icao.csv`: airport metadata and coordinates
+- `data/Airlines data`: airline code-to-name mapping
 
-### Data Files
-```
-iata-icao.csv (693KB)
-├── 7,895 airports worldwide
-├── ICAO codes, IATA codes, names
-├── Latitude/longitude coordinates
-└── Country information
+## API Endpoints
 
-Airlines data (309KB)
-├── 5,765 airlines
-├── ICAO airline codes
-├── Full airline names
-└── Mapping for flight data enrichment
+- `GET /api/health`
+- `GET /api/search-airports?q=...&limit=...`
+- `GET /api/airports`
+- `GET /api/flights?airport=ICAO&date=YYYY-MM-DD&mode=departure|arrival`
+- `GET /api/fetch-flights?...` (backward-compatible alias)
+- `GET /api/live-flights?lamin=...&lomin=...&lamax=...&lomax=...`
+- `GET /api/flight-info?icao24=...`
+- `GET /api/track?icao24=...&time=...`
 
-Antonov_An-124_Ruslan_silhouette.svg (2.2KB)
-└── Custom aircraft icon for map markers
-```
+## Local Development
 
-### Configuration Files
-```
-.env (102B)
-├── OPEN_SKY_CLIENT_ID
-└── OPEN_SKY_CLIENT_SECRET
+Run:
 
-requirements.txt (23B)
-├── requests
-└── python-dotenv
-```
-
-### Documentation
-```
-README.md (8.1KB)
-└── Comprehensive project documentation
-```
-
-## 📊 Statistics
-
-- **Total Code Lines**: ~1,300 lines (Python + embedded JS/HTML/CSS)
-- **Airports**: 7,895 worldwide
-- **Airlines**: 5,765 with full names
-- **API Endpoints**: 5 custom endpoints
-- **Map Layers**: 2 (Standard + Satellite)
-- **Auto-refresh Rate**: 30 seconds for live flights
-
-## 🔄 Workflow
-
-```
-User Opens Website
-    ↓
-Select Airport (autocomplete search)
-    ↓
-Choose Date (auto-defaults to today)
-    ↓
-Fetch Flights → OpenSky API → Display Table
-    ↓
-Click Flight Row
-    ↓
-Fetch Trajectory → OpenSky /tracks/all
-    ↓
-Display on Interactive Map
-    ↓
-Auto-refresh every 30s (if recent flight)
-```
-
-## 🌐 Architecture
-
-### Frontend Stack
-- Pure JavaScript (no frameworks)
-- Leaflet.js for maps
-- CSS3 with gradients and animations
-- Responsive grid layout
-
-### Backend Stack
-- Python http.server (built-in)
-- Subprocess calls for data fetching
-- JSON-only communication (no CSV writes)
-- In-memory caching
-
-### External Services
-- OpenSky Network REST API
-- OpenStreetMap tiles
-- Esri World Imagery tiles
-- Leaflet.js CDN
-
-## 🎨 UI/UX Features
-
-- **Purple gradient theme** (#667eea to #764ba2)
-- **Modal popup maps** with dark backdrop
-- **Altitude color legend** (orange→purple gradient)
-- **Rotated aircraft icons** matching flight heading
-- **Real-time search filtering** with debouncing
-- **Sortable columns** with visual indicators
-- **Keyboard shortcuts** (ESC to close)
-- **Responsive design** (mobile-friendly)
-
-## 🔐 Security
-
-- ✅ Credentials in `.env` (not in repo)
-- ✅ OAuth2 token authentication
-- ✅ CORS headers for local dev
-- ✅ No user data collection
-- ✅ No persistent storage
-- ✅ Read-only operations
-
-## ⚡ Performance Optimizations
-
-1. **No CSV file creation** - Direct JSON streaming
-2. **Airport/airline data caching** - Load once, use many times
-3. **Lazy map initialization** - Only loads when needed
-4. **Debounced search** - Reduces API calls
-5. **Efficient SVG rendering** - Browser-native
-6. **30-second refresh rate** - Balances freshness vs API limits
-
-## 📈 Future Enhancement Ideas
-
-- [ ] Flight path prediction (ETA calculations)
-- [ ] Multiple flight tracking simultaneously
-- [ ] Flight history playback (time slider)
-- [ ] Weather overlay on maps
-- [ ] Airport runway diagrams
-- [ ] Push notifications for tracked flights
-- [ ] Export flight data (JSON/CSV)
-- [ ] Flight search by route (origin → destination)
-- [ ] 3D flight path visualization
-- [ ] Mobile app version
-
-## 🛠️ Development
-
-### How to Run
 ```bash
 python3 server.py
 ```
 
-### How to Stop
-```bash
-Ctrl+C  # or kill the process on port 8000
+Open:
+
+```text
+http://localhost:8000
 ```
 
-### How to Debug
-1. Check browser console (F12)
-2. Monitor server terminal output
-3. Verify .env credentials
-4. Test API endpoints directly
+## Repository Hygiene
 
-### File Dependencies
-```
-server.py
-├── Requires: data_loader.py, fetch_flights_api.py
-├── Loads: iata-icao.csv, Airlines data
-└── Serves: Antonov_An-124_Ruslan_silhouette.svg
+- Keep secrets only in `.env`.
+- `.env` is ignored; `.env.example` is the committed template.
+- Local/editor artifacts are ignored (`.venv/`, `.codex/`, `*.code-workspace`, caches).
 
-fetch_flights_api.py
-├── Uses: data_loader.py (for airline enrichment)
-└── Requires: .env credentials
+## Notes
 
-data_loader.py
-├── Reads: iata-icao.csv
-└── Reads: Airlines data
-```
-
-## 📝 Notes
-
-- **No database required** - Everything runs from CSV files
-- **Zero installation complexity** - Just pip install 2 packages
-- **Self-contained** - All HTML/CSS/JS embedded in server.py
-- **Portable** - Copy folder and run anywhere
-- **Clean codebase** - Removed all legacy/test files
-
-## 🗑️ Removed Files (Cleanup)
-
-The following unnecessary files were removed:
-- ❌ `data/` folder (old CSV exports)
-- ❌ `Documentation.txt` (redundant)
-- ❌ `PROJECT_INFO.txt` (replaced by this file)
-- ❌ All old departure CSV files
-
-## 🎯 Core Value Proposition
-
-**Before**: Basic terminal script showing flight departures  
-**After**: Full-featured web app with:
-- Interactive maps
-- Real-time tracking
-- Worldwide coverage
-- Beautiful UI
-- Live updates
-
----
-
-**Project Status**: ✅ Complete & Production Ready
-
-**Maintenance**: Minimal - only update if OpenSky API changes
-
-**Deployment**: Local only (no cloud hosting needed)
+- The airport dataset provides point coordinates (lat/lon), not administrative polygons.
+- Airport area highlighting in the map is therefore an estimated operational zone around airport coordinates.

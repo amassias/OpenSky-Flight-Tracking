@@ -21,7 +21,7 @@ A modern, real-time web application for tracking flights and visualizing departu
 
 ### 🗺️ Interactive Flight Tracking
 - **Real-time trajectory visualization** on interactive maps
-- **Satellite and standard map views** (OpenStreetMap & Esri World Imagery)
+- **Dark and light map themes** (CARTO basemaps over OpenStreetMap)
 - **Live aircraft positioning** with automatic 30-second updates for in-flight aircraft
 - **Altitude color-coding** with visual legend (0-40,000+ ft)
 - **Rotated aircraft icons** showing actual heading direction
@@ -37,9 +37,9 @@ A modern, real-time web application for tracking flights and visualizing departu
 - **Live statistics** showing total flights and unique airlines
 
 ### 🎨 Modern Interface
-- **Modal map viewer** with dark backdrop
+- **Map-first dashboard** with optional full-map focus mode
 - **Responsive design** optimized for desktop and mobile
-- **Gradient purple theme** with smooth animations
+- **Dark control-room theme** with smooth animations
 - **Zero CSV files** - pure JSON API communication
 - **Keyboard shortcuts** (ESC to close map)
 
@@ -125,7 +125,7 @@ A modern, real-time web application for tracking flights and visualizing departu
    - Map title shows last update time
 
 4. **Map controls**:
-   - Switch between **Map** and **Satellite** views (top-left)
+   - Toggle map **Theme** (dark/light) and use **Full Map** focus mode
    - Zoom and pan to explore
    - Click aircraft icon for position details
    - Close with **×** button or **ESC** key
@@ -134,19 +134,24 @@ A modern, real-time web application for tracking flights and visualizing departu
 
 ```
 ddd/
-├── server.py                  # Main HTTP server with embedded HTML/CSS/JS
-├── fetch_flights_api.py       # OpenSky API flight fetcher with OAuth2
-├── data_loader.py             # Airport & airline data loader with caching
+├── server.py                 # Main HTTP server + API endpoints
+├── api_client.py             # OpenSky REST client (OAuth2 + requests)
+├── data_loader.py            # Airport & airline data loader with caching
+├── index.html                # Main application shell
 ├── requirements.txt          # Python dependencies
-├── .env                      # OpenSky API credentials (create this)
+├── .env                      # OpenSky API credentials (create locally)
+├── .env.example              # Safe template for credentials
 ├── README.md                 # Main documentation
 │
 ├── data/                     # Databases (kept in repo)
 │   ├── iata-icao.csv         # 7,895 airports worldwide
-│   └── Airlines data         # 5,765 airlines (ICAO → name)
+│   └── Airlines data         # 5,765 airlines (ICAO -> name)
 │
 ├── static/                   # Static web assets
-│   └── Antonov_An-124_Ruslan_silhouette.svg  # Custom aircraft icon
+│   ├── css/style.css         # UI styling
+│   ├── js/app.js             # Frontend app logic
+│   ├── aircraft.svg          # Aircraft icon
+│   └── Antonov_An-124_Ruslan_silhouette.svg
 │
 └── docs/                     # Additional docs
    ├── PROJECT_INFO.md       # Technical architecture & stats
@@ -165,8 +170,7 @@ ddd/
 ### Frontend
 - **Vanilla JavaScript** - No frameworks, pure JS
 - **Leaflet.js** - Interactive maps
-- **OpenStreetMap** - Standard map tiles
-- **Esri World Imagery** - Satellite imagery
+- **OpenStreetMap + CARTO** - Map tiles and baselayers
 
 ### APIs
 - **OpenSky Network REST API** - Flight data
@@ -181,7 +185,7 @@ ddd/
 - **Flight Data**: Real-time from OpenSky Network (crowdsourced ADS-B receivers)
 - **Maps**: 
   - OpenStreetMap contributors
-  - Esri World Imagery (i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP)
+  - CARTO basemaps
 
 ## 🎯 Key Features Explained
 
@@ -203,7 +207,7 @@ ddd/
 - Uses custom SVG silhouette
 - Rotates to match actual heading (from ADS-B true_track)
 - Fallback: calculates bearing from last two waypoints
-- Magenta color for high visibility on satellite imagery
+- High-contrast coloring for dark and light basemaps
 - Drop shadow for contrast
 
 ## 🌐 API Endpoints
@@ -213,7 +217,8 @@ The server exposes these endpoints:
 - `GET /` - Main web interface
 - `GET /api/search-airports?q=query&limit=50` - Airport search
 - `GET /api/airports` - Popular airports list
-- `GET /api/fetch-flights?airport=ICAO&date=YYYY-MM-DD` - Fetch departures
+- `GET /api/flights?airport=ICAO&date=YYYY-MM-DD&mode=departure|arrival` - Fetch flights
+- `GET /api/fetch-flights?...` - Backward-compatible alias
 - `GET /api/track?icao24=XXX&time=timestamp` - Fetch flight trajectory
 - `GET /aircraft.svg` - Custom aircraft icon
 

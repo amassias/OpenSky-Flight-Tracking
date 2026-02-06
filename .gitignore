@@ -1,5 +1,6 @@
 # Environment variables (NEVER commit these!)
 .env
+.env.local
 
 # Python
 __pycache__/
@@ -27,10 +28,13 @@ wheels/
 venv/
 ENV/
 env/
+.venv/
 
 # IDE
 .vscode/
 .idea/
+.codex/
+*.code-workspace
 *.swp
 *.swo
 *~
@@ -41,3 +45,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test/cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage/

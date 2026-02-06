@@ -1,19 +1,22 @@
 Flight Tracker & Departures Viewer
 ═══════════════════════════════════════════════════════════════
 
-📁 Project Root: /Users/arthur/Downloads/ddd
+📁 Project Root: ddd/
 │
 ├── 📄 Core Application
-│   ├── server.py (48K) .................... Main HTTP server & web interface
-│   ├── fetch_flights_api.py (5.7K) ....... OpenSky API client with OAuth2
-│   └── data_loader.py (5.9K) ............. Airport/airline data loader
+│   ├── server.py .......................... Main HTTP server & API routes
+│   ├── api_client.py ...................... OpenSky API client with OAuth2
+│   └── data_loader.py ..................... Airport/airline data loader
 │
 ├── 📊 data/
 │   ├── iata-icao.csv (693K) .............. 7,895 airports worldwide
 │   └── Airlines data (309K) .............. 5,765 airlines database
 │
 ├── 🎨 static/
-│   └── Antonov_An-124_Ruslan_silhouette.svg (2.2K) ... Custom aircraft icon
+│   ├── css/style.css ...................... Frontend styles
+│   ├── js/app.js .......................... Frontend logic
+│   ├── aircraft.svg ....................... Aircraft icon
+│   └── Antonov_An-124_Ruslan_silhouette.svg ... Additional icon
 │
 ├── 📖 docs/
 │   ├── PROJECT_INFO.md (5.8K) ............ Technical details
@@ -32,9 +35,9 @@ Flight Tracker & Departures Viewer
 
 ═══════════════════════════════════════════════════════════════
 
-Total Files: 14 essential files (+ 2 git safety files)
-Total Size: ~1.1 MB
-Python Code: ~1,300 lines
+Total Files: core app + datasets + docs
+Total Size: ~1.1 MB+
+Python Code: backend + data loaders
 Data Records: 13,660 (airports + airlines)
 
 ═══════════════════════════════════════════════════════════════
@@ -45,9 +48,9 @@ Key Features:
 ✓ Altitude-colored trajectories (0-40k+ ft)
 ✓ Worldwide airport coverage (7,895 airports)
 ✓ Full airline names (5,765 airlines)
-✓ Satellite & standard map views
+✓ Dark/light basemap themes
 ✓ Rotated aircraft icons with heading
-✓ Modal popup interface
+✓ Full-map focus mode
 ✓ Zero CSV file creation
 ✓ Pure JSON communication
 
