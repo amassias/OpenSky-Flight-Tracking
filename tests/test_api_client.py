@@ -76,3 +76,46 @@ def test_token_connection_error_is_marked_as_reachable_fallback(monkeypatch):
         assert exc.payload == {"authentication_unreachable": True}
     else:
         raise AssertionError("A token timeout should raise OpenSkyAPIError")
+
+
+def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    response = _json_response(
+        {
+            "now": 1_750_000_000_000,
+            "ac": [
+                {
+                    "hex": "abc123",
+                    "flight": "TEST42 ",
+                    "lat": 48.8,
+                    "lon": 2.3,
+                    "alt_baro": 10_000,
+                    "alt_geom": 10_500,
+                    "gs": 200,
+                    "track": 90,
+                    "baro_rate": 500,
+                    "seen": 1.2,
+                    "seen_pos": 2.4,
+                    "squawk": "7000",
+                },
+                {"hex": "outside", "lat": 60.0, "lon": 2.3},
+            ],
+        }
+    )
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+
+    result = client.get_states(bbox=(47.0, 1.0, 50.0, 4.0), extended=True)
+
+    assert result["provider"] == "airplanes.live"
+    assert len(result["states"]) == 1
+    state = result["states"][0]
+    assert state[0] == "abc123"
+    assert state[1] == "TEST42"
+    assert state[7] == 3048.0
+    assert round(state[9], 3) == 102.889
+    assert state[10] == 90
+    assert state[11] == 2.54
+    request_url = client.session.get.call_args.args[0]
+    assert request_url.startswith("https://api.airplanes.live/v2/point/")

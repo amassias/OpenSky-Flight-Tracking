@@ -1,5 +1,6 @@
 import os
 import time
+from math import asin, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
 
 import requests
@@ -174,6 +175,97 @@ class OpenSkyClient:
 
         raise OpenSkyAPIError("OpenSky request failed after retries")
 
+    @staticmethod
+    def _distance_nm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Return great-circle distance in nautical miles."""
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+        return 3440.065 * 2 * asin(sqrt(a))
+
+    @staticmethod
+    def _airplanes_live_row(aircraft: Dict[str, Any], now_sec: int):
+        """Convert an Airplanes.live aircraft object to an OpenSky state vector."""
+        altitude_ft = aircraft.get("alt_baro")
+        on_ground = altitude_ft == "ground"
+        baro_altitude = None if altitude_ft is None else (0.0 if on_ground else float(altitude_ft) * 0.3048)
+        geo_altitude_ft = aircraft.get("alt_geom")
+        geo_altitude = float(geo_altitude_ft) * 0.3048 if isinstance(geo_altitude_ft, (int, float)) else None
+        speed_knots = aircraft.get("gs")
+        velocity = float(speed_knots) * 0.514444 if isinstance(speed_knots, (int, float)) else None
+        vertical_fpm = aircraft.get("baro_rate")
+        vertical_rate = float(vertical_fpm) * 0.00508 if isinstance(vertical_fpm, (int, float)) else None
+        seen_pos = aircraft.get("seen_pos")
+        seen = aircraft.get("seen")
+
+        return [
+            str(aircraft.get("hex") or "").lower(),
+            str(aircraft.get("flight") or "").strip(),
+            "Unknown",
+            now_sec - int(float(seen_pos)) if isinstance(seen_pos, (int, float)) else None,
+            now_sec - int(float(seen)) if isinstance(seen, (int, float)) else now_sec,
+            aircraft.get("lon"),
+            aircraft.get("lat"),
+            baro_altitude,
+            on_ground,
+            velocity,
+            aircraft.get("track"),
+            vertical_rate,
+            None,
+            geo_altitude,
+            aircraft.get("squawk"),
+            False,
+            0,
+            None,
+        ]
+
+    def _get_airplanes_live_states(
+        self,
+        icao24_list: Optional[Iterable[str]] = None,
+        bbox: Optional[tuple] = None,
+    ):
+        """Fetch live ADS-B positions from the public production fallback."""
+        if icao24_list:
+            codes = [str(code).lower() for code in list(icao24_list)[:50] if code]
+            endpoint = f"hex/{','.join(codes)}"
+        elif bbox:
+            lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
+            center_lat = (lat_min + lat_max) / 2
+            center_lon = (lon_min + lon_max) / 2
+            radius = min(250.0, max(1.0, self._distance_nm(center_lat, center_lon, lat_max, lon_max)))
+            endpoint = f"point/{center_lat:.5f}/{center_lon:.5f}/{radius:.1f}"
+        else:
+            raise OpenSkyAPIError("A bounding box or aircraft code is required for live fallback data.")
+
+        try:
+            response = self.session.get(
+                f"https://api.airplanes.live/v2/{endpoint}",
+                headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
+                timeout=15,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            raise OpenSkyAPIError(f"Live aircraft fallback request failed: {exc}") from exc
+
+        now_sec = int((payload.get("now") or time.time() * 1000) / 1000)
+        aircraft = payload.get("ac") or []
+        if bbox:
+            lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
+            aircraft = [
+                item for item in aircraft
+                if isinstance(item.get("lat"), (int, float))
+                and isinstance(item.get("lon"), (int, float))
+                and lat_min <= item["lat"] <= lat_max
+                and lon_min <= item["lon"] <= lon_max
+            ]
+
+        return {
+            "time": now_sec,
+            "states": [self._airplanes_live_row(item, now_sec) for item in aircraft if item.get("hex")],
+            "provider": "airplanes.live",
+        }
+
     def get_departures(self, airport_icao: str, begin_timestamp: int, end_timestamp: int):
         params = {
             "airport": airport_icao,
@@ -198,6 +290,12 @@ class OpenSkyClient:
         extended: bool = False,
         time_sec: Optional[int] = None,
     ):
+        # OpenSky currently times out from Vercel's serverless network. Use a
+        # documented, no-key ADS-B endpoint there so the public live map remains
+        # functional while retaining OpenSky as the primary local provider.
+        if os.getenv("VERCEL") and time_sec is None:
+            return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
+
         params: Dict[str, Any] = {}
 
         if icao24_list:
