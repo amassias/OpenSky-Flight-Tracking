@@ -109,18 +109,35 @@ class OpenSkyClient:
         timeout_sec: int = 30,
     ) -> Any:
         """Make an API request with OAuth when available and useful error semantics."""
-        base_url = "https://opensky-network.org/api"
-        url = f"{base_url}{endpoint}"
+        proxy_secret = os.getenv("OPEN_SKY_PROXY_SECRET") if os.getenv("VERCEL") else None
+        proxy_base_url = os.getenv("OPEN_SKY_PROXY_BASE_URL", "").rstrip("/")
+        deployment_host = os.getenv("VERCEL_URL")
+        if not proxy_base_url and deployment_host:
+            proxy_base_url = f"https://{deployment_host}"
+        using_proxy = bool(proxy_secret and proxy_base_url)
+
+        if using_proxy:
+            url = f"{proxy_base_url}/api/opensky-proxy"
+            request_params = {"endpoint": endpoint}
+            if params:
+                request_params.update(params)
+        else:
+            url = f"https://opensky-network.org/api{endpoint}"
+            request_params = params
 
         for attempt in range(2):
-            headers = self._authorization_headers()
+            headers = (
+                {"X-SkyTrace-Proxy-Secret": str(proxy_secret)}
+                if using_proxy
+                else self._authorization_headers()
+            )
 
             try:
                 response = self.session.request(
                     method,
                     url,
                     headers=headers,
-                    params=params,
+                    params=request_params,
                     data=data,
                     timeout=timeout_sec,
                 )
@@ -129,7 +146,7 @@ class OpenSkyClient:
                     continue
                 raise OpenSkyAPIError(f"OpenSky request failed: {exc}") from exc
 
-            if response.status_code == 401 and attempt == 0 and headers:
+            if response.status_code == 401 and attempt == 0 and headers and not using_proxy:
                 # Token might be stale; force refresh and retry once.
                 self.token = None
                 continue
@@ -168,8 +185,15 @@ class OpenSkyClient:
             content_type = response.headers.get("Content-Type", "")
             body_text = response.text.strip()
 
-            if "application/json" in content_type or (body_text.startswith("{") or body_text.startswith("[")):
-                return response.json()
+            if "application/json" in content_type or body_text.startswith(("{", "[", '"')):
+                parsed = response.json()
+                if isinstance(parsed, str):
+                    raise OpenSkyAPIError(
+                        "OpenSky returned a textual JSON response.",
+                        status_code=502,
+                        payload={"response_preview": parsed[:240]},
+                    )
+                return parsed
 
             return body_text
 
@@ -290,9 +314,8 @@ class OpenSkyClient:
         extended: bool = False,
         time_sec: Optional[int] = None,
     ):
-        # OpenSky currently times out from Vercel's serverless network. Use a
-        # documented, no-key ADS-B endpoint there so the public live map remains
-        # functional while retaining OpenSky as the primary local provider.
+        # Vercel cannot route to OpenSky's single public IP. Keep live traffic
+        # fast there instead of waiting for the historical-data proxy timeout.
         if os.getenv("VERCEL") and time_sec is None:
             return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
 
@@ -314,9 +337,17 @@ class OpenSkyClient:
         if time_sec is not None:
             params["time"] = int(time_sec)
 
-        return self._make_request("GET", "/states/all", params=params)
+        try:
+            return self._make_request("GET", "/states/all", params=params)
+        except OpenSkyAPIError:
+            if os.getenv("VERCEL") and time_sec is None:
+                return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
+            raise
 
     def get_track(self, icao24: str, time_sec: int):
+        if os.getenv("VERCEL"):
+            return self._get_adsb_lol_track(icao24)
+
         params = {
             "icao24": str(icao24).lower(),
             "time": int(time_sec),
@@ -333,6 +364,53 @@ class OpenSkyClient:
                 raise
 
         return {}
+
+    def _get_adsb_lol_track(self, icao24: str):
+        """Return a recent ADS-B trace using the OpenSky track response shape."""
+        code = str(icao24).lower()
+        suffix = code[-2:]
+        url = f"https://adsb.lol/data/traces/{suffix}/trace_recent_{code}.json"
+        try:
+            response = self.session.get(
+                url,
+                headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
+                timeout=15,
+            )
+            if response.status_code == 404:
+                return {}
+            response.raise_for_status()
+            payload = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            raise OpenSkyAPIError(f"Recent ADS-B track request failed: {exc}") from exc
+
+        base_time = float(payload.get("timestamp") or 0)
+        path = []
+        callsign = ""
+        for point in payload.get("trace") or []:
+            if not isinstance(point, list) or len(point) < 6:
+                continue
+            offset, latitude, longitude, altitude_ft, _speed, track = point[:6]
+            if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
+                continue
+            on_ground = altitude_ft == "ground"
+            altitude_m = 0.0 if on_ground else (
+                float(altitude_ft) * 0.3048 if isinstance(altitude_ft, (int, float)) else None
+            )
+            timestamp = int(base_time + float(offset))
+            path.append([timestamp, latitude, longitude, altitude_m, track, on_ground])
+            if len(point) > 8 and isinstance(point[8], dict) and point[8].get("flight"):
+                callsign = str(point[8]["flight"]).strip()
+
+        if not path:
+            return {}
+        return {
+            "icao24": code,
+            "callsign": callsign,
+            "startTime": path[0][0],
+            "endTime": path[-1][0],
+            "path": path,
+            "source": "adsb.lol",
+        }
 
     def get_flights_by_aircraft(self, icao24: str, begin_timestamp: int, end_timestamp: int):
         params = {

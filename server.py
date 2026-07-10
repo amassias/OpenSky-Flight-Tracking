@@ -485,7 +485,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         else:
             records = api_client.get_departures(airport, begin_ts, end_ts)
 
-        flights = [self._normalize_flight(flight, mode_normalized) for flight in (records or [])]
+        if not isinstance(records, list):
+            raise OpenSkyAPIError("OpenSky returned an invalid flight list.", payload={"response_type": type(records).__name__})
+
+        flights = [self._normalize_flight(flight, mode_normalized) for flight in records if isinstance(flight, dict)]
 
         # Remove malformed records without icao24.
         flights = [f for f in flights if f.get("icao24")]
@@ -643,7 +646,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         if track_time is None:
             raise ValueError("time must be an integer Unix timestamp")
 
-        if os.getenv("VERCEL"):
+        if os.getenv("VERCEL") and not os.getenv("OPEN_SKY_PROXY_SECRET"):
             return {
                 "success": True,
                 "track": {},

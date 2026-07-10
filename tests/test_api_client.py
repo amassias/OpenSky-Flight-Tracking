@@ -80,6 +80,7 @@ def test_token_connection_error_is_marked_as_reachable_fallback(monkeypatch):
 
 def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("OPEN_SKY_PROXY_SECRET", raising=False)
     client = OpenSkyClient()
     response = _json_response(
         {
@@ -119,3 +120,48 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     assert state[11] == 2.54
     request_url = client.session.get.call_args.args[0]
     assert request_url.startswith("https://api.airplanes.live/v2/point/")
+
+
+def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("VERCEL_URL", raising=False)
+    monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
+    monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
+    client = OpenSkyClient()
+    client.session.request = Mock(return_value=_json_response([]))
+
+    result = client.get_departures("LFPG", 100, 200)
+
+    assert result == []
+    call = client.session.request.call_args
+    assert call.args[1] == "https://deployment.example/api/opensky-proxy"
+    assert call.kwargs["headers"] == {"X-SkyTrace-Proxy-Secret": "internal-secret"}
+    assert call.kwargs["params"] == {
+        "endpoint": "/flights/departure",
+        "airport": "LFPG",
+        "begin": 100,
+        "end": 200,
+    }
+
+
+def test_vercel_track_fallback_builds_altitude_path(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    response = _json_response({
+        "timestamp": 1_750_000_000.0,
+        "trace": [
+            [0.0, 48.0, 2.0, "ground", 0, 90, 0, 0, {"flight": "TEST42 "}],
+            [60.0, 48.1, 2.1, 10_000, 200, 95, 0, 500],
+        ],
+    })
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+
+    result = client.get_track("abc123", 0)
+
+    assert result["callsign"] == "TEST42"
+    assert result["source"] == "adsb.lol"
+    assert result["path"] == [
+        [1_750_000_000, 48.0, 2.0, 0.0, 90, True],
+        [1_750_000_060, 48.1, 2.1, 3048.0, 95, False],
+    ]

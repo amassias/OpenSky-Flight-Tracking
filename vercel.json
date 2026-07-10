@@ -3,16 +3,20 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "regions": ["fra1"],
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/index"
-    }
+    { "source": "/api/health", "destination": "/api/index" },
+    { "source": "/api/search-airports", "destination": "/api/index" },
+    { "source": "/api/airports", "destination": "/api/index" },
+    { "source": "/api/fetch-flights", "destination": "/api/index" },
+    { "source": "/api/flights", "destination": "/api/index" },
+    { "source": "/api/live-flights", "destination": "/api/index" },
+    { "source": "/api/flight-info", "destination": "/api/index" },
+    { "source": "/api/track", "destination": "/api/index" }
   ],
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "regions": ["fra1"],
       "excludeFiles": "{tests/**,e2e/**,src/**,static/**,dist/**,node_modules/**,docs/**,playwright-report/**,test-results/**}"
     }
   }
