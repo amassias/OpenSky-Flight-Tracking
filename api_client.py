@@ -24,6 +24,7 @@ class OpenSkyClient:
         self.client_secret = os.getenv("OPEN_SKY_CLIENT_SECRET")
         self.token: Optional[str] = None
         self.token_expiry = 0.0
+        self.oauth_unavailable_until = 0.0
         self.session = requests.Session()
 
         if not self.client_id or not self.client_secret:
@@ -52,9 +53,13 @@ class OpenSkyClient:
         }
 
         try:
-            response = self.session.post(url, data=data, timeout=15)
+            auth_timeout = float(os.getenv("OPEN_SKY_AUTH_TIMEOUT_SECONDS", "5"))
+            response = self.session.post(url, data=data, timeout=auth_timeout)
         except requests.RequestException as exc:
-            raise OpenSkyAPIError(f"Error getting OpenSky token: {exc}") from exc
+            raise OpenSkyAPIError(
+                f"Error getting OpenSky token: {exc}",
+                payload={"authentication_unreachable": True},
+            ) from exc
 
         if response.status_code >= 400:
             detail = response.text.strip()
@@ -73,6 +78,25 @@ class OpenSkyClient:
         self.token_expiry = current_time + token_data.get("expires_in", 1800) - 60
         return self.token
 
+    def _authorization_headers(self) -> Dict[str, str]:
+        """Prefer OAuth, with a short anonymous fallback when auth is unreachable."""
+        if not self.credentials_available() or time.time() < self.oauth_unavailable_until:
+            return {}
+
+        try:
+            token = self._get_token()
+        except OpenSkyAPIError as exc:
+            if not exc.payload.get("authentication_unreachable"):
+                raise
+
+            # OpenSky officially permits anonymous API requests. Avoid retrying an
+            # unreachable OAuth host on every request in the same server instance.
+            fallback_seconds = int(os.getenv("OPEN_SKY_AUTH_FALLBACK_SECONDS", "300"))
+            self.oauth_unavailable_until = time.time() + fallback_seconds
+            return {}
+
+        return {"Authorization": f"Bearer {token}"}
+
     def _make_request(
         self,
         method: str,
@@ -83,13 +107,12 @@ class OpenSkyClient:
         not_found_value: Any = None,
         timeout_sec: int = 30,
     ) -> Any:
-        """Make an authenticated API request with useful error semantics."""
+        """Make an API request with OAuth when available and useful error semantics."""
         base_url = "https://opensky-network.org/api"
         url = f"{base_url}{endpoint}"
 
         for attempt in range(2):
-            token = self._get_token()
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = self._authorization_headers()
 
             try:
                 response = self.session.request(
@@ -105,7 +128,7 @@ class OpenSkyClient:
                     continue
                 raise OpenSkyAPIError(f"OpenSky request failed: {exc}") from exc
 
-            if response.status_code == 401 and attempt == 0:
+            if response.status_code == 401 and attempt == 0 and headers:
                 # Token might be stale; force refresh and retry once.
                 self.token = None
                 continue
