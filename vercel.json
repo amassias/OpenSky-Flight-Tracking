@@ -12,6 +12,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
+      "regions": ["fra1"],
       "excludeFiles": "{tests/**,e2e/**,src/**,static/**,dist/**,node_modules/**,docs/**,playwright-report/**,test-results/**}"
     }
   }
