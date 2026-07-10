@@ -62,4 +62,22 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /explore flights/i }));
     expect(await screen.findByText(/add them to your local .env file/i)).toBeInTheDocument();
   });
+
+  it("restores a shared airport URL even when airport search resolves after popular airports", async () => {
+    window.history.replaceState(null, "", "/?airport=LFPG&date=2026-07-09&mode=departure");
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/health") return json({ success: true, airports_loaded: 7895, credentials_configured: true, server_time_utc: new Date().toISOString() });
+      if (url.pathname === "/api/airports") return json([airport]);
+      if (url.pathname === "/api/search-airports") {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return json([airport]);
+      }
+      if (url.pathname === "/api/flights") return json({ success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-09", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 0, live_on_ground: 0, unique_airlines: 1 }, flights: [flight], generated_at: new Date().toISOString() });
+      throw new Error(`Unexpected request ${url.pathname}`);
+    }));
+
+    renderApp();
+    expect(await screen.findByText("AFR123")).toBeInTheDocument();
+  });
 });

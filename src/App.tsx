@@ -17,18 +17,15 @@ interface FlightRequest {
   mode: FlightMode;
 }
 
-function initialParam(name: string): string | null {
-  return new URLSearchParams(window.location.search).get(name);
-}
-
 export function App() {
+  const [initialParams] = useState(() => new URLSearchParams(window.location.search));
   const [theme, setTheme] = usePersistentState<MapTheme>("skytrace-theme", "dark");
   const [favorites, setFavorites] = usePersistentState<Airport[]>("skytrace-favorites", []);
   const [recent, setRecent] = usePersistentState<Airport[]>("skytrace-recent", []);
   const [liveEnabled, setLiveEnabled] = usePersistentState("skytrace-live", true);
   const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null);
-  const [date, setDate] = useState(initialParam("date") || todayUtc());
-  const [mode, setMode] = useState<FlightMode>(initialParam("mode") === "arrival" ? "arrival" : "departure");
+  const [date, setDate] = useState(initialParams.get("date") || todayUtc());
+  const [mode, setMode] = useState<FlightMode>(initialParams.get("mode") === "arrival" ? "arrival" : "departure");
   const [request, setRequest] = useState<FlightRequest | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
@@ -39,7 +36,7 @@ export function App() {
 
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, retry: false });
   const popular = useQuery({ queryKey: ["popular-airports"], queryFn: api.popularAirports });
-  const initialCode = initialParam("airport");
+  const initialCode = initialParams.get("airport");
   const initialAirport = useQuery({
     queryKey: ["initial-airport", initialCode],
     queryFn: () => api.searchAirports(initialCode!),
@@ -53,13 +50,21 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (selectedAirport || !popular.data?.length) return;
-    const fromUrl = initialAirport.data?.find((airport) => airport.icao === initialCode?.toUpperCase());
-    const fallback = recent[0] || popular.data.find((airport) => airport.icao === "LFPG") || popular.data[0];
-    const airport = fromUrl || fallback;
-    setSelectedAirport(airport);
-    if (initialCode) setRequest({ airport, date, mode });
-  }, [date, initialAirport.data, initialCode, mode, popular.data, recent, selectedAirport]);
+    if (!popular.data?.length) return;
+
+    if (initialCode) {
+      const fromUrl = initialAirport.data?.find((airport) => airport.icao === initialCode.toUpperCase());
+      if (!fromUrl) return;
+      if (selectedAirport?.icao !== fromUrl.icao) setSelectedAirport(fromUrl);
+      if (!request) setRequest({ airport: fromUrl, date, mode });
+      return;
+    }
+
+    if (!selectedAirport) {
+      const fallback = recent[0] || popular.data.find((airport) => airport.icao === "LFPG") || popular.data[0];
+      setSelectedAirport(fallback);
+    }
+  }, [date, initialAirport.data, initialCode, mode, popular.data, recent, request, selectedAirport]);
 
   const flights = useQuery({
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
@@ -69,11 +74,11 @@ export function App() {
   });
 
   useEffect(() => {
-    const requestedIcao24 = initialParam("icao24");
+    const requestedIcao24 = initialParams.get("icao24");
     if (!requestedIcao24 || selectedFlight || !flights.data?.flights.length) return;
     const match = flights.data.flights.find((flight) => flight.icao24 === requestedIcao24.toLowerCase());
     if (match) setSelectedFlight(match);
-  }, [flights.data, selectedFlight]);
+  }, [flights.data, initialParams, selectedFlight]);
 
   const track = useQuery({
     queryKey: ["track", selectedFlight?.icao24, selectedFlight?.primary_time ?? selectedFlight?.first_seen ?? 0],
