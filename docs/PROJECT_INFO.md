@@ -2,7 +2,7 @@
 
 ## Overview
 
-Flight Tracker & Departures Viewer is a Python + Vanilla JS web application that uses the OpenSky REST API to:
+SkyTrace is a Python + React web application that uses the OpenSky REST API to:
 - search airports,
 - fetch arrivals/departures,
 - display live traffic in the current map viewport,
@@ -24,12 +24,12 @@ Last updated: 2026-02-06
   - cached lookup/search helpers
 
 ### Frontend
-- `index.html`
-  - app shell and UI sections (controls, flights panel, map)
-- `static/js/app.js`
-  - map lifecycle, live markers, flight selection, altitude chart rendering
-- `static/css/style.css`
-  - responsive layout and component styling
+- `src/App.tsx`
+  - query state, shareable URLs, preferences, and application composition
+- `src/components/`
+  - airport search, live map, results, and flight detail surfaces
+- `src/styles.css`
+  - responsive radar-premium design system
 
 ## Data
 
@@ -49,16 +49,17 @@ Last updated: 2026-02-06
 
 ## Local Development
 
-Run:
+Run the API and frontend development servers:
 
 ```bash
 python3 server.py
+npm run dev
 ```
 
 Open:
 
 ```text
-http://localhost:8000
+http://localhost:5173
 ```
 
 ## Repository Hygiene

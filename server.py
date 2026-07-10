@@ -23,6 +23,7 @@ from data_loader import get_airline_name, load_airports, search_airports
 load_dotenv()
 
 BASE_DIR = os.path.dirname(__file__)
+FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "dist")
 PORT = int(os.getenv("PORT", "8000"))
 
 print("Loading airports database...")
@@ -120,7 +121,14 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if parsed_path.path in ("/", "/index.html"):
-            self._serve_static_file("index.html", cache_seconds=0)
+            if os.path.exists(os.path.join(FRONTEND_DIST_DIR, "index.html")):
+                self._serve_frontend_file("index.html", cache_seconds=0)
+            else:
+                self._serve_static_file("index.html", cache_seconds=0)
+            return
+
+        if parsed_path.path.startswith("/assets/"):
+            self._serve_frontend_file(parsed_path.path.lstrip("/"), cache_seconds=31536000)
             return
 
         if parsed_path.path.startswith("/static/"):
@@ -135,6 +143,12 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
         if parsed_path.path == "/aircraft.svg":
             self._serve_static_file("static/aircraft.svg", cache_seconds=86400)
+            return
+
+        # The React client owns navigation. Serve its shell for unknown routes
+        # whenever a production build is available.
+        if os.path.exists(os.path.join(FRONTEND_DIST_DIR, "index.html")):
+            self._serve_frontend_file("index.html", cache_seconds=0)
             return
 
         super().do_GET()
@@ -236,6 +250,26 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
             else:
                 self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(fh.read())
+
+    def _serve_frontend_file(self, relative_path, cache_seconds=0):
+        target = os.path.abspath(os.path.join(FRONTEND_DIST_DIR, relative_path))
+        dist_root = os.path.abspath(FRONTEND_DIST_DIR)
+
+        if not target.startswith(dist_root + os.sep) and target != dist_root:
+            self.send_error_response(403, "Forbidden")
+            return
+
+        if not os.path.isfile(target):
+            self.send_error_response(404, f"Frontend file not found: {relative_path}")
+            return
+
+        mime_type = mimetypes.guess_type(target)[0] or "application/octet-stream"
+        with open(target, "rb") as fh:
+            self.send_response(200)
+            self.send_header("Content-type", mime_type)
+            self.send_header("Cache-Control", f"public, max-age={cache_seconds}" if cache_seconds else "no-store")
             self.end_headers()
             self.wfile.write(fh.read())
 
