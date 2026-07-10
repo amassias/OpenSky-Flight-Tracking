@@ -643,6 +643,15 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         if track_time is None:
             raise ValueError("time must be an integer Unix timestamp")
 
+        if os.getenv("VERCEL"):
+            return {
+                "success": True,
+                "track": {},
+                "path_count": 0,
+                "message": "Historical tracks are unavailable from the serverless deployment.",
+                "attempted_times": [],
+            }
+
         # Try the requested timestamp first, then fall back to live track (time=0).
         first_candidates = [track_time]
         if track_time != 0:

@@ -18,7 +18,7 @@ export function Topbar({
   onToggleTheme,
   onToggleControls,
 }: TopbarProps) {
-  const apiState = healthPending ? "Connecting" : health?.credentials_configured ? "OpenSky live" : "Setup required";
+  const apiState = healthPending ? "Connecting" : health?.credentials_configured ? "Live ADS-B" : "Setup required";
 
   return (
     <header className="topbar">

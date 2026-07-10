@@ -69,3 +69,14 @@ def test_track_returns_graceful_empty_result():
     assert payload["success"] is True
     assert payload["path_count"] == 0
     assert "No track data" in payload["message"]
+
+
+def test_track_returns_immediately_on_vercel(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    fake_client = Mock()
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_track("39abcd", "0")
+    assert payload["success"] is True
+    assert payload["path_count"] == 0
+    assert "serverless" in payload["message"]
+    fake_client.get_track.assert_not_called()

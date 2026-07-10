@@ -223,7 +223,7 @@ export function App() {
           )}
           <div className="data-note">
             <span className={`system-dot ${health.data?.credentials_configured ? "online" : "warning"}`} />
-            <span>{health.data?.credentials_configured ? "Connected to live OpenSky data" : "OpenSky credentials required for live data"}</span>
+            <span>{health.data?.credentials_configured ? "Connected to live ADS-B data" : "OpenSky credentials required for live data"}</span>
           </div>
         </aside>
 
