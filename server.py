@@ -278,6 +278,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "success": True,
             "airports_loaded": len(ALL_AIRPORTS),
             "credentials_configured": api_client.credentials_available(),
+            "live_available": bool(os.getenv("VERCEL")) or api_client.credentials_available(),
             "server_time_utc": datetime.now(timezone.utc).isoformat(),
         }
 

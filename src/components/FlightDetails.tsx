@@ -7,11 +7,13 @@ interface FlightDetailsProps {
   flight: Flight;
   track?: TrackResponse;
   trackLoading: boolean;
+  trackError?: string;
+  onRetryTrack: () => void;
   onClose: () => void;
   onShare: () => void;
 }
 
-export function FlightDetails({ flight, track, trackLoading, onClose, onShare }: FlightDetailsProps) {
+export function FlightDetails({ flight, track, trackLoading, trackError, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   const path = track?.track.path ?? [];
   return (
     <aside className="details-drawer" aria-label="Selected flight details">
@@ -51,7 +53,7 @@ export function FlightDetails({ flight, track, trackLoading, onClose, onShare }:
 
       <section className="profile-card">
         <div className="profile-title"><span>Altitude profile</span><small className="mono">{trackLoading ? "Loading…" : path.length ? `${path.length} points` : "No track"}</small></div>
-        {trackLoading ? <div className="chart-skeleton" /> : <AltitudeChart points={path} />}
+        {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
       </section>
     </aside>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Heart, MapPin, Search, X } from "lucide-react";
 import { api } from "../api";
@@ -22,6 +22,7 @@ export function AirportSearch({
   onToggleFavorite,
 }: AirportSearchProps) {
   const listboxId = useId();
+  const container = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(selected ? `${selected.icao} · ${selected.name}` : "");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -42,7 +43,16 @@ export function AirportSearch({
     enabled: open && debouncedQuery.length >= 2,
   });
 
-  const options = search.data ?? (recent.length ? recent : popular.slice(0, 6));
+  const searching = query.trim().length >= 2;
+  const options = searching ? (query.trim() === debouncedQuery ? search.data ?? [] : []) : (recent.length ? recent : popular.slice(0, 6));
+
+  useEffect(() => {
+    function dismiss(event: PointerEvent) {
+      if (!container.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
 
   function choose(airport: Airport) {
     onSelect(airport);
@@ -54,7 +64,7 @@ export function AirportSearch({
     if (!open && event.key === "ArrowDown") setOpen(true);
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActiveIndex((current) => Math.min(current + 1, options.length - 1));
+      setActiveIndex((current) => Math.max(0, Math.min(current + 1, options.length - 1)));
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -68,7 +78,7 @@ export function AirportSearch({
   }
 
   return (
-    <div className="airport-search">
+    <div className="airport-search" ref={container} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
       <label className="field-label" htmlFor="airport-search">Airport</label>
       <div className="search-input-wrap">
         <Search size={17} aria-hidden="true" />

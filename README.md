@@ -8,7 +8,7 @@ SkyTrace is a map-first flight intelligence interface powered by the OpenSky Net
 - Airport search by city, name, IATA, ICAO, region, or country
 - UTC arrival and departure queries
 - Flight filtering, sorting, status summaries, and detailed tracks
-- Dark and light CARTO map themes
+- Dark and light OpenStreetMap map themes
 - Shareable flight URLs
 - Recent and favorite airports stored locally in the browser
 - Desktop, tablet, and mobile layouts with keyboard support
@@ -103,7 +103,7 @@ Unit and E2E tests use deterministic API responses and do not consume OpenSky cr
 
 ## Data and privacy
 
-The application stores only theme, live-refresh preference, recent airports, and favorites in browser `localStorage`. No user account or personal flight history is created. Map tiles come from CARTO/OpenStreetMap and flight data comes from OpenSky.
+The application stores only theme, live-refresh preference, recent airports, and favorites in browser `localStorage`. No user account or personal flight history is created. Map tiles come from OpenStreetMap. Flight history comes from OpenSky; on Vercel, live positions use ADSB.lol with Airplanes.live as a fallback.
 
 ## License
 

@@ -261,16 +261,25 @@ class OpenSkyClient:
         else:
             raise OpenSkyAPIError("A bounding box or aircraft code is required for live fallback data.")
 
-        try:
-            response = self.session.get(
-                f"https://api.airplanes.live/v2/{endpoint}",
-                headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
-                timeout=15,
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except (requests.RequestException, ValueError) as exc:
-            raise OpenSkyAPIError(f"Live aircraft fallback request failed: {exc}") from exc
+        # Independent public providers use the same ADS-B schema. A provider
+        # outage must not make all live traffic unavailable on Vercel.
+        last_error = None
+        for provider in ("adsb.lol", "airplanes.live"):
+            try:
+                response = self.session.get(
+                    f"https://api.{provider}/v2/{endpoint}",
+                    headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
+                    timeout=8,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
+                    raise ValueError("Invalid live aircraft response")
+                break
+            except (requests.RequestException, ValueError) as exc:
+                last_error = exc
+        else:
+            raise OpenSkyAPIError("Live aircraft providers are temporarily unavailable.", status_code=503) from last_error
 
         now_sec = int((payload.get("now") or time.time() * 1000) / 1000)
         aircraft = payload.get("ac") or []
@@ -287,7 +296,7 @@ class OpenSkyClient:
         return {
             "time": now_sec,
             "states": [self._airplanes_live_row(item, now_sec) for item in aircraft if item.get("hex")],
-            "provider": "airplanes.live",
+            "provider": provider,
         }
 
     def get_departures(self, airport_icao: str, begin_timestamp: int, end_timestamp: int):

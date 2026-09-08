@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "lucide-react";
 import { api, readableApiError } from "./api";
@@ -32,9 +32,11 @@ export function App() {
   const [mobileResultsExpanded, setMobileResultsExpanded] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [utcTime, setUtcTime] = useState(() => new Date().toISOString().slice(11, 19));
+  const restoredAirport = useRef(false);
+  const restoredFlight = useRef(false);
 
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, retry: false });
+  const liveAvailable = health.data?.live_available ?? health.data?.credentials_configured ?? false;
   const popular = useQuery({ queryKey: ["popular-airports"], queryFn: api.popularAirports });
   const initialCode = initialParams.get("airport");
   const initialAirport = useQuery({
@@ -45,22 +47,19 @@ export function App() {
   });
 
   useEffect(() => {
-    const timer = window.setInterval(() => setUtcTime(new Date().toISOString().slice(11, 19)), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!popular.data?.length) return;
+    if (restoredAirport.current) return;
 
     if (initialCode) {
       const fromUrl = initialAirport.data?.find((airport) => airport.icao === initialCode.toUpperCase());
       if (!fromUrl) return;
+      restoredAirport.current = true;
       if (selectedAirport?.icao !== fromUrl.icao) setSelectedAirport(fromUrl);
       if (!request) setRequest({ airport: fromUrl, date, mode });
       return;
     }
 
-    if (!selectedAirport) {
+    if (!selectedAirport && popular.data?.length) {
+      restoredAirport.current = true;
       const fallback = recent[0] || popular.data.find((airport) => airport.icao === "LFPG") || popular.data[0];
       setSelectedAirport(fallback);
     }
@@ -75,9 +74,9 @@ export function App() {
 
   useEffect(() => {
     const requestedIcao24 = initialParams.get("icao24");
-    if (!requestedIcao24 || selectedFlight || !flights.data?.flights.length) return;
+    if (restoredFlight.current || !requestedIcao24 || selectedFlight || !flights.data?.flights.length) return;
     const match = flights.data.flights.find((flight) => flight.icao24 === requestedIcao24.toLowerCase());
-    if (match) setSelectedFlight(match);
+    if (match) { restoredFlight.current = true; setSelectedFlight(match); }
   }, [flights.data, initialParams, selectedFlight]);
 
   const track = useQuery({
@@ -160,7 +159,6 @@ export function App() {
         health={health.data}
         healthPending={health.isPending}
         theme={theme}
-        utcTime={utcTime}
         onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
         onToggleControls={() => setMobileControlsOpen(true)}
       />
@@ -172,10 +170,10 @@ export function App() {
           selectedFlight={selectedFlight}
           track={track.data}
           theme={theme}
-          liveEnabled={liveEnabled && health.data?.credentials_configured === true}
-          liveAvailable={health.data?.credentials_configured === true}
+          liveEnabled={liveEnabled && liveAvailable}
+          liveAvailable={liveAvailable}
           expanded={mapExpanded}
-          onToggleLive={() => health.data?.credentials_configured ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
+          onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}
           onSelectFlight={setSelectedFlight}
         />
@@ -222,8 +220,8 @@ export function App() {
             </div>
           )}
           <div className="data-note">
-            <span className={`system-dot ${health.data?.credentials_configured ? "online" : "warning"}`} />
-            <span>{health.data?.credentials_configured ? "Connected to live ADS-B data" : "OpenSky credentials required for live data"}</span>
+            <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
+            <span>{liveAvailable ? "Live ADS-B enabled · select an aircraft" : "OpenSky credentials required for live data"}</span>
           </div>
         </aside>
 
@@ -264,6 +262,8 @@ export function App() {
             flight={selectedFlight}
             track={track.data}
             trackLoading={track.isFetching}
+            trackError={track.error ? readableApiError(track.error) : undefined}
+            onRetryTrack={() => track.refetch()}
             onClose={() => setSelectedFlight(null)}
             onShare={shareFlight}
           />

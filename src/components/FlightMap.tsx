@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { memo, useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import L from "leaflet";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api, readableApiError } from "../api";
-import type { Airport, Bounds, Flight, MapTheme, TrackResponse } from "../types";
+import type { Airport, Bounds, Flight, LiveAircraft, MapTheme, TrackResponse } from "../types";
 import { formatAltitude, formatSpeed } from "../utils";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
@@ -18,21 +18,35 @@ function planeIcon(heading = 0, active = false, onGround = false) {
   });
 }
 
+const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect }: {
+  aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void;
+}) {
+  const icon = useMemo(() => planeIcon(aircraft.true_track ?? 0, active, aircraft.on_ground === true), [aircraft.true_track, aircraft.on_ground, active]);
+  const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
+  const eventHandlers = useMemo(() => ({ click: () => onSelect({ ...aircraft, status: aircraft.on_ground ? "on_ground" : "airborne", primary_time: 0, airline_name: "Live traffic" }) }), [aircraft, onSelect]);
+  if (aircraft.latitude == null || aircraft.longitude == null) return null;
+  return <Marker position={position} icon={icon} eventHandlers={eventHandlers}>
+    <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
+  </Marker>;
+});
+
 interface BoundsReporterProps { onBounds: (bounds: Bounds) => void }
 function BoundsReporter({ onBounds }: BoundsReporterProps) {
-  const map = useMapEvents({
-    moveend: report,
-    zoomend: report,
-  });
-
-  function report() {
-    const bounds = map.getBounds();
-    onBounds({ lamin: bounds.getSouth(), lomin: bounds.getWest(), lamax: bounds.getNorth(), lomax: bounds.getEast() });
-  }
-
+  const map = useMap();
   useEffect(() => {
-    const bounds = map.getBounds();
-    onBounds({ lamin: bounds.getSouth(), lomin: bounds.getWest(), lamax: bounds.getNorth(), lomax: bounds.getEast() });
+    let timer: ReturnType<typeof setTimeout>;
+    function report() {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const bounds = map.getBounds();
+        onBounds({ lamin: Math.max(-90, bounds.getSouth()), lomin: bounds.getWest(), lamax: Math.min(90, bounds.getNorth()), lomax: bounds.getEast() });
+      }, 250);
+    }
+    map.on("moveend", report);
+    report();
+    const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+    observer.observe(map.getContainer());
+    return () => { clearTimeout(timer); map.off("moveend", report); observer.disconnect(); };
   }, [map, onBounds]);
   return null;
 }
@@ -47,17 +61,18 @@ interface MapControllerProps {
 function MapController({ airport, flight, track, locateRequest }: MapControllerProps) {
   const map = useMap();
   useEffect(() => {
+    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (track?.track.path?.length) {
       const bounds = L.latLngBounds(track.track.path.map((point) => [point[1], point[2]]));
-      map.fitBounds(bounds.pad(0.18), { animate: true });
+      map.fitBounds(bounds.pad(0.18), { animate, maxZoom: 12 });
       return;
     }
     if (flight?.latitude != null && flight.longitude != null) {
-      map.flyTo([flight.latitude, flight.longitude], Math.max(map.getZoom(), 8), { duration: 0.8 });
+      map.flyTo([flight.latitude, flight.longitude], Math.max(map.getZoom(), 8), { duration: 0.5, animate });
       return;
     }
     if (airport?.latitude != null && airport.longitude != null) {
-      map.flyTo([airport.latitude, airport.longitude], 8, { duration: 0.8 });
+      map.flyTo([airport.latitude, airport.longitude], 8, { duration: 0.5, animate });
     }
   }, [airport, flight, map, track]);
 
@@ -98,8 +113,11 @@ export function FlightMap({
   const area = bounds ? Math.abs(bounds.lamax - bounds.lamin) * Math.abs(bounds.lomax - bounds.lomin) : Infinity;
   const liveQuery = useQuery({
     queryKey: ["live-flights", bounds],
-    queryFn: () => api.liveFlights(bounds!),
-    enabled: liveEnabled && bounds !== null && area <= 350,
+    queryFn: ({ signal }) => api.liveFlights(bounds!, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+    gcTime: 60_000,
+    enabled: liveAvailable && liveEnabled && bounds !== null && area <= 350,
     refetchInterval: liveEnabled ? 15_000 : false,
     retry: false,
   });
@@ -116,29 +134,17 @@ export function FlightMap({
     <section className="map-surface" aria-label="Live flight map">
       <MapContainer center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
         <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          className={theme === "dark" ? "map-tiles-dark" : ""}
           key={theme}
-          attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-          url={theme === "dark"
-            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"}
+          maxZoom={19}
         />
         <BoundsReporter onBounds={setBounds} />
         <MapController airport={airport} flight={selectedFlight} track={track} locateRequest={locateRequest} />
         {trackPositions.length > 1 && <Polyline positions={trackPositions} pathOptions={{ color: "#7ff4c9", weight: 4, opacity: 0.88 }} />}
         {liveQuery.data?.states.map((aircraft) => (
-          aircraft.latitude != null && aircraft.longitude != null ? (
-            <Marker
-              key={aircraft.icao24}
-              position={[aircraft.latitude, aircraft.longitude]}
-              icon={planeIcon(aircraft.true_track ?? 0, aircraft.icao24 === selectedFlight?.icao24, aircraft.on_ground === true)}
-              eventHandlers={{ click: () => onSelectFlight({ ...aircraft, status: aircraft.on_ground ? "on_ground" : "airborne", primary_time: 0, airline_name: "Live traffic" }) }}
-            >
-              <Popup>
-                <strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />
-                {formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}
-              </Popup>
-            </Marker>
-          ) : null
+          <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
         ))}
         {selectedFlight?.latitude != null && selectedFlight.longitude != null && !liveQuery.data?.states.some((item) => item.icao24 === selectedFlight.icao24) && (
           <Marker position={[selectedFlight.latitude, selectedFlight.longitude]} icon={selectedIcon} />
@@ -153,7 +159,7 @@ export function FlightMap({
       </div>
       <div className="live-badge" aria-live="polite">
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
-        {!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : liveQuery.isError ? readableApiError(liveQuery.error) : liveEnabled ? `${liveQuery.data?.count ?? 0} aircraft in view` : "Live traffic paused"}
+        {!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : liveQuery.isError ? readableApiError(liveQuery.error) : liveEnabled ? liveQuery.isPending ? "Loading live traffic…" : liveQuery.isFetching ? "Updating live traffic…" : `${liveQuery.data?.count ?? 0} aircraft in view` : "Live traffic paused"}
       </div>
       <div className="map-controls">
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>

@@ -19,13 +19,13 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+async function request<T>(path: string, params?: Record<string, string | number | undefined>, signal?: AbortSignal): Promise<T> {
   const url = new URL(path, window.location.origin);
   Object.entries(params ?? {}).forEach(([key, value]) => {
     if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
   });
 
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const response = await fetch(url, { signal, headers: { Accept: "application/json" } });
   let payload: unknown;
   try {
     payload = await response.json();
@@ -46,7 +46,7 @@ export const api = {
   searchAirports: (query: string) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }),
   flights: (airport: string, date: string, mode: FlightMode) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }),
-  liveFlights: (bounds: Bounds) => request<LiveFlightsResponse>("/api/live-flights", { ...bounds }),
+  liveFlights: (bounds: Bounds, signal?: AbortSignal) => request<LiveFlightsResponse>("/api/live-flights", { ...bounds }, signal),
   track: (icao24: string, time = 0) => request<TrackResponse>("/api/track", { icao24, time }),
 };
 

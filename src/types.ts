@@ -17,6 +17,7 @@ export interface HealthResponse {
   success: boolean;
   airports_loaded: number;
   credentials_configured: boolean;
+  live_available?: boolean;
   server_time_utc: string;
 }
 

@@ -45,3 +45,20 @@ test("supports the mobile search sheet", async ({ page, isMobile }) => {
   await expect(page.getByRole("complementary", { name: "Flight search controls" })).toBeVisible();
   await page.getByRole("complementary", { name: "Flight search controls" }).getByRole("button", { name: "Close search" }).click();
 });
+
+
+test("closing a shared flight keeps it closed", async ({ page }) => {
+  await page.goto('/?airport=LFPG&date=2026-07-10&mode=departure&icao24=39abcd');
+  await expect(page.getByRole('complementary', {name: 'Selected flight details'})).toBeVisible();
+  await page.getByRole('button', {name: 'Close flight details'}).click();
+  await expect(page.getByRole('complementary', {name: 'Selected flight details'})).toHaveCount(0);
+  await expect(page).not.toHaveURL(/icao24=/);
+});
+
+test("airport suggestions dismiss when leaving the field", async ({page, isMobile}) => {
+  if (isMobile) await page.getByRole('button', {name: 'Open flight search'}).click();
+  await page.getByRole('combobox', {name: 'Airport'}).click();
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await page.getByRole('complementary', {name: 'Flight search controls'}).click({position: {x: 10, y: 10}});
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+});

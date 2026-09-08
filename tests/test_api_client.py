@@ -1,3 +1,4 @@
+import pytest
 from unittest.mock import Mock, patch
 
 import requests
@@ -109,7 +110,7 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
 
     result = client.get_states(bbox=(47.0, 1.0, 50.0, 4.0), extended=True)
 
-    assert result["provider"] == "airplanes.live"
+    assert result["provider"] == "adsb.lol"
     assert len(result["states"]) == 1
     state = result["states"][0]
     assert state[0] == "abc123"
@@ -119,7 +120,7 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     assert state[10] == 90
     assert state[11] == 2.54
     request_url = client.session.get.call_args.args[0]
-    assert request_url.startswith("https://api.airplanes.live/v2/point/")
+    assert request_url.startswith("https://api.adsb.lol/v2/point/")
 
 
 def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
@@ -165,3 +166,25 @@ def test_vercel_track_fallback_builds_altitude_path(monkeypatch):
         [1_750_000_000, 48.0, 2.0, 0.0, 90, True],
         [1_750_000_060, 48.1, 2.1, 3048.0, 95, False],
     ]
+
+
+def test_live_provider_outage_uses_independent_fallback(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    response = _json_response({"ac": [], "now": 1750000000000})
+    response.raise_for_status = Mock()
+    client.session.get = Mock(side_effect=[requests.HTTPError("503"), response])
+    result = client.get_states(bbox=(48, 2, 49, 3))
+    assert result["provider"] == "airplanes.live"
+    assert result["states"] == []
+    assert client.session.get.call_count == 2
+
+
+def test_all_live_providers_unavailable(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    client.session.get = Mock(side_effect=requests.Timeout("timeout"))
+    with pytest.raises(OpenSkyAPIError) as error:
+        client.get_states(bbox=(48, 2, 49, 3))
+    assert error.value.status_code == 503
+    assert client.session.get.call_count == 2
