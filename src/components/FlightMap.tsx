@@ -124,13 +124,16 @@ export function FlightMap({
   });
 
   useEffect(() => {
-    if (liveQuery.data && !liveQuery.isPlaceholderData) setLastLiveData(liveQuery.data);
+    if (liveQuery.data && !liveQuery.data.degraded && !liveQuery.isPlaceholderData) setLastLiveData(liveQuery.data);
   }, [liveQuery.data, liveQuery.isPlaceholderData]);
 
-  const displayedLiveData = liveQuery.data ?? lastLiveData;
+  const displayedLiveData = liveQuery.data?.degraded && lastLiveData
+    ? lastLiveData
+    : (liveQuery.data ?? lastLiveData);
+  const hasLiveSnapshot = Boolean(lastLiveData || (liveQuery.data && !liveQuery.data.degraded));
   const displayedLiveStates = displayedLiveData?.states ?? [];
-  const liveStatus = liveQuery.isError
-    ? displayedLiveData ? "Live update unavailable · showing last snapshot" : "Live traffic temporarily unavailable"
+  const liveStatus = liveQuery.isError || liveQuery.data?.degraded
+    ? hasLiveSnapshot ? "Live update unavailable · showing last snapshot" : liveQuery.data?.notice ?? "Live traffic temporarily unavailable"
     : liveQuery.isPending
       ? "Loading live traffic…"
       : liveQuery.isFetching

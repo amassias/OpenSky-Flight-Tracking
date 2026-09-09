@@ -629,7 +629,20 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             raise ValueError("Invalid bounding box ordering.")
 
         time_sec = _safe_int(time_param) if time_param else None
-        states = api_client.get_states(bbox=bbox, extended=True, time_sec=time_sec)
+        try:
+            states = api_client.get_states(bbox=bbox, extended=True, time_sec=time_sec)
+        except OpenSkyAPIError as exc:
+            if not (os.getenv("VERCEL") and (exc.status_code is None or exc.status_code >= 500)):
+                raise
+            return {
+                "success": True,
+                "time": None,
+                "time_iso": None,
+                "count": 0,
+                "states": [],
+                "degraded": True,
+                "notice": "Live traffic is temporarily unavailable. Keeping the last snapshot when available.",
+            }
         parsed_states = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
 
         return {

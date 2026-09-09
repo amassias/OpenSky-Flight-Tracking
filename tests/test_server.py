@@ -85,6 +85,21 @@ def test_live_flights_normalizes_state_vectors():
     assert payload["states"][0]["category"] == 4
 
 
+def test_vercel_live_provider_outage_returns_degraded_success(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    fake_client = Mock()
+    fake_client.get_states.side_effect = OpenSkyAPIError("provider timeout", status_code=503)
+
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_live_flights(48, 2, 49, 3)
+
+    assert payload["success"] is True
+    assert payload["degraded"] is True
+    assert payload["count"] == 0
+    assert payload["states"] == []
+    assert payload["notice"]
+
+
 def test_track_returns_graceful_empty_result():
     fake_client = Mock()
     fake_client.get_track.return_value = {}

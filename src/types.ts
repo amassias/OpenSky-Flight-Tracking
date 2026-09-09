@@ -81,6 +81,8 @@ export interface LiveFlightsResponse {
   time_iso: string | null;
   count: number;
   states: LiveAircraft[];
+  degraded?: boolean;
+  notice?: string;
 }
 
 export type TrackPoint = [number, number, number, number | null, number | null, boolean | null];
