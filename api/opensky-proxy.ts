@@ -21,6 +21,13 @@ interface UpstreamResponse {
   body: string;
 }
 
+class OpenSkyProxyError extends Error {
+  constructor(public readonly statusCode: number, message: string) {
+    super(message);
+    this.name = "OpenSkyProxyError";
+  }
+}
+
 function openskyRequest(
   hostname: string,
   path: string,
@@ -79,7 +86,7 @@ async function accessToken() {
     },
     body,
   );
-  if (response.status >= 400) throw new Error(`OpenSky authentication failed (${response.status}).`);
+  if (response.status >= 400) throw new OpenSkyProxyError(response.status, `OpenSky authentication failed (${response.status}).`);
   const payload = JSON.parse(response.body) as { access_token?: string; expires_in?: number };
   if (!payload.access_token) throw new Error("OpenSky did not return an access token.");
   cachedToken = payload.access_token;
@@ -129,7 +136,10 @@ export default async function handler(request: IncomingMessage, response: Server
     response.setHeader("Cache-Control", "no-store");
     response.end(upstream.body);
   } catch (error) {
-    sendJson(response, 502, {
+    const status = error instanceof OpenSkyProxyError && error.statusCode >= 400 && error.statusCode < 500
+      ? error.statusCode
+      : 502;
+    sendJson(response, status, {
       success: false,
       error: error instanceof Error ? error.message : "OpenSky proxy request failed.",
     });
