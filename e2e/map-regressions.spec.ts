@@ -38,7 +38,8 @@ test('clock does not rewrite aircraft DOM', async ({page}) => {
   expect(mutations).toBe(0);
 });
 
-test('keeps the last live snapshot when a zoom refresh fails', async ({page}) => {
+test('keeps the last live snapshot when a zoom refresh fails', async ({page, isMobile}) => {
+  test.skip(isMobile, 'Wheel zoom is not available in mobile WebKit.');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   await page.unroute('**/api/**');
   await page.route('**/api/live-flights**', route => route.fulfill({
