@@ -5,13 +5,14 @@ const airport = {
   country: "FR", region: "Île-de-France", latitude: 49.0097, longitude: 2.5479,
 };
 
-async function mockApi(page: Page) {
+async function mockApi(page: Page, options: { historyUnavailable?: boolean } = {}) {
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown;
     if (path === "/api/health") body = { success: true, airports_loaded: 7895, credentials_configured: true, server_time_utc: new Date().toISOString() };
     else if (path === "/api/airports" || path === "/api/search-airports") body = [airport];
     else if (path === "/api/live-flights") body = { success: true, time: 1_752_000_000, count: 1, states: [{ icao24: "39abcd", callsign: "AFR123", latitude: 49.1, longitude: 2.7, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false, data_source: "live-nearby" }] };
+    else if (path === "/api/flights" && options.historyUnavailable) body = { success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 0, summary: { total: 0, live_airborne: 0, live_on_ground: 0, unique_airlines: 0 }, flights: [], source: "unavailable", notice: "OpenSky history is temporarily unavailable. Live traffic remains available on the map." };
     else if (path === "/api/flights") body = { success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 1, live_on_ground: 0, unique_airlines: 1 }, flights: [{ icao24: "39abcd", callsign: "AFR123", airline_name: "Air France", departure_airport: "LFPG", departure_airport_name: airport.name, arrival_airport: "EGLL", arrival_airport_name: "London Heathrow", first_seen: 1_752_000_000, last_seen: 1_752_004_000, primary_time: 1_752_000_000, latitude: 49.1, longitude: 2.7, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false, status: "airborne" }] };
     else if (path === "/api/flight-info") body = { success: true, icao24: "39abcd", callsign: "AFR123", airline_code: "AFR", airline_name: "Air France", departure_airport: "LFPG", departure_airport_name: airport.name, arrival_airport: "RKSI", arrival_airport_name: "Incheon International Airport", route_source: "callsign", route_provider: "ADSBDB" };
     else if (path === "/api/track") body = { success: true, path_count: 3, track: { path: [[1_752_000_000, 49.0, 2.55, 1000, 60, false], [1_752_001_000, 49.1, 2.7, 5000, 70, false], [1_752_002_000, 49.3, 3.0, 8400, 72, false]] } };
@@ -73,6 +74,14 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page.getByText("Estimated from callsign")).toBeVisible();
   await expect(page.getByText("Incheon International Airport")).toBeVisible();
+});
+
+test("keeps airport results populated from the live map snapshot when history is unavailable", async ({ page }) => {
+  await page.unroute("**/api/**");
+  await mockApi(page, { historyUnavailable: true });
+  await page.goto("/?airport=LFPG&date=2026-07-10&mode=departure");
+  await expect(page.getByRole("heading", { name: "Live traffic around CDG" })).toBeVisible();
+  await expect(page.getByText("Live near airport").first()).toBeVisible();
 });
 
 test("shows a location marker after the user grants geolocation", async ({ page, context }) => {

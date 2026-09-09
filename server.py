@@ -47,6 +47,8 @@ POPULAR_AIRPORTS = [
     "RJTT",
 ]
 
+LIVE_SNAPSHOT_CACHE_SECONDS = 60
+
 
 def _safe_int(value, default=None):
     try:
@@ -492,12 +494,29 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         )
         try:
             states_payload = api_client.get_states(bbox=bbox, extended=True)
-        except OpenSkyAPIError as exc:
-            return []
+            now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
+            parsed_states = self._parse_states((states_payload or {}).get("states", []))
+            self._cache_live_snapshot(parsed_states, now)
+        except OpenSkyAPIError:
+            # The map may already have a successful snapshot while this
+            # history request hits a transient provider error. Reuse that
+            # snapshot briefly so the airport panel stays in sync with the
+            # aircraft the user can see on the map.
+            cached = getattr(self, "_live_snapshot_cache", None)
+            if not isinstance(cached, dict) or time.time() - cached.get("cached_at", 0) > LIVE_SNAPSHOT_CACHE_SECONDS:
+                return []
+            now = _safe_int(cached.get("time"), default=int(time.time()))
+            parsed_states = [
+                state for state in cached.get("states", [])
+                if isinstance(state, dict)
+                and state.get("latitude") is not None
+                and state.get("longitude") is not None
+                and bbox[0] <= state["latitude"] <= bbox[2]
+                and bbox[1] <= state["longitude"] <= bbox[3]
+            ]
 
-        now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
         nearby = []
-        for state in self._parse_states((states_payload or {}).get("states", [])):
+        for state in parsed_states:
             icao24 = (state.get("icao24") or "").strip().lower()
             if not icao24:
                 continue
@@ -534,6 +553,13 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 }
             )
         return nearby
+
+    def _cache_live_snapshot(self, states, timestamp):
+        self._live_snapshot_cache = {
+            "cached_at": time.time(),
+            "time": timestamp,
+            "states": states,
+        }
 
     def _flights_response(self, airport, mode, target_date, flights, *, source="opensky", notice=None):
         unique_airlines = {
@@ -656,6 +682,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 "notice": "Live traffic is temporarily unavailable. Keeping the last snapshot when available.",
             }
         parsed_states = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
+        self._cache_live_snapshot(parsed_states, states.get("time") if isinstance(states, dict) else None)
 
         return {
             "success": True,

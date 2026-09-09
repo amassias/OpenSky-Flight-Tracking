@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "lucide-react";
 import { api, readableApiError } from "./api";
@@ -8,13 +8,27 @@ import { FlightList } from "./components/FlightList";
 import { FlightMap } from "./components/FlightMap";
 import { Topbar } from "./components/Topbar";
 import { usePersistentState } from "./hooks/usePersistentState";
-import type { Airport, Flight, FlightMode, MapTheme } from "./types";
+import type { Airport, Flight, FlightMode, LiveFlightsResponse, MapTheme } from "./types";
 import { todayUtc } from "./utils";
 
 interface FlightRequest {
   airport: Airport;
   date: string;
   mode: FlightMode;
+}
+
+interface LiveFallbackSnapshot {
+  airportIcao: string | null;
+  data: LiveFlightsResponse;
+}
+
+function liveSnapshotSummary(flights: Flight[]) {
+  return {
+    total: flights.length,
+    live_airborne: flights.filter((flight) => flight.status === "airborne" || flight.on_ground === false).length,
+    live_on_ground: flights.filter((flight) => flight.status === "on_ground" || flight.on_ground === true).length,
+    unique_airlines: new Set(flights.map((flight) => flight.airline_code).filter(Boolean)).size,
+  };
 }
 
 export function App() {
@@ -32,8 +46,13 @@ export function App() {
   const [mobileResultsExpanded, setMobileResultsExpanded] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
+
+  const handleLiveSnapshot = useCallback((data: LiveFlightsResponse, airportIcao: string | null) => {
+    setLiveFallbackSnapshot({ data, airportIcao });
+  }, []);
 
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, retry: false });
   const liveAvailable = health.data?.live_available ?? health.data?.credentials_configured ?? false;
@@ -147,8 +166,20 @@ export function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [mapExpanded, mobileControlsOpen, selectedFlight]);
 
-  const summary = flights.data?.summary;
-  const showingLiveFallback = flights.data?.source === "live-nearby";
+  const clientLiveFallback = Boolean(
+    flights.data?.source === "unavailable"
+      && request
+      && liveFallbackSnapshot?.airportIcao === request.airport.icao
+      && liveFallbackSnapshot.data.states.length,
+  );
+  const displayedFlights = clientLiveFallback ? liveFallbackSnapshot?.data.states ?? [] : flights.data?.flights ?? [];
+  const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback;
+  const summary = clientLiveFallback
+    ? liveSnapshotSummary(displayedFlights)
+    : flights.data?.summary;
+  const displayNotice = clientLiveFallback
+    ? `OpenSky history is unavailable for ${request?.date}. Showing the live map snapshot around ${request?.airport.icao}; these are not recorded ${request?.mode}s.`
+    : flights.data?.notice;
   const requestTitle = request
     ? showingLiveFallback
       ? `Live traffic around ${request.airport.iata || request.airport.icao}`
@@ -164,6 +195,7 @@ export function App() {
     const nextRequest = { airport: selectedAirport, date, mode };
     setRequest(nextRequest);
     setSelectedFlight(null);
+    setLiveFallbackSnapshot(null);
     setRecent([selectedAirport, ...recent.filter((item) => item.icao !== selectedAirport.icao)].slice(0, 6));
     setMobileControlsOpen(false);
   }
@@ -207,6 +239,7 @@ export function App() {
           onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}
           onSelectFlight={setSelectedFlight}
+          onLiveSnapshot={handleLiveSnapshot}
         />
 
         <aside className={`query-panel glass-panel ${mobileControlsOpen ? "mobile-open" : ""}`} aria-label="Flight search controls">
@@ -278,11 +311,11 @@ export function App() {
             <div><strong className="mono">{summary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>
           </div>
           <FlightList
-            flights={flights.data?.flights ?? []}
+            flights={displayedFlights}
             selectedFlight={selectedFlight}
             loading={flights.isFetching}
             errorMessage={flights.error ? readableApiError(flights.error) : undefined}
-            notice={flights.data?.notice}
+            notice={displayNotice}
             hasSearched={Boolean(request)}
             onSelect={setSelectedFlight}
             onRetry={() => flights.refetch()}

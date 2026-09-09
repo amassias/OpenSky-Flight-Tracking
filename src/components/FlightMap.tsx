@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import L from "leaflet";
 import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
@@ -162,6 +162,7 @@ interface FlightMapProps {
   onToggleLive: () => void;
   onToggleExpanded: () => void;
   onSelectFlight: (flight: Flight) => void;
+  onLiveSnapshot?: (data: LiveFlightsResponse, airportIcao: string | null) => void;
 }
 
 export function FlightMap({
@@ -175,12 +176,17 @@ export function FlightMap({
   onToggleLive,
   onToggleExpanded,
   onSelectFlight,
+  onLiveSnapshot,
 }: FlightMapProps) {
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [locateRequest, setLocateRequest] = useState(0);
   const [lastLiveData, setLastLiveData] = useState<LiveFlightsResponse | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const airportIcaoRef = useRef<string | null>(airport?.icao ?? null);
+  useEffect(() => {
+    airportIcaoRef.current = airport?.icao ?? null;
+  }, [airport?.icao]);
   const area = bounds ? Math.abs(bounds.lamax - bounds.lamin) * Math.abs(bounds.lomax - bounds.lomin) : Infinity;
   const liveQuery = useQuery({
     queryKey: ["live-flights", bounds],
@@ -194,8 +200,10 @@ export function FlightMap({
   });
 
   useEffect(() => {
-    if (liveQuery.data && !liveQuery.data.degraded && !liveQuery.isPlaceholderData) setLastLiveData(liveQuery.data);
-  }, [liveQuery.data, liveQuery.isPlaceholderData]);
+    if (!liveQuery.data || liveQuery.data.degraded || liveQuery.isPlaceholderData) return;
+    setLastLiveData(liveQuery.data);
+    onLiveSnapshot?.(liveQuery.data, airportIcaoRef.current);
+  }, [liveQuery.data, liveQuery.isPlaceholderData, onLiveSnapshot]);
 
   const displayedLiveData = liveQuery.data?.degraded && lastLiveData
     ? lastLiveData

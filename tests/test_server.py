@@ -89,6 +89,28 @@ def test_vercel_history_outage_keeps_past_airport_search_useful(monkeypatch):
     fake_client.get_states.assert_called_once()
 
 
+def test_history_fallback_reuses_recent_live_snapshot_when_provider_blips(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    live_state = [
+        "39abcd", "AFR123 ", "France", 1_750_000_000, 1_750_000_001,
+        2.55, 49.01, 9_000, False, 210, 95, 0, None, 9_100, "7000", False, 0, 4,
+    ]
+    fake_client = Mock()
+    fake_client.get_states.return_value = {"time": 1_750_000_001, "states": [live_state]}
+    fake_client.get_departures.side_effect = OpenSkyAPIError("history timeout", status_code=502)
+    service = handler()
+
+    with patch.object(server, "api_client", fake_client):
+        live_payload = service.handle_live_flights(48.7, 2.1, 49.3, 3.0)
+        fake_client.get_states.side_effect = OpenSkyAPIError("live provider timeout", status_code=503)
+        history_payload = service.handle_flights("LFPG", "2026-09-09", "departure")
+
+    assert live_payload["count"] == 1
+    assert history_payload["source"] == "live-nearby"
+    assert history_payload["summary"]["total"] == 1
+    assert fake_client.get_states.call_count == 2
+
+
 def test_live_flights_validates_bounds():
     with pytest.raises(ValueError, match="ordering"):
         handler().handle_live_flights(50, 3, 49, 2)
