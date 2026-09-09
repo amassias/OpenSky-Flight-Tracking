@@ -11,6 +11,7 @@ interface FlightListProps {
   selectedFlight: Flight | null;
   loading: boolean;
   errorMessage?: string;
+  notice?: string;
   hasSearched: boolean;
   onSelect: (flight: Flight) => void;
   onRetry: () => void;
@@ -54,6 +55,7 @@ export function FlightList({
   selectedFlight,
   loading,
   errorMessage,
+  notice,
   hasSearched,
   onSelect,
   onRetry,
@@ -113,6 +115,8 @@ export function FlightList({
         </label>
       </div>
 
+      {notice && <div className="data-notice-inline" role="status">{notice}</div>}
+
       <div className="flight-list" aria-live="polite" aria-busy={loading}>
         {loading && Array.from({ length: 5 }, (_, index) => <div className="flight-card skeleton" key={index} />)}
         {!loading && errorMessage && (
@@ -126,8 +130,9 @@ export function FlightList({
         {!loading && !errorMessage && hasSearched && flights.length === 0 && (
           <div className="message-state">
             <Plane size={26} aria-hidden="true" />
-            <h3>No movements found</h3>
-            <p>OpenSky has no recorded flights for this airport and UTC date. Try the previous day.</p>
+            <h3>{notice ? "Historical data unavailable" : "No movements found"}</h3>
+            <p>{notice || "OpenSky has no recorded flights for this airport and UTC date. Try the previous day."}</p>
+            {notice && <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>}
           </div>
         )}
         {!loading && !errorMessage && flights.length > 0 && visibleFlights.length === 0 && (

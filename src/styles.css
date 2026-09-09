@@ -284,6 +284,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .theme-light .details-drawer, .theme-light .leaflet-popup-content-wrapper, .theme-light .leaflet-popup-tip { background: var(--panel-solid); }
 .theme-light .route { color: var(--text); }
 .compact-search input::placeholder { color: var(--quiet); }
+.data-notice-inline { margin: 0 20px 10px; padding: 9px 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 9px; background: var(--accent-soft); font-size: 10px; line-height: 1.45; }
 .flight-card { content-visibility: auto; contain-intrinsic-size: auto 74px; }
 @media (max-width: 900px) {
   .query-panel:not(.mobile-open) { visibility: hidden; }

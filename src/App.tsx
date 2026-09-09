@@ -251,6 +251,7 @@ export function App() {
             selectedFlight={selectedFlight}
             loading={flights.isFetching}
             errorMessage={flights.error ? readableApiError(flights.error) : undefined}
+            notice={flights.data?.notice}
             hasSearched={Boolean(request)}
             onSelect={setSelectedFlight}
             onRetry={() => flights.refetch()}

@@ -467,6 +467,97 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 flight["status"] = "unknown"
 
+    def _live_nearby_flights(self, airport):
+        """Return a clearly labelled live snapshot for a history outage.
+
+        This is intentionally limited to the current airport area. A live
+        position is not presented as a historical departure or arrival.
+        """
+        metadata = self._airport_payload(airport)
+        latitude = metadata.get("latitude")
+        longitude = metadata.get("longitude")
+        if latitude is None or longitude is None:
+            return []
+
+        bbox = (
+            max(-90.0, latitude - 0.3),
+            max(-180.0, longitude - 0.45),
+            min(90.0, latitude + 0.3),
+            min(180.0, longitude + 0.45),
+        )
+        try:
+            states_payload = api_client.get_states(bbox=bbox, extended=True)
+        except OpenSkyAPIError:
+            return []
+
+        now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
+        nearby = []
+        for state in self._parse_states((states_payload or {}).get("states", [])):
+            icao24 = (state.get("icao24") or "").strip().lower()
+            if not icao24:
+                continue
+            callsign = (state.get("callsign") or "").strip()
+            airline_code = "".join(ch for ch in callsign[:3] if ch.isalpha()).upper()
+            timestamp = state.get("time_position") or state.get("last_contact") or now
+            nearby.append(
+                {
+                    "icao24": icao24,
+                    "callsign": callsign,
+                    "airline_code": airline_code,
+                    "airline_name": get_airline_name(airline_code) if airline_code else "",
+                    "first_seen": timestamp,
+                    "last_seen": timestamp,
+                    "first_seen_iso": _iso_from_timestamp(timestamp),
+                    "last_seen_iso": _iso_from_timestamp(timestamp),
+                    "primary_time": timestamp,
+                    "primary_time_iso": _iso_from_timestamp(timestamp),
+                    "departure_airport": None,
+                    "departure_airport_name": None,
+                    "arrival_airport": None,
+                    "arrival_airport_name": None,
+                    "status": "on_ground" if state.get("on_ground") is True else "airborne" if state.get("on_ground") is False else "unknown",
+                    "latitude": state.get("latitude"),
+                    "longitude": state.get("longitude"),
+                    "baro_altitude": state.get("baro_altitude"),
+                    "geo_altitude": state.get("geo_altitude"),
+                    "velocity": state.get("velocity"),
+                    "true_track": state.get("true_track"),
+                    "vertical_rate": state.get("vertical_rate"),
+                    "on_ground": state.get("on_ground"),
+                    "category": state.get("category"),
+                    "data_source": "live-nearby",
+                }
+            )
+        return nearby
+
+    def _flights_response(self, airport, mode, target_date, flights, *, source="opensky", notice=None):
+        unique_airlines = {
+            flight.get("airline_code")
+            for flight in flights
+            if flight.get("airline_code") and flight.get("airline_code") != ""
+        }
+        summary = {
+            "total": len(flights),
+            "live_airborne": sum(1 for f in flights if f.get("status") == "airborne"),
+            "live_on_ground": sum(1 for f in flights if f.get("status") == "on_ground"),
+            "unique_airlines": len(unique_airlines),
+        }
+        return {
+            "success": True,
+            "airport": airport,
+            "airport_meta": self._airport_payload(airport),
+            "airport_name": self._airport_name(airport),
+            "mode": mode,
+            "date": target_date.isoformat(),
+            "date_basis": "UTC",
+            "count": len(flights),
+            "summary": summary,
+            "flights": flights,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "source": source,
+            "notice": notice,
+        }
+
     def handle_flights(self, airport_icao, date_str, mode):
         airport = _validate_airport_icao(airport_icao)
         target_date = _parse_utc_date(date_str)
@@ -481,10 +572,29 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         begin_ts = int(start_utc.timestamp())
         end_ts = int(end_utc.timestamp())
 
-        if mode_normalized == "arrival":
-            records = api_client.get_arrivals(airport, begin_ts, end_ts)
-        else:
-            records = api_client.get_departures(airport, begin_ts, end_ts)
+        try:
+            if mode_normalized == "arrival":
+                records = api_client.get_arrivals(airport, begin_ts, end_ts)
+            else:
+                records = api_client.get_departures(airport, begin_ts, end_ts)
+        except OpenSkyAPIError as exc:
+            if not (os.getenv("VERCEL") and (exc.status_code is None or exc.status_code >= 500)):
+                raise
+            live_flights = self._live_nearby_flights(airport) if target_date == datetime.now(timezone.utc).date() else []
+            live_flights.sort(key=lambda item: item.get("primary_time") or 0, reverse=True)
+            notice = (
+                f"OpenSky history is temporarily unavailable. Showing live traffic around {airport}."
+                if live_flights
+                else "OpenSky history is temporarily unavailable. Live traffic remains available on the map."
+            )
+            return self._flights_response(
+                airport,
+                mode_normalized,
+                target_date,
+                live_flights,
+                source="live-nearby" if live_flights else "unavailable",
+                notice=notice,
+            )
 
         if not isinstance(records, list):
             raise OpenSkyAPIError("OpenSky returned an invalid flight list.", payload={"response_type": type(records).__name__})
@@ -499,31 +609,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         sort_key = "first_seen" if mode_normalized == "departure" else "last_seen"
         flights.sort(key=lambda item: item.get(sort_key) or 0, reverse=True)
 
-        unique_airlines = {
-            flight.get("airline_code")
-            for flight in flights
-            if flight.get("airline_code") and flight.get("airline_code") != ""
-        }
-        summary = {
-            "total": len(flights),
-            "live_airborne": sum(1 for f in flights if f.get("status") == "airborne"),
-            "live_on_ground": sum(1 for f in flights if f.get("status") == "on_ground"),
-            "unique_airlines": len(unique_airlines),
-        }
-
-        return {
-            "success": True,
-            "airport": airport,
-            "airport_meta": self._airport_payload(airport),
-            "airport_name": self._airport_name(airport),
-            "mode": mode_normalized,
-            "date": target_date.isoformat(),
-            "date_basis": "UTC",
-            "count": len(flights),
-            "summary": summary,
-            "flights": flights,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-        }
+        return self._flights_response(airport, mode_normalized, target_date, flights)
 
     def handle_live_flights(self, lamin, lomin, lamax, lomax, time_param=None):
         bbox = (

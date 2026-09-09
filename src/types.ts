@@ -43,6 +43,7 @@ export interface Flight {
   on_ground?: boolean | null;
   status?: FlightStatus;
   origin_country?: string | null;
+  data_source?: "opensky" | "live-nearby";
 }
 
 export interface FlightsResponse {
@@ -62,6 +63,8 @@ export interface FlightsResponse {
   };
   flights: Flight[];
   generated_at: string;
+  source?: "opensky" | "live-nearby" | "unavailable";
+  notice?: string;
 }
 
 export interface LiveAircraft extends Flight {

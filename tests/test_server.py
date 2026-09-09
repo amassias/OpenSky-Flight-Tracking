@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
 
 import server
+from api_client import OpenSkyAPIError
 
 
 def handler():
@@ -42,6 +44,29 @@ def test_flights_normalizes_departures_and_summary():
     assert payload["summary"]["total"] == 1
     assert payload["flights"][0]["callsign"] == "AFR123"
     assert payload["flights"][0]["airline_code"] == "AFR"
+
+
+def test_vercel_history_outage_returns_labelled_live_snapshot(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    today = datetime.now(timezone.utc).date().isoformat()
+    live_state = [
+        "39abcd", "AFR123 ", "France", 1_750_000_000, 1_750_000_001,
+        2.55, 49.01, 9_000, False, 210, 95, 0, None, 9_100, "7000", False, 0, 4,
+    ]
+    fake_client = Mock()
+    fake_client.get_departures.side_effect = OpenSkyAPIError("proxy timeout", status_code=502)
+    fake_client.get_states.return_value = {"time": 1_750_000_001, "states": [live_state]}
+
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_flights("LFPG", today, "departure")
+
+    assert payload["success"] is True
+    assert payload["source"] == "live-nearby"
+    assert payload["notice"]
+    assert payload["summary"]["total"] == 1
+    assert payload["flights"][0]["data_source"] == "live-nearby"
+    assert payload["flights"][0]["departure_airport"] is None
+    fake_client.get_states.assert_called_once()
 
 
 def test_live_flights_validates_bounds():

@@ -36,7 +36,9 @@ function openskyRequest(
         path,
         method,
         headers: { ...headers, Host: hostname },
-        timeout: 30_000,
+        // Fail quickly so the Python handler can return a graceful fallback
+        // instead of holding the browser request for a full serverless timeout.
+        timeout: 8_000,
       },
       (response) => {
         const chunks: Buffer[] = [];
@@ -116,7 +118,11 @@ export default async function handler(request: IncomingMessage, response: Server
       "opensky-network.org",
       upstreamPath,
       "GET",
-      { Authorization: `Bearer ${token}`, Accept: "application/json", "User-Agent": "SkyTrace/2.0" },
+      {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; contact: massias.arthur@gmail.com)",
+      },
     );
     response.statusCode = upstream.status;
     response.setHeader("Content-Type", upstream.headers["content-type"] ?? "application/json");

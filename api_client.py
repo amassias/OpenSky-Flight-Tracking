@@ -125,7 +125,13 @@ class OpenSkyClient:
             url = f"https://opensky-network.org/api{endpoint}"
             request_params = params
 
-        for attempt in range(2):
+        # A Vercel proxy failure is deterministic for this request (the OpenSky
+        # host can block hyperscaler egress), so do not spend a second timeout
+        # retrying it before the caller can use its fallback.
+        request_attempts = 1 if using_proxy else 2
+        request_timeout = min(timeout_sec, 8) if using_proxy else timeout_sec
+
+        for attempt in range(request_attempts):
             headers = (
                 {"X-SkyTrace-Proxy-Secret": str(proxy_secret)}
                 if using_proxy
@@ -139,7 +145,7 @@ class OpenSkyClient:
                     headers=headers,
                     params=request_params,
                     data=data,
-                    timeout=timeout_sec,
+                    timeout=request_timeout,
                 )
             except requests.RequestException as exc:
                 if attempt == 0:
@@ -268,7 +274,10 @@ class OpenSkyClient:
             try:
                 response = self.session.get(
                     f"https://api.{provider}/v2/{endpoint}",
-                    headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
+                    headers={
+                        "Accept-Encoding": "gzip",
+                        "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; contact: massias.arthur@gmail.com)",
+                    },
                     timeout=8,
                 )
                 response.raise_for_status()
