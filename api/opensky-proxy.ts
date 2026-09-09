@@ -38,7 +38,7 @@ function openskyRequest(
         headers: { ...headers, Host: hostname },
         // Fail quickly so the Python handler can return a graceful fallback
         // instead of holding the browser request for a full serverless timeout.
-        timeout: 8_000,
+        timeout: 4_000,
       },
       (response) => {
         const chunks: Buffer[] = [];

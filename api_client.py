@@ -129,7 +129,8 @@ class OpenSkyClient:
         # host can block hyperscaler egress), so do not spend a second timeout
         # retrying it before the caller can use its fallback.
         request_attempts = 1 if using_proxy else 2
-        request_timeout = min(timeout_sec, 8) if using_proxy else timeout_sec
+        proxy_timeout = float(os.getenv("OPEN_SKY_PROXY_TIMEOUT_SECONDS", "3"))
+        request_timeout = min(timeout_sec, max(1.0, proxy_timeout)) if using_proxy else timeout_sec
 
         for attempt in range(request_attempts):
             headers = (
