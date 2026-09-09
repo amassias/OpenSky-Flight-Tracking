@@ -3,8 +3,8 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
-import { api, readableApiError } from "../api";
-import type { Airport, Bounds, Flight, LiveAircraft, MapTheme, TrackResponse } from "../types";
+import { api } from "../api";
+import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
 import { formatAltitude, formatSpeed } from "../utils";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
@@ -110,6 +110,7 @@ export function FlightMap({
 }: FlightMapProps) {
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [locateRequest, setLocateRequest] = useState(0);
+  const [lastLiveData, setLastLiveData] = useState<LiveFlightsResponse | null>(null);
   const area = bounds ? Math.abs(bounds.lamax - bounds.lamin) * Math.abs(bounds.lomax - bounds.lomin) : Infinity;
   const liveQuery = useQuery({
     queryKey: ["live-flights", bounds],
@@ -121,6 +122,20 @@ export function FlightMap({
     refetchInterval: liveEnabled ? 15_000 : false,
     retry: false,
   });
+
+  useEffect(() => {
+    if (liveQuery.data && !liveQuery.isPlaceholderData) setLastLiveData(liveQuery.data);
+  }, [liveQuery.data, liveQuery.isPlaceholderData]);
+
+  const displayedLiveData = liveQuery.data ?? lastLiveData;
+  const displayedLiveStates = displayedLiveData?.states ?? [];
+  const liveStatus = liveQuery.isError
+    ? displayedLiveData ? "Live update unavailable · showing last snapshot" : "Live traffic temporarily unavailable"
+    : liveQuery.isPending
+      ? "Loading live traffic…"
+      : liveQuery.isFetching
+        ? "Updating live traffic…"
+        : `${displayedLiveData?.count ?? 0} aircraft in view`;
 
   const trackPositions = useMemo(
     () => (track?.track.path ?? []).map((point) => [point[1], point[2]] as [number, number]),
@@ -143,10 +158,10 @@ export function FlightMap({
         <BoundsReporter onBounds={setBounds} />
         <MapController airport={airport} flight={selectedFlight} track={track} locateRequest={locateRequest} />
         {trackPositions.length > 1 && <Polyline positions={trackPositions} pathOptions={{ color: "#7ff4c9", weight: 4, opacity: 0.88 }} />}
-        {liveQuery.data?.states.map((aircraft) => (
+        {displayedLiveStates.map((aircraft) => (
           <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
         ))}
-        {selectedFlight?.latitude != null && selectedFlight.longitude != null && !liveQuery.data?.states.some((item) => item.icao24 === selectedFlight.icao24) && (
+        {selectedFlight?.latitude != null && selectedFlight.longitude != null && !displayedLiveStates.some((item) => item.icao24 === selectedFlight.icao24) && (
           <Marker position={[selectedFlight.latitude, selectedFlight.longitude]} icon={selectedIcon} />
         )}
       </MapContainer>
@@ -159,7 +174,7 @@ export function FlightMap({
       </div>
       <div className="live-badge" aria-live="polite">
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
-        {!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : liveQuery.isError ? readableApiError(liveQuery.error) : liveEnabled ? liveQuery.isPending ? "Loading live traffic…" : liveQuery.isFetching ? "Updating live traffic…" : `${liveQuery.data?.count ?? 0} aircraft in view` : "Live traffic paused"}
+        {!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : !liveEnabled ? "Live traffic paused" : liveStatus}
       </div>
       <div className="map-controls">
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>

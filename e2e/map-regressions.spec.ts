@@ -37,3 +37,19 @@ test('clock does not rewrite aircraft DOM', async ({page}) => {
   console.log(`Aircraft DOM mutations over 2.2s: ${mutations}`);
   expect(mutations).toBe(0);
 });
+
+test('keeps the last live snapshot when a zoom refresh fails', async ({page}) => {
+  await expect(page.locator('.aircraft-marker')).toHaveCount(300);
+  await page.unroute('**/api/**');
+  await page.route('**/api/live-flights**', route => route.fulfill({
+    status: 502,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: false, error: 'upstream timeout' }),
+  }));
+
+  await page.locator('.leaflet-map').hover();
+  await page.mouse.wheel(0, -280);
+  await expect(page.locator('.live-badge')).toContainText('Live update unavailable · showing last snapshot');
+  await expect(page.locator('.live-badge')).not.toContainText('Your search is preserved');
+  await expect(page.locator('.aircraft-marker')).toHaveCount(300);
+});
