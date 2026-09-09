@@ -78,8 +78,8 @@ def live_flights(
 
 @app.get("/flight-info")
 @app.get("/api/flight-info")
-def flight_info(icao24: str = ""):
-    return execute(lambda: service.handle_flight_info(icao24))
+def flight_info(icao24: str = "", callsign: str = ""):
+    return execute(lambda: service.handle_flight_info(icao24, callsign))
 
 
 @app.get("/track")

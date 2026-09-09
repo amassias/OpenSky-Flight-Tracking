@@ -83,6 +83,60 @@ def test_live_flights_normalizes_state_vectors():
     assert payload["count"] == 1
     assert payload["states"][0]["callsign"] == "AFR123"
     assert payload["states"][0]["category"] == 4
+    assert payload["states"][0]["data_source"] == "live-nearby"
+
+
+def test_flight_info_resolves_live_route_from_callsign_when_history_is_empty():
+    live_state = [
+        "39abcd", "AFR123 ", "France", 100, 101, 2.7, 49.1, 8400, False, 220, 72, 0,
+        None, 8500, "7000", False, 0, 4,
+    ]
+    fake_client = Mock()
+    fake_client.get_states.return_value = {"states": [live_state]}
+    fake_client.get_flights_by_aircraft.return_value = []
+    fake_client.get_callsign_route.return_value = {
+        "callsign": "AFR123",
+        "airline_code": "AFR",
+        "airline_name": "Air France",
+        "departure_airport": "LFPG",
+        "departure_airport_name": "Charles de Gaulle International Airport",
+        "arrival_airport": "RKSI",
+        "arrival_airport_name": "Incheon International Airport",
+        "route_source": "callsign",
+        "route_provider": "ADSBDB",
+    }
+
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_flight_info("39abcd")
+
+    assert payload["callsign"] == "AFR123"
+    assert payload["departure_airport"] == "LFPG"
+    assert payload["arrival_airport"] == "RKSI"
+    assert payload["route_source"] == "callsign"
+    assert payload["route_provider"] == "ADSBDB"
+    fake_client.get_callsign_route.assert_called_once_with("AFR123")
+
+
+def test_flight_info_uses_browser_callsign_before_slow_opensky_sources():
+    fake_client = Mock()
+    fake_client.get_callsign_route.return_value = {
+        "callsign": "AFR123",
+        "airline_code": "AFR",
+        "airline_name": "Air France",
+        "departure_airport": "LFPG",
+        "departure_airport_name": "Charles de Gaulle International Airport",
+        "arrival_airport": "RKSI",
+        "arrival_airport_name": "Incheon International Airport",
+        "route_source": "callsign",
+        "route_provider": "ADSBDB",
+    }
+
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_flight_info("39abcd", "AFR123")
+
+    assert payload["route_source"] == "callsign"
+    fake_client.get_states.assert_not_called()
+    fake_client.get_flights_by_aircraft.assert_not_called()
 
 
 def test_vercel_live_provider_outage_returns_degraded_success(monkeypatch):

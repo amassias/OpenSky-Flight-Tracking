@@ -2,6 +2,7 @@ import os
 import time
 from math import asin, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
+from urllib.parse import quote
 
 import requests
 from dotenv import load_dotenv
@@ -27,6 +28,7 @@ class OpenSkyClient:
         self.token_expiry = 0.0
         self.oauth_unavailable_until = 0.0
         self.session = requests.Session()
+        self._route_cache: Dict[str, tuple[float, Optional[Dict[str, Any]]]] = {}
 
         if not self.client_id or not self.client_secret:
             print("Warning: OpenSky credentials not found in environment variables.")
@@ -316,6 +318,94 @@ class OpenSkyClient:
             "end": int(end_timestamp),
         }
         return self._make_request("GET", "/flights/departure", params=params, not_found_value=[])
+
+    def get_callsign_route(self, callsign: str) -> Optional[Dict[str, Any]]:
+        """Resolve a live callsign to its current scheduled origin/destination.
+
+        This is a deliberately small, on-demand lookup. It is only called after
+        a user selects a live aircraft and is cached briefly to avoid repeated
+        provider requests while the map refreshes.
+        """
+        if os.getenv("SKYTRACE_ROUTE_LOOKUP_ENABLED", "1").strip().lower() in {"0", "false", "no", "off"}:
+            return None
+
+        normalized = "".join(str(callsign or "").upper().split())
+        if not normalized or len(normalized) > 16 or not all(character.isalnum() or character in "-_" for character in normalized):
+            return None
+
+        now = time.time()
+        cached = self._route_cache.get(normalized)
+        if cached and cached[0] > now:
+            return cached[1]
+
+        base_url = os.getenv("SKYTRACE_ROUTE_API_BASE_URL", "https://api.adsbdb.com/v0/callsign").rstrip("/")
+        url = f"{base_url}/{quote(normalized, safe='')}"
+        try:
+            timeout = float(os.getenv("SKYTRACE_ROUTE_TIMEOUT_SECONDS", "4"))
+            response = self.session.get(
+                url,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; route lookup)",
+                },
+                timeout=timeout,
+            )
+            if response.status_code == 404 or response.status_code >= 400:
+                result = None
+            else:
+                payload = response.json()
+                flight_route = ((payload or {}).get("response") or {}).get("flightroute") if isinstance(payload, dict) else None
+                result = self._normalize_callsign_route(flight_route, normalized)
+        except (requests.RequestException, ValueError, TypeError):
+            result = None
+
+        # Cache both successful and empty responses for a short period so an
+        # unknown callsign cannot create a request on every detail render.
+        ttl = max(30, float(os.getenv("SKYTRACE_ROUTE_CACHE_SECONDS", "300")))
+        if len(self._route_cache) >= 256:
+            oldest_key = min(self._route_cache, key=lambda key: self._route_cache[key][0])
+            self._route_cache.pop(oldest_key, None)
+        self._route_cache[normalized] = (now + ttl, result)
+        return result
+
+    @staticmethod
+    def _normalize_callsign_route(flight_route: Any, callsign: str) -> Optional[Dict[str, Any]]:
+        if not isinstance(flight_route, dict):
+            return None
+
+        airline = flight_route.get("airline") if isinstance(flight_route.get("airline"), dict) else {}
+
+        def airport_value(key: str, field: str):
+            airport = flight_route.get(key)
+            if not isinstance(airport, dict):
+                return None
+            value = airport.get(field)
+            return value if value not in (None, "") else None
+
+        departure = airport_value("origin", "icao_code")
+        arrival = airport_value("destination", "icao_code")
+        if not departure and not arrival:
+            return None
+
+        return {
+            "callsign": str(flight_route.get("callsign") or callsign).strip(),
+            "airline_code": str(airline.get("icao") or "").strip().upper() or None,
+            "airline_name": str(airline.get("name") or "").strip() or None,
+            "departure_airport": str(departure).strip().upper() if departure else None,
+            "departure_airport_iata": airport_value("origin", "iata_code"),
+            "departure_airport_name": airport_value("origin", "name"),
+            "departure_airport_city": airport_value("origin", "municipality"),
+            "departure_latitude": airport_value("origin", "latitude"),
+            "departure_longitude": airport_value("origin", "longitude"),
+            "arrival_airport": str(arrival).strip().upper() if arrival else None,
+            "arrival_airport_iata": airport_value("destination", "iata_code"),
+            "arrival_airport_name": airport_value("destination", "name"),
+            "arrival_airport_city": airport_value("destination", "municipality"),
+            "arrival_latitude": airport_value("destination", "latitude"),
+            "arrival_longitude": airport_value("destination", "longitude"),
+            "route_source": "callsign",
+            "route_provider": "ADSBDB",
+        }
 
     def get_arrivals(self, airport_icao: str, begin_timestamp: int, end_timestamp: int):
         params = {

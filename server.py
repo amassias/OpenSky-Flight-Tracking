@@ -194,7 +194,8 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
             if path == "/api/flight-info":
                 icao24 = query_params.get("icao24", [""])[0]
-                payload = self.handle_flight_info(icao24)
+                callsign = query_params.get("callsign", [""])[0]
+                payload = self.handle_flight_info(icao24, callsign)
                 self.send_json_response(200, payload)
                 return
 
@@ -346,7 +347,9 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         parsed = []
         for state in states_list or []:
             if len(state) > 6 and state[5] is not None and state[6] is not None:
-                parsed.append(self._state_row_to_object(state))
+                parsed_state = self._state_row_to_object(state)
+                parsed_state["data_source"] = "live-nearby"
+                parsed.append(parsed_state)
         return parsed
 
     def _airport_name(self, icao):
@@ -385,6 +388,8 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "departure_airport_name": self._airport_name(departure_airport),
             "arrival_airport": arrival_airport,
             "arrival_airport_name": self._airport_name(arrival_airport),
+            "route_source": "opensky" if departure_airport or arrival_airport else "unknown",
+            "route_provider": "OpenSky" if departure_airport or arrival_airport else None,
             "status": "unknown",
             "latitude": None,
             "longitude": None,
@@ -653,39 +658,104 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "states": parsed_states,
         }
 
-    def handle_flight_info(self, icao24):
+    def handle_flight_info(self, icao24, callsign_param=""):
         code = _validate_icao24(icao24)
+        provided_callsign = (callsign_param or "").strip()
 
         current_state = None
-        states = api_client.get_states(icao24_list=[code], extended=True)
-        if states and states.get("states"):
-            current_state = self._state_row_to_object(states["states"][0])
+        callsign_route = None
+        if provided_callsign:
+            # The browser already has the live callsign. Resolve it first so a
+            # slow historical OpenSky endpoint cannot hold up the details panel.
+            try:
+                callsign_route = api_client.get_callsign_route(provided_callsign)
+            except Exception:
+                callsign_route = None
 
-        end_time = int(time.time())
-        # Keep the interval to 24h to avoid spilling over >2 day partitions.
-        begin_time = end_time - 24 * 3600
-        flights = api_client.get_flights_by_aircraft(code, begin_time, end_time)
+        # For an on-demand live lookup, the selected state already contains the
+        # telemetry shown by the UI. Avoid a second slow OpenSky round trip when
+        # the callsign route was resolved (or explicitly supplied by the UI).
+        flights = []
+        if not provided_callsign:
+            try:
+                states = api_client.get_states(icao24_list=[code], extended=True)
+                if states and states.get("states"):
+                    current_state = self._state_row_to_object(states["states"][0])
+            except OpenSkyAPIError:
+                # Route enrichment should still be useful when the live provider
+                # is unavailable. Historical flight data and the callsign resolver are
+                # independent sources and can fill the details panel separately.
+                pass
+
+            end_time = int(time.time())
+            # Keep the interval to 24h to avoid spilling over >2 day partitions.
+            begin_time = end_time - 24 * 3600
+            try:
+                flights = api_client.get_flights_by_aircraft(code, begin_time, end_time)
+            except OpenSkyAPIError:
+                flights = []
 
         most_recent = None
         if flights:
             flights_sorted = sorted(flights, key=lambda f: _safe_int(f.get("lastSeen"), 0))
             most_recent = flights_sorted[-1]
 
-        departure_airport = (most_recent.get("estDepartureAirport") if most_recent else None) or None
-        arrival_airport = (most_recent.get("estArrivalAirport") if most_recent else None) or None
+        historical_callsign = ((most_recent or {}).get("callsign") or "").strip()
+        current_callsign = (current_state or {}).get("callsign", "").strip()
+        callsign = provided_callsign or current_callsign or historical_callsign
+
+        if callsign and not callsign_route and not provided_callsign:
+            try:
+                callsign_route = api_client.get_callsign_route(callsign)
+            except Exception:
+                # A third-party route resolver is an enrichment only; it must
+                # never turn a valid aircraft selection into an API error.
+                callsign_route = None
+        if not isinstance(callsign_route, dict):
+            callsign_route = None
+
+        historical_departure = (most_recent.get("estDepartureAirport") if most_recent else None) or None
+        historical_arrival = (most_recent.get("estArrivalAirport") if most_recent else None) or None
+        route_departure = (callsign_route or {}).get("departure_airport")
+        route_arrival = (callsign_route or {}).get("arrival_airport")
+        departure_airport = historical_departure or route_departure
+        arrival_airport = historical_arrival or route_arrival
+
+        if historical_departure or historical_arrival:
+            route_source = "mixed" if callsign_route and (not historical_departure or not historical_arrival) else "opensky"
+            route_provider = "OpenSky" if route_source == "opensky" else "OpenSky + ADSBDB"
+        elif callsign_route:
+            route_source = "callsign"
+            route_provider = callsign_route.get("route_provider")
+        else:
+            route_source = "unknown"
+            route_provider = None
+
+        def route_name(airport_code, key):
+            if not airport_code:
+                return (callsign_route or {}).get(key)
+            local_name = self._airport_name(airport_code)
+            external_name = (callsign_route or {}).get(key)
+            if external_name and local_name == str(airport_code).upper():
+                return external_name
+            return local_name
 
         payload = {
             "success": True,
             "icao24": code,
-            "callsign": ((most_recent or {}).get("callsign") or "").strip() or (current_state or {}).get("callsign", ""),
+            "callsign": callsign,
+            "airline_code": (callsign_route or {}).get("airline_code") or ("".join(ch for ch in callsign[:3] if ch.isalpha()).upper() if callsign else ""),
+            "airline_name": (callsign_route or {}).get("airline_name") or "",
             "departure_airport": departure_airport,
-            "departure_airport_name": self._airport_name(departure_airport),
+            "departure_airport_name": route_name(departure_airport, "departure_airport_name"),
             "arrival_airport": arrival_airport,
-            "arrival_airport_name": self._airport_name(arrival_airport),
+            "arrival_airport_name": route_name(arrival_airport, "arrival_airport_name"),
             "first_seen": _safe_int((most_recent or {}).get("firstSeen")),
             "last_seen": _safe_int((most_recent or {}).get("lastSeen")),
             "first_seen_iso": _iso_from_timestamp((most_recent or {}).get("firstSeen")),
             "last_seen_iso": _iso_from_timestamp((most_recent or {}).get("lastSeen")),
+            "route_source": route_source,
+            "route_provider": route_provider,
             "live_state": current_state,
         }
 

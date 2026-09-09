@@ -2,6 +2,7 @@ import type {
   Airport,
   Bounds,
   FlightMode,
+  FlightInfoResponse,
   FlightsResponse,
   HealthResponse,
   LiveFlightsResponse,
@@ -47,6 +48,7 @@ export const api = {
   flights: (airport: string, date: string, mode: FlightMode) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }),
   liveFlights: (bounds: Bounds, signal?: AbortSignal) => request<LiveFlightsResponse>("/api/live-flights", { ...bounds }, signal),
+  flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
   track: (icao24: string, time = 0) => request<TrackResponse>("/api/track", { icao24, time }),
 };
 

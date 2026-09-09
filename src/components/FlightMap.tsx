@@ -5,7 +5,8 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
-import { formatAltitude, formatSpeed } from "../utils";
+import { altitudeColor, formatAltitude, formatSpeed } from "../utils";
+import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 
@@ -56,6 +57,37 @@ interface MapControllerProps {
   flight: Flight | null;
   track?: TrackResponse;
   locateRequest: number;
+}
+
+interface TrackSegment {
+  positions: [number, number][];
+  color: string;
+}
+
+function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): TrackSegment[] {
+  const segments: TrackSegment[] = [];
+  for (let index = 1; index < path.length; index += 1) {
+    const previous = path[index - 1];
+    const current = path[index];
+    if (!Number.isFinite(previous?.[1]) || !Number.isFinite(previous?.[2]) || !Number.isFinite(current?.[1]) || !Number.isFinite(current?.[2])) continue;
+
+    const previousAltitude = previous[3];
+    const currentAltitude = current[3];
+    const averageAltitude = previousAltitude != null && currentAltitude != null
+      ? (previousAltitude + currentAltitude) / 2
+      : previousAltitude ?? currentAltitude;
+    const color = altitudeColor(averageAltitude);
+    const start: [number, number] = [previous[1], previous[2]];
+    const end: [number, number] = [current[1], current[2]];
+    const last = segments[segments.length - 1];
+
+    if (last && last.color === color && last.positions[last.positions.length - 1][0] === start[0] && last.positions[last.positions.length - 1][1] === start[1]) {
+      last.positions.push(end);
+    } else {
+      segments.push({ positions: [start, end], color });
+    }
+  }
+  return segments;
 }
 
 function MapController({ airport, flight, track, locateRequest }: MapControllerProps) {
@@ -141,9 +173,12 @@ export function FlightMap({
         : `${displayedLiveData?.count ?? 0} aircraft in view`;
 
   const trackPositions = useMemo(
-    () => (track?.track.path ?? []).map((point) => [point[1], point[2]] as [number, number]),
+    () => (track?.track.path ?? [])
+      .filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]))
+      .map((point) => [point[1], point[2]] as [number, number]),
     [track],
   );
+  const trackSegments = useMemo(() => buildAltitudeSegments(track?.track.path ?? []), [track]);
   const selectedIcon = useMemo(
     () => planeIcon(selectedFlight?.true_track ?? 0, true, selectedFlight?.on_ground === true),
     [selectedFlight?.on_ground, selectedFlight?.true_track],
@@ -160,7 +195,9 @@ export function FlightMap({
         />
         <BoundsReporter onBounds={setBounds} />
         <MapController airport={airport} flight={selectedFlight} track={track} locateRequest={locateRequest} />
-        {trackPositions.length > 1 && <Polyline positions={trackPositions} pathOptions={{ color: "#7ff4c9", weight: 4, opacity: 0.88 }} />}
+        {trackSegments.map((segment, index) => (
+          <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 4, opacity: 0.9 }} />
+        ))}
         {displayedLiveStates.map((aircraft) => (
           <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
         ))}
@@ -189,6 +226,7 @@ export function FlightMap({
         </button>
         {trackPositions.length > 1 && <span title="Track loaded"><Crosshair size={16} /></span>}
       </div>
+      {trackSegments.length > 0 && <AltitudeLegend compact className="map-altitude-legend" />}
     </section>
   );
 }

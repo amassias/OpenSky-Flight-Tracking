@@ -18,7 +18,7 @@ SkyTrace is a map-first flight intelligence interface powered by the OpenSky Net
 
 - **Frontend:** React, TypeScript, Vite, TanStack Query, React Leaflet
 - **Backend:** Python `http.server`, Requests, python-dotenv
-- **Data:** OpenSky REST API plus the bundled airport and airline datasets
+- **Data:** OpenSky REST API plus the bundled airport and airline datasets. A selected live aircraft can request a short-lived callsign route enrichment; the interface labels this route as estimated.
 - **Tests:** Vitest, Testing Library, pytest, and Playwright
 
 The Python server owns all OpenSky authentication. Credentials are never sent to the browser.
@@ -98,12 +98,14 @@ Unit and E2E tests use deterministic API responses and do not consume OpenSky cr
 - `GET /api/flights?airport=ICAO&date=YYYY-MM-DD&mode=departure|arrival`
 - `GET /api/fetch-flights?...` — compatibility alias
 - `GET /api/live-flights?lamin=...&lomin=...&lamax=...&lomax=...`
-- `GET /api/flight-info?icao24=...`
+- `GET /api/flight-info?icao24=...&callsign=...`
 - `GET /api/track?icao24=...&time=...`
 
 ## Data and privacy
 
 The application stores only theme, live-refresh preference, recent airports, and favorites in browser `localStorage`. No user account or personal flight history is created. Map tiles come from OpenStreetMap. Flight history comes from OpenSky; on Vercel, live positions use ADSB.lol with Airplanes.live as a fallback.
+
+Origin and destination for historical records come from OpenSky. For a live aircraft, the selected callsign is resolved on demand through the [ADSBDB callsign API](https://github.com/mrjackwills/adsbdb) and cached briefly; a missing or disabled resolver leaves the route explicitly unknown. Set `SKYTRACE_ROUTE_LOOKUP_ENABLED=0` to disable this enrichment.
 
 ## License
 

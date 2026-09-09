@@ -1,6 +1,7 @@
 export type FlightMode = "departure" | "arrival";
 export type FlightStatus = "airborne" | "on_ground" | "completed" | "unknown";
 export type MapTheme = "dark" | "light";
+export type RouteSource = "opensky" | "callsign" | "mixed" | "unknown";
 
 export interface Airport {
   icao: string;
@@ -44,6 +45,8 @@ export interface Flight {
   status?: FlightStatus;
   origin_country?: string | null;
   data_source?: "opensky" | "live-nearby";
+  route_source?: RouteSource;
+  route_provider?: string | null;
 }
 
 export interface FlightsResponse {
@@ -83,6 +86,34 @@ export interface LiveFlightsResponse {
   states: LiveAircraft[];
   degraded?: boolean;
   notice?: string;
+}
+
+export interface FlightInfoResponse {
+  success: boolean;
+  icao24: string;
+  callsign: string;
+  airline_code?: string;
+  airline_name?: string;
+  departure_airport?: string | null;
+  departure_airport_name?: string | null;
+  arrival_airport?: string | null;
+  arrival_airport_name?: string | null;
+  first_seen?: number | null;
+  last_seen?: number | null;
+  first_seen_iso?: string | null;
+  last_seen_iso?: string | null;
+  route_source?: RouteSource;
+  route_provider?: string | null;
+  live_state?: LiveAircraft | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  baro_altitude?: number | null;
+  geo_altitude?: number | null;
+  velocity?: number | null;
+  true_track?: number | null;
+  vertical_rate?: number | null;
+  on_ground?: boolean | null;
+  status?: FlightStatus;
 }
 
 export type TrackPoint = [number, number, number, number | null, number | null, boolean | null];

@@ -8,13 +8,26 @@ interface FlightDetailsProps {
   track?: TrackResponse;
   trackLoading: boolean;
   trackError?: string;
+  routeLoading?: boolean;
+  routeError?: string;
   onRetryTrack: () => void;
   onClose: () => void;
   onShare: () => void;
 }
 
-export function FlightDetails({ flight, track, trackLoading, trackError, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   const path = track?.track.path ?? [];
+  const routeSourceLabel = flight.route_source === "callsign"
+    ? "Estimated from callsign"
+    : flight.route_source === "opensky"
+      ? "OpenSky flight record"
+      : flight.route_source === "mixed"
+        ? "Combined flight data"
+        : routeError
+          ? "Route lookup unavailable"
+          : null;
+  const originName = routeLoading && !flight.departure_airport ? "Resolving origin…" : flight.departure_airport_name || "Unknown origin";
+  const destinationName = routeLoading && !flight.arrival_airport ? "Resolving destination…" : flight.arrival_airport_name || "Unknown destination";
   return (
     <aside className="details-drawer" aria-label="Selected flight details">
       <div className="drawer-handle" aria-hidden="true" />
@@ -33,15 +46,16 @@ export function FlightDetails({ flight, track, trackLoading, trackError, onRetry
       <div className="route-timeline">
         <div className="route-stop">
           <PlaneTakeoff size={17} aria-hidden="true" />
-          <div><strong className="mono">{flight.departure_airport || "---"}</strong><span>{flight.departure_airport_name || "Unknown origin"}</span></div>
+          <div><small className="route-role">Origin</small><strong className="mono">{flight.departure_airport || "---"}</strong><span>{originName}</span></div>
           <time className="mono">{formatTime(flight.first_seen)}</time>
         </div>
         <div className="route-line"><span /></div>
         <div className="route-stop">
           <PlaneLanding size={17} aria-hidden="true" />
-          <div><strong className="mono">{flight.arrival_airport || "---"}</strong><span>{flight.arrival_airport_name || "Unknown destination"}</span></div>
+          <div><small className="route-role">Destination</small><strong className="mono">{flight.arrival_airport || "---"}</strong><span>{destinationName}</span></div>
           <time className="mono">{formatTime(flight.last_seen)}</time>
         </div>
+        {routeSourceLabel && <small className="route-source">{routeSourceLabel}{flight.route_provider ? ` · ${flight.route_provider}` : ""}</small>}
       </div>
 
       <div className="metrics-grid">

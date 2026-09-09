@@ -188,3 +188,47 @@ def test_all_live_providers_unavailable(monkeypatch):
         client.get_states(bbox=(48, 2, 49, 3))
     assert error.value.status_code == 503
     assert client.session.get.call_count == 2
+
+
+def test_callsign_route_normalizes_origin_and_destination(monkeypatch):
+    monkeypatch.delenv("SKYTRACE_ROUTE_API_BASE_URL", raising=False)
+    monkeypatch.setenv("SKYTRACE_ROUTE_LOOKUP_ENABLED", "1")
+    client = OpenSkyClient()
+    response = _json_response({
+        "response": {
+            "flightroute": {
+                "callsign": "AFR123",
+                "airline": {"icao": "AFR", "name": "Air France"},
+                "origin": {
+                    "icao_code": "LFPG", "iata_code": "CDG", "name": "Charles de Gaulle International Airport",
+                    "municipality": "Paris", "latitude": 49.0128, "longitude": 2.55,
+                },
+                "destination": {
+                    "icao_code": "RKSI", "iata_code": "ICN", "name": "Incheon International Airport",
+                    "municipality": "Seoul", "latitude": 37.4691, "longitude": 126.451,
+                },
+            }
+        }
+    })
+    client.session.get = Mock(return_value=response)
+
+    result = client.get_callsign_route(" afr123 ")
+
+    assert result["callsign"] == "AFR123"
+    assert result["airline_name"] == "Air France"
+    assert result["departure_airport"] == "LFPG"
+    assert result["arrival_airport"] == "RKSI"
+    assert result["route_source"] == "callsign"
+    assert result["route_provider"] == "ADSBDB"
+    assert client.session.get.call_args.args[0].endswith("/AFR123")
+
+
+def test_callsign_route_caches_empty_404_response(monkeypatch):
+    monkeypatch.setenv("SKYTRACE_ROUTE_LOOKUP_ENABLED", "1")
+    client = OpenSkyClient()
+    response = _json_response({}, status_code=404)
+    client.session.get = Mock(return_value=response)
+
+    assert client.get_callsign_route("UNKNOWN1") is None
+    assert client.get_callsign_route("UNKNOWN1") is None
+    client.session.get.assert_called_once()

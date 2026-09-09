@@ -86,6 +86,34 @@ export function App() {
     retry: false,
   });
 
+  const flightInfo = useQuery({
+    queryKey: ["flight-info", selectedFlight?.icao24],
+    queryFn: ({ signal }) => api.flightInfo(selectedFlight!.icao24, selectedFlight!.callsign, signal),
+    enabled: selectedFlight?.data_source === "live-nearby",
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    retry: false,
+  });
+
+  const detailsFlight = useMemo(() => {
+    if (!selectedFlight || !flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return selectedFlight;
+    const info = flightInfo.data;
+    return {
+      ...selectedFlight,
+      callsign: info.callsign || selectedFlight.callsign,
+      airline_code: info.airline_code || selectedFlight.airline_code,
+      airline_name: info.airline_name || selectedFlight.airline_name,
+      departure_airport: info.departure_airport ?? selectedFlight.departure_airport,
+      departure_airport_name: info.departure_airport_name ?? selectedFlight.departure_airport_name,
+      arrival_airport: info.arrival_airport ?? selectedFlight.arrival_airport,
+      arrival_airport_name: info.arrival_airport_name ?? selectedFlight.arrival_airport_name,
+      first_seen: info.first_seen ?? selectedFlight.first_seen,
+      last_seen: info.last_seen ?? selectedFlight.last_seen,
+      route_source: info.route_source ?? selectedFlight.route_source,
+      route_provider: info.route_provider ?? selectedFlight.route_provider,
+    };
+  }, [flightInfo.data, selectedFlight]);
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (request) {
@@ -258,12 +286,14 @@ export function App() {
           />
         </section>
 
-        {selectedFlight && (
+        {detailsFlight && (
           <FlightDetails
-            flight={selectedFlight}
+            flight={detailsFlight}
             track={track.data}
             trackLoading={track.isFetching}
             trackError={track.error ? readableApiError(track.error) : undefined}
+            routeLoading={flightInfo.isFetching && !flightInfo.data}
+            routeError={flightInfo.error ? readableApiError(flightInfo.error) : undefined}
             onRetryTrack={() => track.refetch()}
             onClose={() => setSelectedFlight(null)}
             onShare={shareFlight}

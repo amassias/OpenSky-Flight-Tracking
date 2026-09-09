@@ -1,5 +1,20 @@
 import type { Flight, FlightStatus } from "./types";
 
+export const ALTITUDE_UNKNOWN_COLOR = "#94a3b8";
+
+export const ALTITUDE_COLOR_BANDS = [
+  { maxMeters: 1_500, label: "<5k ft", color: "#38bdf8" },
+  { maxMeters: 4_500, label: "5–15k ft", color: "#2dd4bf" },
+  { maxMeters: 8_000, label: "15–26k ft", color: "#a3e635" },
+  { maxMeters: 11_000, label: "26–36k ft", color: "#fbbf24" },
+  { maxMeters: Number.POSITIVE_INFINITY, label: "36k+ ft", color: "#fb7185" },
+] as const;
+
+export function altitudeColor(value?: number | null): string {
+  if (value == null || !Number.isFinite(value)) return ALTITUDE_UNKNOWN_COLOR;
+  return ALTITUDE_COLOR_BANDS.find((band) => value <= band.maxMeters)?.color ?? ALTITUDE_UNKNOWN_COLOR;
+}
+
 export function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
