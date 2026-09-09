@@ -39,6 +39,9 @@ test("searches an airport and opens a shareable flight detail", async ({ page, i
   await expect(page).toHaveURL(/airport=LFPG.*icao24=39abcd/);
   await expect(page.getByText("Altitude profile")).toBeVisible();
   await expect(page.locator(".altitude-legend")).toHaveCount(2);
+  await page.locator(".altitude-hover-target").hover({ position: { x: 24, y: 12 } });
+  await expect(page.locator(".altitude-tooltip")).toBeVisible();
+  await expect(page.locator(".altitude-hover-readout")).toContainText("Altitude");
 });
 
 test("supports the mobile search sheet", async ({ page, isMobile }) => {
@@ -70,4 +73,12 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page.getByText("Estimated from callsign")).toBeVisible();
   await expect(page.getByText("Incheon International Airport")).toBeVisible();
+});
+
+test("shows a location marker after the user grants geolocation", async ({ page, context }) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 49.2, longitude: 2.6, accuracy: 35 });
+  await page.getByRole("button", { name: "Locate me" }).click();
+  await expect(page.locator(".user-location-marker")).toHaveCount(1);
+  await expect(page.locator(".leaflet-marker-icon").filter({ has: page.locator(".user-location-marker") })).toHaveCount(1);
 });

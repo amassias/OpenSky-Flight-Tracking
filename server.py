@@ -492,7 +492,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         )
         try:
             states_payload = api_client.get_states(bbox=bbox, extended=True)
-        except OpenSkyAPIError:
+        except OpenSkyAPIError as exc:
             return []
 
         now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
@@ -583,14 +583,21 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 records = api_client.get_departures(airport, begin_ts, end_ts)
         except OpenSkyAPIError as exc:
-            if not (os.getenv("VERCEL") and (exc.status_code is None or exc.status_code >= 500)):
+            # OpenSky history requires a working authenticated account and can
+            # be unavailable while the live ADS-B providers still respond. On
+            # Vercel, keep the airport search useful by returning a clearly
+            # labelled nearby snapshot instead of turning the whole panel into
+            # an error state. Local development keeps the original error so a
+            # missing credential is still actionable.
+            if not os.getenv("VERCEL"):
                 raise
-            live_flights = self._live_nearby_flights(airport) if target_date == datetime.now(timezone.utc).date() else []
+            live_flights = self._live_nearby_flights(airport)
             live_flights.sort(key=lambda item: item.get("primary_time") or 0, reverse=True)
+            history_reason = "requires valid OpenSky credentials" if exc.status_code in (401, 403) else "is temporarily unavailable"
             notice = (
-                f"OpenSky history is temporarily unavailable. Showing live traffic around {airport}."
+                f"OpenSky history {history_reason} for {target_date.isoformat()}. Showing a live traffic snapshot around {airport}; these are not recorded {mode_normalized}s."
                 if live_flights
-                else "OpenSky history is temporarily unavailable. Live traffic remains available on the map."
+                else f"OpenSky history {history_reason} for {target_date.isoformat()}. Live traffic remains available on the map."
             )
             return self._flights_response(
                 airport,

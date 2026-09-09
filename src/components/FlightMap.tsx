@@ -1,7 +1,7 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import L from "leaflet";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
@@ -14,6 +14,15 @@ function planeIcon(heading = 0, active = false, onGround = false) {
   return L.divIcon({
     className: "aircraft-marker-wrap",
     html: `<span class="aircraft-marker ${active ? "active" : ""} ${onGround ? "ground" : ""}" style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+}
+
+function userLocationIcon() {
+  return L.divIcon({
+    className: "user-location-icon-wrap",
+    html: '<span class="user-location-marker" aria-hidden="true"><span class="user-location-dot"></span></span>',
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -57,6 +66,14 @@ interface MapControllerProps {
   flight: Flight | null;
   track?: TrackResponse;
   locateRequest: number;
+  onLocationFound: (location: UserLocation) => void;
+  onLocationError: (message: string) => void;
+}
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
 }
 
 interface TrackSegment {
@@ -90,7 +107,7 @@ function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): Track
   return segments;
 }
 
-function MapController({ airport, flight, track, locateRequest }: MapControllerProps) {
+function MapController({ airport, flight, track, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
   const map = useMap();
   useEffect(() => {
     const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -112,6 +129,25 @@ function MapController({ airport, flight, track, locateRequest }: MapControllerP
     if (!locateRequest) return;
     map.locate({ setView: true, maxZoom: 11, enableHighAccuracy: true });
   }, [locateRequest, map]);
+
+  useEffect(() => {
+    function handleLocationFound(event: L.LocationEvent) {
+      onLocationFound({
+        latitude: event.latlng.lat,
+        longitude: event.latlng.lng,
+        accuracy: Number.isFinite(event.accuracy) ? event.accuracy : 0,
+      });
+    }
+    function handleLocationError(event: L.ErrorEvent) {
+      onLocationError(event.message || "Location is unavailable in this browser.");
+    }
+    map.on("locationfound", handleLocationFound);
+    map.on("locationerror", handleLocationError);
+    return () => {
+      map.off("locationfound", handleLocationFound);
+      map.off("locationerror", handleLocationError);
+    };
+  }, [map, onLocationError, onLocationFound]);
   return null;
 }
 
@@ -143,6 +179,8 @@ export function FlightMap({
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [locateRequest, setLocateRequest] = useState(0);
   const [lastLiveData, setLastLiveData] = useState<LiveFlightsResponse | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const area = bounds ? Math.abs(bounds.lamax - bounds.lamin) * Math.abs(bounds.lomax - bounds.lomin) : Infinity;
   const liveQuery = useQuery({
     queryKey: ["live-flights", bounds],
@@ -183,6 +221,18 @@ export function FlightMap({
     () => planeIcon(selectedFlight?.true_track ?? 0, true, selectedFlight?.on_ground === true),
     [selectedFlight?.on_ground, selectedFlight?.true_track],
   );
+  const locationIcon = useMemo(() => userLocationIcon(), []);
+  const handleLocationFound = useCallback((location: UserLocation) => {
+    setUserLocation(location);
+    setLocationError(null);
+  }, []);
+  const handleLocationError = useCallback((message: string) => {
+    setLocationError(message);
+  }, []);
+  const requestLocation = useCallback(() => {
+    setLocationError(null);
+    setLocateRequest((value) => value + 1);
+  }, []);
   return (
     <section className="map-surface" aria-label="Live flight map">
       <MapContainer center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
@@ -194,7 +244,14 @@ export function FlightMap({
           maxZoom={19}
         />
         <BoundsReporter onBounds={setBounds} />
-        <MapController airport={airport} flight={selectedFlight} track={track} locateRequest={locateRequest} />
+        <MapController
+          airport={airport}
+          flight={selectedFlight}
+          track={track}
+          locateRequest={locateRequest}
+          onLocationFound={handleLocationFound}
+          onLocationError={handleLocationError}
+        />
         {trackSegments.map((segment, index) => (
           <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 4, opacity: 0.9 }} />
         ))}
@@ -203,6 +260,21 @@ export function FlightMap({
         ))}
         {selectedFlight?.latitude != null && selectedFlight.longitude != null && !displayedLiveStates.some((item) => item.icao24 === selectedFlight.icao24) && (
           <Marker position={[selectedFlight.latitude, selectedFlight.longitude]} icon={selectedIcon} />
+        )}
+        {userLocation && (
+          <>
+            <Circle
+              center={[userLocation.latitude, userLocation.longitude]}
+              radius={Math.max(userLocation.accuracy, 20)}
+              pathOptions={{ color: "#38bdf8", weight: 1, opacity: 0.55, fillColor: "#38bdf8", fillOpacity: 0.1 }}
+            />
+            <Marker position={[userLocation.latitude, userLocation.longitude]} icon={locationIcon}>
+              <Popup>
+                <strong>Your location</strong><br />
+                <span className="mono">Accuracy ±{Math.round(userLocation.accuracy)} m</span>
+              </Popup>
+            </Marker>
+          </>
         )}
       </MapContainer>
 
@@ -220,12 +292,13 @@ export function FlightMap({
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>
           {liveEnabled ? <Pause size={17} /> : <Play size={17} />}
         </button>
-        <button type="button" onClick={() => setLocateRequest((value) => value + 1)} aria-label="Locate me" title="Locate me"><LocateFixed size={17} /></button>
+        <button type="button" className={userLocation ? "location-active" : ""} onClick={requestLocation} aria-label="Locate me" title={userLocation ? "Update my location" : "Locate me"}><LocateFixed size={17} /></button>
         <button type="button" onClick={onToggleExpanded} aria-label={expanded ? "Exit full map" : "Open full map"} title={expanded ? "Exit full map" : "Full map"}>
           {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
         </button>
         {trackPositions.length > 1 && <span title="Track loaded"><Crosshair size={16} /></span>}
       </div>
+      {locationError && <div className="location-status" role="status">{locationError}</div>}
       {trackSegments.length > 0 && <AltitudeLegend compact className="map-altitude-legend" />}
     </section>
   );

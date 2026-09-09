@@ -69,6 +69,26 @@ def test_vercel_history_outage_returns_labelled_live_snapshot(monkeypatch):
     fake_client.get_states.assert_called_once()
 
 
+def test_vercel_history_outage_keeps_past_airport_search_useful(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    live_state = [
+        "39abcd", "AFR123 ", "France", 1_750_000_000, 1_750_000_001,
+        2.55, 49.01, 9_000, False, 210, 95, 0, None, 9_100, "7000", False, 0, 4,
+    ]
+    fake_client = Mock()
+    fake_client.get_arrivals.side_effect = OpenSkyAPIError("history forbidden", status_code=403)
+    fake_client.get_states.return_value = {"time": 1_750_000_001, "states": [live_state]}
+
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_flights("LFPG", "2025-06-15", "arrival")
+
+    assert payload["source"] == "live-nearby"
+    assert payload["summary"]["total"] == 1
+    assert "2025-06-15" in payload["notice"]
+    assert "not recorded arrivals" in payload["notice"]
+    fake_client.get_states.assert_called_once()
+
+
 def test_live_flights_validates_bounds():
     with pytest.raises(ValueError, match="ordering"):
         handler().handle_live_flights(50, 3, 49, 2)

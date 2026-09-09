@@ -148,8 +148,11 @@ export function App() {
   }, [mapExpanded, mobileControlsOpen, selectedFlight]);
 
   const summary = flights.data?.summary;
+  const showingLiveFallback = flights.data?.source === "live-nearby";
   const requestTitle = request
-    ? `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${request.airport.iata || request.airport.icao}`
+    ? showingLiveFallback
+      ? `Live traffic around ${request.airport.iata || request.airport.icao}`
+      : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${request.airport.iata || request.airport.icao}`
     : "Flight movements";
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
 
@@ -270,7 +273,7 @@ export function App() {
             </button>
           </header>
           <div className="stats-row">
-            <div><strong className="mono">{summary?.total ?? 0}</strong><span>Total flights</span></div>
+            <div><strong className="mono">{summary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Total flights"}</span></div>
             <div><strong className="mono accent">{summary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
             <div><strong className="mono">{summary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>
           </div>

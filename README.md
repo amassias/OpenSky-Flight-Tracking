@@ -11,6 +11,8 @@ SkyTrace is a map-first flight intelligence interface powered by the OpenSky Net
 - Dark and light OpenStreetMap map themes
 - Shareable flight URLs
 - Recent and favorite airports stored locally in the browser
+- Altitude-colored tracks with a hover readout for each profile point
+- Optional browser geolocation marker with an accuracy radius
 - Desktop, tablet, and mobile layouts with keyboard support
 - Explicit loading, empty, rate-limit, credential, and network states
 
@@ -103,7 +105,7 @@ Unit and E2E tests use deterministic API responses and do not consume OpenSky cr
 
 ## Data and privacy
 
-The application stores only theme, live-refresh preference, recent airports, and favorites in browser `localStorage`. No user account or personal flight history is created. Map tiles come from OpenStreetMap. Flight history comes from OpenSky; on Vercel, live positions use ADSB.lol with Airplanes.live as a fallback.
+The application stores only theme, live-refresh preference, recent airports, and favorites in browser `localStorage`. No user account or personal flight history is created. Map tiles come from OpenStreetMap. Flight history comes from OpenSky; on Vercel, live positions use ADSB.lol with Airplanes.live as a fallback. If OpenSky history is unavailable, an airport search returns a clearly labelled live snapshot around the airport so the map and list remain useful; it does not claim those aircraft are historical movements.
 
 Origin and destination for historical records come from OpenSky. For a live aircraft, the selected callsign is resolved on demand through the [ADSBDB callsign API](https://github.com/mrjackwills/adsbdb) and cached briefly; a missing or disabled resolver leaves the route explicitly unknown. Set `SKYTRACE_ROUTE_LOOKUP_ENABLED=0` to disable this enrichment.
 
