@@ -46,6 +46,12 @@ export function AirportSearch({
   const searching = query.trim().length >= 2;
   const options = searching ? (query.trim() === debouncedQuery ? search.data ?? [] : []) : (recent.length ? recent : popular.slice(0, 6));
 
+  // A shrinking result set would otherwise leave aria-activedescendant
+  // pointing at an option that no longer exists.
+  useEffect(() => {
+    setActiveIndex((current) => (current >= options.length ? Math.max(options.length - 1, 0) : current));
+  }, [options.length]);
+
   useEffect(() => {
     function dismiss(event: PointerEvent) {
       if (!container.current?.contains(event.target as Node)) setOpen(false);
@@ -61,18 +67,27 @@ export function AirportSearch({
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open && event.key === "ArrowDown") setOpen(true);
     if (event.key === "ArrowDown") {
       event.preventDefault();
+      // The first ArrowDown only reveals the list, so it does not also skip
+      // past the first option.
+      if (!open) {
+        setOpen(true);
+        setActiveIndex(0);
+        return;
+      }
       setActiveIndex((current) => Math.max(0, Math.min(current + 1, options.length - 1)));
+      return;
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setActiveIndex((current) => Math.max(current - 1, 0));
+      return;
     }
     if (event.key === "Enter" && open && options[activeIndex]) {
       event.preventDefault();
       choose(options[activeIndex]);
+      return;
     }
     if (event.key === "Escape") setOpen(false);
   }

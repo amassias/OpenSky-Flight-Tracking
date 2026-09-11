@@ -5,7 +5,7 @@ import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
-import { altitudeColor, formatAltitude, formatSpeed } from "../utils";
+import { altitudeColor, boundsEqual, formatAltitude, formatSpeed, quantizeBounds } from "../utils";
 import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
@@ -28,17 +28,50 @@ function userLocationIcon() {
   });
 }
 
+function areMarkersEqual(
+  previous: { aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void },
+  next: { aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void },
+) {
+  if (previous.active !== next.active || previous.onSelect !== next.onSelect) return false;
+  const a = previous.aircraft;
+  const b = next.aircraft;
+  // Every poll returns fresh objects, so compare the fields the marker draws
+  // rather than identity — otherwise every aircraft re-renders every 15s.
+  return a.icao24 === b.icao24
+    && a.latitude === b.latitude
+    && a.longitude === b.longitude
+    && a.true_track === b.true_track
+    && a.on_ground === b.on_ground
+    && a.callsign === b.callsign
+    && a.baro_altitude === b.baro_altitude
+    && a.velocity === b.velocity;
+}
+
 const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect }: {
   aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void;
 }) {
   const icon = useMemo(() => planeIcon(aircraft.true_track ?? 0, active, aircraft.on_ground === true), [aircraft.true_track, aircraft.on_ground, active]);
   const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
-  const eventHandlers = useMemo(() => ({ click: () => onSelect({ ...aircraft, status: aircraft.on_ground ? "on_ground" : "airborne", primary_time: 0, airline_name: "Live traffic" }) }), [aircraft, onSelect]);
+  // Read through a ref so the handler identity never changes, which keeps
+  // Leaflet from detaching and re-attaching listeners on every refresh.
+  const aircraftRef = useRef(aircraft);
+  aircraftRef.current = aircraft;
+  const eventHandlers = useMemo(() => ({
+    click: () => {
+      const current = aircraftRef.current;
+      onSelect({
+        ...current,
+        status: current.on_ground ? "on_ground" : "airborne",
+        primary_time: 0,
+        airline_name: "Live traffic",
+      });
+    },
+  }), [onSelect]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
   return <Marker position={position} icon={icon} eventHandlers={eventHandlers}>
     <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
   </Marker>;
-});
+}, areMarkersEqual);
 
 interface BoundsReporterProps { onBounds: (bounds: Bounds) => void }
 function BoundsReporter({ onBounds }: BoundsReporterProps) {
@@ -49,7 +82,12 @@ function BoundsReporter({ onBounds }: BoundsReporterProps) {
       clearTimeout(timer);
       timer = setTimeout(() => {
         const bounds = map.getBounds();
-        onBounds({ lamin: Math.max(-90, bounds.getSouth()), lomin: bounds.getWest(), lamax: Math.min(90, bounds.getNorth()), lomax: bounds.getEast() });
+        onBounds(quantizeBounds({
+          lamin: Math.max(-90, bounds.getSouth()),
+          lomin: bounds.getWest(),
+          lamax: Math.min(90, bounds.getNorth()),
+          lomax: bounds.getEast(),
+        }));
       }, 250);
     }
     map.on("moveend", report);
@@ -179,6 +217,9 @@ export function FlightMap({
   onLiveSnapshot,
 }: FlightMapProps) {
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  const handleBounds = useCallback((next: Bounds) => {
+    setBounds((current) => (boundsEqual(current, next) ? current : next));
+  }, []);
   const [locateRequest, setLocateRequest] = useState(0);
   const [lastLiveData, setLastLiveData] = useState<LiveFlightsResponse | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -251,7 +292,7 @@ export function FlightMap({
           key={theme}
           maxZoom={19}
         />
-        <BoundsReporter onBounds={setBounds} />
+        <BoundsReporter onBounds={handleBounds} />
         <MapController
           airport={airport}
           flight={selectedFlight}

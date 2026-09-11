@@ -1,23 +1,41 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
-export function usePersistentState<T>(key: string, initialValue: T): [T, (value: T) => void] {
-  const [value, setValue] = useState<T>(() => {
-    try {
-      const stored = window.localStorage.getItem(key);
-      return stored ? (JSON.parse(stored) as T) : initialValue;
-    } catch {
-      return initialValue;
-    }
-  });
+type Updater<T> = T | ((current: T) => T);
 
-  function updateValue(nextValue: T) {
-    setValue(nextValue);
+function readStored<T>(key: string, fallback: T): T {
+  try {
+    const stored = window.localStorage.getItem(key);
+    return stored ? (JSON.parse(stored) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * useState backed by localStorage. The setter is referentially stable and
+ * accepts an updater function, so callers can update from the latest value
+ * without listing the state in their dependency arrays.
+ */
+export function usePersistentState<T>(key: string, initialValue: T): [T, (value: Updater<T>) => void] {
+  const [value, setValue] = useState<T>(() => readStored(key, initialValue));
+
+  // Mirrors the latest state so the stable setter can resolve updater
+  // functions without re-creating itself on every change.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const keyRef = useRef(key);
+  keyRef.current = key;
+
+  const updateValue = useCallback((next: Updater<T>) => {
+    const resolved = typeof next === "function" ? (next as (current: T) => T)(valueRef.current) : next;
+    valueRef.current = resolved;
+    setValue(resolved);
     try {
-      window.localStorage.setItem(key, JSON.stringify(nextValue));
+      window.localStorage.setItem(keyRef.current, JSON.stringify(resolved));
     } catch {
       // The interface remains usable when storage is disabled.
     }
-  }
+  }, []);
 
   return [value, updateValue];
 }
