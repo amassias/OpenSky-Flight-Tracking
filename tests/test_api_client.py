@@ -192,7 +192,7 @@ def test_aircraft_profile_keeps_provider_metadata(monkeypatch):
     assert result["state"][18]["messages"] == 12345
 
 
-def test_live_viewport_radius_expands_and_reuses_a_recent_response(monkeypatch):
+def test_live_viewport_grid_covers_wide_view_and_reuses_a_recent_response(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     client = OpenSkyClient()
     response = _json_response({
@@ -207,10 +207,11 @@ def test_live_viewport_radius_expands_and_reuses_a_recent_response(monkeypatch):
     second = client.get_states(bbox=bbox)
 
     assert first == second
-    request_url = client.session.get.call_args.args[0]
-    radius = float(request_url.rstrip("/").rsplit("/", 1)[-1])
-    assert radius > 250
-    client.session.get.assert_called_once()
+    assert first["provider"] == "adsb.lol"
+    assert first["coverage_tiles"] == 6
+    assert first["coverage_complete"] is True
+    assert len(first["states"]) == 1
+    assert client.session.get.call_count == 6
 
 
 def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):

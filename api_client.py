@@ -1,7 +1,8 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from math import asin, cos, radians, sin, sqrt
+from math import asin, ceil, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
 from urllib.parse import quote
 
@@ -422,40 +423,85 @@ class OpenSkyClient:
             details,
         ]
 
+    @classmethod
+    def _live_viewport_endpoints(cls, bbox: tuple) -> tuple[list[str], bool]:
+        """Build provider requests that cover a viewport without a blind spot.
+
+        The public ADS-B point APIs cap each circle at 250 NM. A single large
+        point request therefore only returns aircraft around the map centre
+        after a zoom-out. Split wider viewports into overlapping cells and
+        merge the responses. The tile budget is deliberately bounded so a
+        world view cannot turn into an unbounded request fan-out.
+        """
+        lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
+        center_lat = (lat_min + lat_max) / 2
+        center_lon = (lon_min + lon_max) / 2
+        corner_distance = max(
+            cls._distance_nm(center_lat, center_lon, lat_min, lon_min),
+            cls._distance_nm(center_lat, center_lon, lat_min, lon_max),
+            cls._distance_nm(center_lat, center_lon, lat_max, lon_min),
+            cls._distance_nm(center_lat, center_lon, lat_max, lon_max),
+        )
+        try:
+            radius_limit = float(os.getenv("SKYTRACE_LIVE_MAX_RADIUS_NM", "1000"))
+        except (TypeError, ValueError):
+            radius_limit = 1000.0
+        radius_limit = max(50.0, min(2500.0, radius_limit))
+        # ADSB.lol documents a 250 NM maximum for /point. Airplanes.live uses
+        # the same public ReAPI shape, so keep every fallback request within
+        # that limit even when the legacy radius setting is larger.
+        provider_radius = min(250.0, radius_limit)
+        if corner_distance <= provider_radius:
+            endpoint = f"point/{center_lat:.5f}/{center_lon:.5f}/{max(1.0, corner_distance):.1f}"
+            return [endpoint], False
+
+        # Keep each cell's diagonal below the provider radius. A 1.3 overlap
+        # factor leaves enough margin for latitude/longitude distortion while
+        # keeping the usual Europe view below a few dozen requests.
+        cell_size_nm = provider_radius * 1.3
+        height_nm = cls._distance_nm(lat_min, center_lon, lat_max, center_lon)
+        width_nm = cls._distance_nm(center_lat, lon_min, center_lat, lon_max)
+        rows = max(1, int(ceil(height_nm / cell_size_nm)))
+        columns = max(1, int(ceil(width_nm / cell_size_nm)))
+        try:
+            max_tiles = int(float(os.getenv("SKYTRACE_LIVE_MAX_TILES", "36")))
+        except (TypeError, ValueError):
+            max_tiles = 36
+        max_tiles = max(4, min(64, max_tiles))
+        while rows * columns > max_tiles:
+            if rows >= columns and rows > 1:
+                rows -= 1
+            elif columns > 1:
+                columns -= 1
+            else:
+                break
+
+        endpoints = []
+        for row in range(rows):
+            lat = lat_min + (row + 0.5) * (lat_max - lat_min) / rows
+            for column in range(columns):
+                lon = lon_min + (column + 0.5) * (lon_max - lon_min) / columns
+                endpoints.append(f"point/{lat:.5f}/{lon:.5f}/{provider_radius:.1f}")
+        return endpoints, True
+
     def _get_airplanes_live_states(
         self,
         icao24_list: Optional[Iterable[str]] = None,
         bbox: Optional[tuple] = None,
     ):
         """Fetch live ADS-B positions from the public production fallback."""
+        grid_coverage = False
         if icao24_list:
             codes = [str(code).lower() for code in list(icao24_list)[:50] if code]
-            endpoint = f"hex/{','.join(codes)}"
+            endpoints = [f"hex/{','.join(codes)}"]
         elif bbox:
-            lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
-            center_lat = (lat_min + lat_max) / 2
-            center_lon = (lon_min + lon_max) / 2
-            # The old 250 NM cap covered an airport-sized box only. When the
-            # user zooms out, the provider still returned a central sliver of
-            # the map and the other visible aircraft disappeared. Size the
-            # request from the farthest viewport corner and keep a bounded
-            # ceiling so a world view cannot create an enormous response.
-            corner_distances = (
-                self._distance_nm(center_lat, center_lon, lat_min, lon_min),
-                self._distance_nm(center_lat, center_lon, lat_min, lon_max),
-                self._distance_nm(center_lat, center_lon, lat_max, lon_min),
-                self._distance_nm(center_lat, center_lon, lat_max, lon_max),
-            )
-            try:
-                radius_limit = float(os.getenv("SKYTRACE_LIVE_MAX_RADIUS_NM", "1000"))
-            except (TypeError, ValueError):
-                radius_limit = 1000.0
-            radius_limit = max(250.0, min(2500.0, radius_limit))
-            radius = min(radius_limit, max(1.0, max(corner_distances)))
-            endpoint = f"point/{center_lat:.5f}/{center_lon:.5f}/{radius:.1f}"
+            endpoints, grid_coverage = self._live_viewport_endpoints(bbox)
         else:
             raise OpenSkyAPIError("A bounding box or aircraft code is required for live fallback data.")
 
+        # The endpoint list is generated in a stable row/column order, which
+        # gives each viewport a deterministic cache key and request sequence.
+        cache_key = "|".join(endpoints)
         now = time.time()
         try:
             cache_seconds = max(5.0, float(os.getenv("SKYTRACE_LIVE_CACHE_SECONDS", "15")))
@@ -466,7 +512,7 @@ class OpenSkyClient:
         except (TypeError, ValueError):
             stale_seconds = max(cache_seconds, 90.0)
 
-        cached = self._live_cache.get(endpoint)
+        cached = self._live_cache.get(cache_key)
         if cached:
             age = now - float(cached.get("fetched_at", 0))
             if age <= cache_seconds:
@@ -484,13 +530,8 @@ class OpenSkyClient:
                 return stale_result
             raise OpenSkyAPIError("Live aircraft providers are temporarily unavailable.", status_code=503)
 
-        # Independent public providers use the same ADS-B schema. A provider
-        # outage must not make all live traffic unavailable on Vercel.
-        last_error = None
-        last_status = None
-        rate_limited = False
-        rate_limit_payload: Dict[str, Any] = {}
-        for provider in ("adsb.lol", "airplanes.live"):
+        def fetch_endpoint(provider: str, endpoint: str):
+            response_status = None
             try:
                 response = self.session.get(
                     f"https://api.{provider}/v2/{endpoint}",
@@ -502,22 +543,59 @@ class OpenSkyClient:
                 )
                 response_status = getattr(response, "status_code", None)
                 if isinstance(response_status, int) and response_status >= 400:
-                    last_status = response_status
-                    if response_status == 429:
-                        rate_limited = True
-                        rate_limit_payload = {
-                            "retry_after_seconds": response.headers.get("X-Rate-Limit-Retry-After-Seconds")
-                            or response.headers.get("Retry-After"),
-                            "provider": provider,
-                        }
+                    return None, response_status, None
                 response.raise_for_status()
                 payload = response.json()
                 if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
                     raise ValueError("Invalid live aircraft response")
-                break
+                return payload, response_status, None
             except (requests.RequestException, ValueError) as exc:
-                last_error = exc
-        else:
+                return None, response_status, exc
+
+        # Parallelise a bounded grid so a large map remains inside the Vercel
+        # function timeout, while the small client-side request queue still
+        # prevents zoom/pan bursts from starting multiple grids at once.
+        last_error = None
+        last_status = None
+        rate_limited = False
+        rate_limit_payload: Dict[str, Any] = {}
+        payloads = []
+        provider = None
+        for candidate in ("adsb.lol", "airplanes.live"):
+            if len(endpoints) == 1:
+                tile_results = [fetch_endpoint(candidate, endpoints[0])]
+            else:
+                with ThreadPoolExecutor(max_workers=min(6, len(endpoints))) as executor:
+                    tile_results = list(executor.map(lambda endpoint: fetch_endpoint(candidate, endpoint), endpoints))
+            candidate_payloads = [item[0] for item in tile_results if item[0] is not None]
+            if candidate_payloads:
+                payloads = candidate_payloads
+                provider = candidate
+                failed_results = [item for item in tile_results if item[0] is None]
+                for _, status, error in failed_results:
+                    if status is not None:
+                        last_status = status
+                    if status == 429:
+                        rate_limited = True
+                        rate_limit_payload = {
+                            "retry_after_seconds": None,
+                            "provider": candidate,
+                        }
+                    if error is not None:
+                        last_error = error
+                break
+            for _, status, error in tile_results:
+                if status is not None:
+                    last_status = status
+                if status == 429:
+                    rate_limited = True
+                    rate_limit_payload = {
+                        "retry_after_seconds": None,
+                        "provider": candidate,
+                    }
+                if error is not None:
+                    last_error = error
+        if not payloads or provider is None:
             self._live_provider_unavailable_until = now + 15
             if rate_limited:
                 raise OpenSkyAPIError(
@@ -527,8 +605,17 @@ class OpenSkyClient:
                 ) from last_error
             raise OpenSkyAPIError("Live aircraft providers are temporarily unavailable.", status_code=503) from last_error
 
-        now_sec = int((payload.get("now") or time.time() * 1000) / 1000)
-        aircraft = payload.get("ac") or []
+        now_sec = max(
+            (int(payload.get("now")) for payload in payloads if isinstance(payload.get("now"), (int, float))),
+            default=int(time.time() * 1000),
+        )
+        now_sec = int(now_sec / 1000) if now_sec > 10_000_000_000 else int(now_sec)
+        aircraft_by_hex: Dict[str, Dict[str, Any]] = {}
+        for payload in payloads:
+            for item in payload.get("ac") or []:
+                if isinstance(item, dict) and item.get("hex"):
+                    aircraft_by_hex[str(item["hex"]).lower()] = item
+        aircraft = list(aircraft_by_hex.values())
         if bbox:
             lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
             aircraft = [
@@ -539,18 +626,25 @@ class OpenSkyClient:
                 and lon_min <= item["lon"] <= lon_max
             ]
 
+        # Wider grids make more provider calls, so slow their polling cadence
+        # proportionally. This keeps the public fallback polite and avoids a
+        # burst on every 20-second live tick after a zoom-out.
+        refresh_after_seconds = max(20, min(180, 20 * len(endpoints)))
         result = {
             "time": now_sec,
             "states": [self._airplanes_live_row(item, now_sec) for item in aircraft if item.get("hex")],
             "provider": provider,
-            "refresh_after_seconds": 20,
+            "refresh_after_seconds": refresh_after_seconds,
             "credit_cost": 0,
         }
+        if grid_coverage:
+            result["coverage_tiles"] = len(endpoints)
+            result["coverage_complete"] = not any(item[0] is None for item in tile_results)
         self._live_provider_unavailable_until = 0.0
         if len(self._live_cache) >= 128:
             oldest_key = min(self._live_cache, key=lambda key: self._live_cache[key].get("fetched_at", 0))
             self._live_cache.pop(oldest_key, None)
-        self._live_cache[endpoint] = {"fetched_at": now, "result": result}
+        self._live_cache[cache_key] = {"fetched_at": now, "result": result}
         return result
 
     def get_departures(self, airport_icao: str, begin_timestamp: int, end_timestamp: int):
