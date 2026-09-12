@@ -10,13 +10,77 @@ import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 
-function planeIcon(heading = 0, active = false, onGround = false) {
+function planeIcon(heading = 0, active = false, onGround = false, icao24?: string) {
   return L.divIcon({
     className: "aircraft-marker-wrap",
-    html: `<span class="aircraft-marker ${active ? "active" : ""} ${onGround ? "ground" : ""}" style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>`,
+    html: `<span class="aircraft-marker ${active ? "active" : ""} ${onGround ? "ground" : ""}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
+}
+
+function liveAircraftToFlight(aircraft: LiveAircraft): Flight {
+  return {
+    ...aircraft,
+    status: aircraft.on_ground ? "on_ground" : "airborne",
+    primary_time: 0,
+    airline_name: "Live traffic",
+  };
+}
+
+/**
+ * Leaflet attaches layer event handlers in an effect. On Firefox a marker can
+ * become clickable before that effect runs (especially while the map is
+ * settling after a viewport change). A single capture listener on the map
+ * container closes that small gap and also prevents the click from turning
+ * into an accidental map drag. The marker keeps its regular Leaflet handler
+ * for normal interactions; this is only an early, delegated fallback.
+ */
+function AircraftSelectionBridge({ aircraft, onSelect }: {
+  aircraft: LiveAircraft[];
+  onSelect: (flight: Flight) => void;
+}) {
+  const map = useMap();
+  const aircraftRef = useRef(new Map<string, LiveAircraft>());
+  const lastSelectionRef = useRef<{ icao24: string; at: number } | null>(null);
+  // Keep the ref current during render so a click that lands in the same
+  // commit as a new marker already has a flight to resolve.
+  const aircraftByHex = useMemo(() => {
+    const next = new Map<string, LiveAircraft>();
+    for (const item of aircraft) next.set(item.icao24, item);
+    return next;
+  }, [aircraft]);
+  aircraftRef.current = aircraftByHex;
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const selectFromEvent = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const marker = target.closest<HTMLElement>(".aircraft-marker[data-icao24]");
+      const icao24 = marker?.dataset.icao24;
+      if (!icao24) return;
+      const current = aircraftRef.current.get(icao24);
+      if (!current) return;
+      const now = performance.now();
+      const last = lastSelectionRef.current;
+      if (last && last.icao24 === icao24 && now - last.at < 180) return;
+      lastSelectionRef.current = { icao24, at: now };
+      event.preventDefault();
+      event.stopPropagation();
+      onSelect(liveAircraftToFlight(current));
+    };
+
+    // mousedown is deliberately included: Playwright and Firefox can dispatch
+    // it before Leaflet's own click effect has been installed.
+    container.addEventListener("mousedown", selectFromEvent, true);
+    container.addEventListener("click", selectFromEvent, true);
+    return () => {
+      container.removeEventListener("mousedown", selectFromEvent, true);
+      container.removeEventListener("click", selectFromEvent, true);
+    };
+  }, [map, onSelect]);
+  return null;
 }
 
 function userLocationIcon() {
@@ -50,7 +114,7 @@ function areMarkersEqual(
 const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect }: {
   aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void;
 }) {
-  const icon = useMemo(() => planeIcon(aircraft.true_track ?? 0, active, aircraft.on_ground === true), [aircraft.true_track, aircraft.on_ground, active]);
+  const icon = useMemo(() => planeIcon(aircraft.true_track ?? 0, active, aircraft.on_ground === true, aircraft.icao24), [aircraft.icao24, aircraft.true_track, aircraft.on_ground, active]);
   const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
   // Read through a ref so the handler identity never changes, which keeps
   // Leaflet from detaching and re-attaching listeners on every refresh.
@@ -59,12 +123,7 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
   const markerRef = useRef<L.Marker | null>(null);
   const selectAircraft = useCallback(() => {
     const current = aircraftRef.current;
-    onSelect({
-      ...current,
-      status: current.on_ground ? "on_ground" : "airborne",
-      primary_time: 0,
-      airline_name: "Live traffic",
-    });
+    onSelect(liveAircraftToFlight(current));
   }, [onSelect]);
   const eventHandlers = useMemo(() => ({ click: selectAircraft }), [selectAircraft]);
   useEffect(() => {
@@ -383,6 +442,7 @@ export function FlightMap({
           onLocationFound={handleLocationFound}
           onLocationError={handleLocationError}
         />
+        <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={onSelectFlight} />
         {trackSegments.map((segment, index) => (
           <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 4, opacity: 0.9 }} />
         ))}
