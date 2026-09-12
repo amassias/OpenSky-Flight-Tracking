@@ -496,7 +496,8 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             states_payload = api_client.get_states(bbox=bbox, extended=True)
             now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
             parsed_states = self._parse_states((states_payload or {}).get("states", []))
-            self._cache_live_snapshot(parsed_states, now)
+            if not (states_payload or {}).get("degraded"):
+                self._cache_live_snapshot(parsed_states, now)
         except OpenSkyAPIError:
             # The map may already have a successful snapshot while this
             # history request hits a transient provider error. Reuse that
@@ -555,11 +556,57 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         return nearby
 
     def _cache_live_snapshot(self, states, timestamp):
-        self._live_snapshot_cache = {
+        entry = {
             "cached_at": time.time(),
             "time": timestamp,
             "states": states,
         }
+        history = [
+            item for item in getattr(self, "_live_snapshot_history", [])
+            if isinstance(item, dict)
+            and time.time() - item.get("cached_at", 0) <= LIVE_SNAPSHOT_CACHE_SECONDS
+        ]
+        history.append(entry)
+        # Keep a few viewport snapshots: if a wide request is rate limited
+        # immediately after a zoom-out, the map can still reuse aircraft from
+        # the recent narrower boxes instead of going blank.
+        self._live_snapshot_history = history[-8:]
+        self._live_snapshot_cache = entry
+
+    def _cached_live_states_for_bbox(self, bbox):
+        """Return recent live states that fall inside a requested viewport."""
+        now = time.time()
+        entries = [
+            item for item in getattr(self, "_live_snapshot_history", [])
+            if isinstance(item, dict)
+            and now - item.get("cached_at", 0) <= LIVE_SNAPSHOT_CACHE_SECONDS
+        ]
+        latest = getattr(self, "_live_snapshot_cache", None)
+        if isinstance(latest, dict) and latest not in entries:
+            entries.append(latest)
+        if not entries:
+            return None
+
+        lat_min, lon_min, lat_max, lon_max = bbox
+        states_by_icao = {}
+        latest_time = None
+        for entry in sorted(entries, key=lambda item: item.get("cached_at", 0), reverse=True):
+            entry_time = _safe_int(entry.get("time"), default=None)
+            if entry_time is not None and (latest_time is None or entry_time > latest_time):
+                latest_time = entry_time
+            for state in entry.get("states", []) or []:
+                if not isinstance(state, dict):
+                    continue
+                latitude = _safe_float(state.get("latitude"))
+                longitude = _safe_float(state.get("longitude"))
+                if latitude is None or longitude is None:
+                    continue
+                if not (lat_min <= latitude <= lat_max and lon_min <= longitude <= lon_max):
+                    continue
+                key = str(state.get("icao24") or f"{latitude:.4f}:{longitude:.4f}").lower()
+                states_by_icao.setdefault(key, state)
+
+        return {"time": latest_time, "states": list(states_by_icao.values())}
 
     def _flights_response(self, airport, mode, target_date, flights, *, source="opensky", notice=None):
         unique_airlines = {
@@ -670,8 +717,21 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         try:
             states = api_client.get_states(bbox=bbox, extended=True, time_sec=time_sec)
         except OpenSkyAPIError as exc:
-            if not (os.getenv("VERCEL") and (exc.status_code is None or exc.status_code >= 500)):
+            if not (os.getenv("VERCEL") and time_sec is None and (exc.status_code is None or exc.status_code >= 500 or exc.status_code == 429)):
                 raise
+            cached = self._cached_live_states_for_bbox(bbox)
+            if cached is not None:
+                cached_states = cached.get("states", [])
+                cached_time = cached.get("time")
+                return {
+                    "success": True,
+                    "time": cached_time,
+                    "time_iso": _iso_from_timestamp(cached_time),
+                    "count": len(cached_states),
+                    "states": cached_states,
+                    "degraded": True,
+                    "notice": "Live refresh delayed. Showing the last snapshot for this viewport.",
+                }
             return {
                 "success": True,
                 "time": None,
@@ -682,15 +742,21 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 "notice": "Live traffic is temporarily unavailable. Keeping the last snapshot when available.",
             }
         parsed_states = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
-        self._cache_live_snapshot(parsed_states, states.get("time") if isinstance(states, dict) else None)
+        degraded = bool(states.get("degraded")) if isinstance(states, dict) else False
+        if not degraded:
+            self._cache_live_snapshot(parsed_states, states.get("time") if isinstance(states, dict) else None)
 
-        return {
+        payload = {
             "success": True,
             "time": states.get("time") if isinstance(states, dict) else None,
             "time_iso": _iso_from_timestamp(states.get("time") if isinstance(states, dict) else None),
             "count": len(parsed_states),
             "states": parsed_states,
         }
+        if degraded:
+            payload["degraded"] = True
+            payload["notice"] = states.get("notice") or "Live refresh delayed. Showing the last snapshot for this viewport."
+        return payload
 
     def handle_flight_info(self, icao24, callsign_param=""):
         code = _validate_icao24(icao24)

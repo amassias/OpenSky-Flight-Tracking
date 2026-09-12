@@ -196,6 +196,29 @@ def test_vercel_live_provider_outage_returns_degraded_success(monkeypatch):
     assert payload["notice"]
 
 
+def test_vercel_live_provider_outage_reuses_recent_viewport_snapshot(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    live_state = [
+        "39abcd", "AFR123 ", "France", 1_750_000_000, 1_750_000_001,
+        2.55, 49.01, 9_000, False, 210, 95, 0, None, 9_100, "7000", False, 0, 4,
+    ]
+    fake_client = Mock()
+    fake_client.get_states.return_value = {"time": 1_750_000_001, "states": [live_state]}
+    service = handler()
+
+    with patch.object(server, "api_client", fake_client):
+        fresh = service.handle_live_flights(48.7, 2.1, 49.3, 3.0)
+        fake_client.get_states.side_effect = OpenSkyAPIError("provider timeout", status_code=503)
+        degraded = service.handle_live_flights(48.7, 2.1, 49.3, 3.0)
+
+    assert fresh["count"] == 1
+    assert degraded["success"] is True
+    assert degraded["degraded"] is True
+    assert degraded["count"] == 1
+    assert degraded["states"][0]["icao24"] == "39abcd"
+    assert "last snapshot" in degraded["notice"]
+
+
 def test_track_returns_graceful_empty_result():
     fake_client = Mock()
     fake_client.get_track.return_value = {}

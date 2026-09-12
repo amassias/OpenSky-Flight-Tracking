@@ -123,6 +123,27 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     assert request_url.startswith("https://api.adsb.lol/v2/point/")
 
 
+def test_live_viewport_radius_expands_and_reuses_a_recent_response(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    response = _json_response({
+        "now": 1_750_000_000_000,
+        "ac": [{"hex": "abc123", "flight": "WIDE1", "lat": 48.8, "lon": 2.3}],
+    })
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+
+    bbox = (40.0, -5.0, 55.0, 10.0)
+    first = client.get_states(bbox=bbox)
+    second = client.get_states(bbox=bbox)
+
+    assert first == second
+    request_url = client.session.get.call_args.args[0]
+    radius = float(request_url.rstrip("/").rsplit("/", 1)[-1])
+    assert radius > 250
+    client.session.get.assert_called_once()
+
+
 def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.delenv("VERCEL_URL", raising=False)

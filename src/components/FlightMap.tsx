@@ -228,16 +228,18 @@ export function FlightMap({
   useEffect(() => {
     airportIcaoRef.current = airport?.icao ?? null;
   }, [airport?.icao]);
-  const area = bounds ? Math.abs(bounds.lamax - bounds.lamin) * Math.abs(bounds.lomax - bounds.lomin) : Infinity;
   const liveQuery = useQuery({
     queryKey: ["live-flights", bounds],
     queryFn: ({ signal }) => api.liveFlights(bounds!, signal),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
     gcTime: 60_000,
-    enabled: liveAvailable && liveEnabled && bounds !== null && area <= 350,
-    refetchInterval: liveEnabled ? 15_000 : false,
-    retry: false,
+    // The API filters the provider response to the viewport. Let it handle
+    // wide bounds too, otherwise a zoom-out silently freezes the last box.
+    enabled: liveAvailable && liveEnabled && bounds !== null,
+    refetchInterval: liveEnabled ? 20_000 : false,
+    retry: 1,
+    retryDelay: 1_500,
   });
 
   useEffect(() => {
@@ -246,13 +248,17 @@ export function FlightMap({
     onLiveSnapshot?.(liveQuery.data, airportIcaoRef.current);
   }, [liveQuery.data, liveQuery.isPlaceholderData, onLiveSnapshot]);
 
-  const displayedLiveData = liveQuery.data?.degraded && lastLiveData
-    ? lastLiveData
+  const degradedLiveData = liveQuery.data?.degraded ? liveQuery.data : null;
+  const displayedLiveData = degradedLiveData && lastLiveData
+    ? (degradedLiveData.states.length >= lastLiveData.states.length ? degradedLiveData : lastLiveData)
     : (liveQuery.data ?? lastLiveData);
-  const hasLiveSnapshot = Boolean(lastLiveData || (liveQuery.data && !liveQuery.data.degraded));
+  const hasLiveSnapshot = Boolean(
+    lastLiveData
+      || (liveQuery.data && (!liveQuery.data.degraded || liveQuery.data.states.length > 0)),
+  );
   const displayedLiveStates = displayedLiveData?.states ?? [];
   const liveStatus = liveQuery.isError || liveQuery.data?.degraded
-    ? hasLiveSnapshot ? "Live update unavailable · showing last snapshot" : liveQuery.data?.notice ?? "Live traffic temporarily unavailable"
+    ? hasLiveSnapshot ? "Live refresh delayed · showing last snapshot" : liveQuery.data?.notice ?? "Live traffic temporarily unavailable"
     : liveQuery.isPending
       ? "Loading live traffic…"
       : liveQuery.isFetching
@@ -336,8 +342,8 @@ export function FlightMap({
       </div>
       <div className={`live-badge ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
-        <span className="live-badge-label">{!liveAvailable ? "OFFLINE" : !liveEnabled ? "PAUSED" : area > 350 ? "ZOOM" : "LIVE"}</span>
-        <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
+        <span className="live-badge-label">{!liveAvailable ? "OFFLINE" : !liveEnabled ? "PAUSED" : "LIVE"}</span>
+        <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
       </div>
       <div className="map-controls">
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>

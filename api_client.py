@@ -29,6 +29,13 @@ class OpenSkyClient:
         self.oauth_unavailable_until = 0.0
         self.session = requests.Session()
         self._route_cache: Dict[str, tuple[float, Optional[Dict[str, Any]]]] = {}
+        # Live map requests are usually repeated for the same quantised
+        # viewport. Keep a short in-process cache so a polling tick or a
+        # resize cannot turn into a burst of provider requests. Vercel may
+        # create more than one function instance, so this is an optimisation
+        # and the server layer still keeps its own stale snapshot fallback.
+        self._live_cache: Dict[str, Dict[str, Any]] = {}
+        self._live_provider_unavailable_until = 0.0
 
         if not self.client_id or not self.client_secret:
             print("Warning: OpenSky credentials not found in environment variables.")
@@ -265,14 +272,61 @@ class OpenSkyClient:
             lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
             center_lat = (lat_min + lat_max) / 2
             center_lon = (lon_min + lon_max) / 2
-            radius = min(250.0, max(1.0, self._distance_nm(center_lat, center_lon, lat_max, lon_max)))
+            # The old 250 NM cap covered an airport-sized box only. When the
+            # user zooms out, the provider still returned a central sliver of
+            # the map and the other visible aircraft disappeared. Size the
+            # request from the farthest viewport corner and keep a bounded
+            # ceiling so a world view cannot create an enormous response.
+            corner_distances = (
+                self._distance_nm(center_lat, center_lon, lat_min, lon_min),
+                self._distance_nm(center_lat, center_lon, lat_min, lon_max),
+                self._distance_nm(center_lat, center_lon, lat_max, lon_min),
+                self._distance_nm(center_lat, center_lon, lat_max, lon_max),
+            )
+            try:
+                radius_limit = float(os.getenv("SKYTRACE_LIVE_MAX_RADIUS_NM", "1000"))
+            except (TypeError, ValueError):
+                radius_limit = 1000.0
+            radius_limit = max(250.0, min(2500.0, radius_limit))
+            radius = min(radius_limit, max(1.0, max(corner_distances)))
             endpoint = f"point/{center_lat:.5f}/{center_lon:.5f}/{radius:.1f}"
         else:
             raise OpenSkyAPIError("A bounding box or aircraft code is required for live fallback data.")
 
+        now = time.time()
+        try:
+            cache_seconds = max(5.0, float(os.getenv("SKYTRACE_LIVE_CACHE_SECONDS", "15")))
+        except (TypeError, ValueError):
+            cache_seconds = 15.0
+        try:
+            stale_seconds = max(cache_seconds, float(os.getenv("SKYTRACE_LIVE_STALE_SECONDS", "90")))
+        except (TypeError, ValueError):
+            stale_seconds = max(cache_seconds, 90.0)
+
+        cached = self._live_cache.get(endpoint)
+        if cached:
+            age = now - float(cached.get("fetched_at", 0))
+            if age <= cache_seconds:
+                return cached["result"]
+
+        # A provider rate limit applies to the function instance, so avoid
+        # immediately repeating the same failed request. A stale exact
+        # viewport is still useful to the map, but it is explicitly marked so
+        # the UI never presents it as a fresh update.
+        if now < self._live_provider_unavailable_until:
+            if cached and now - float(cached.get("fetched_at", 0)) <= stale_seconds:
+                stale_result = dict(cached["result"])
+                stale_result["degraded"] = True
+                stale_result["notice"] = "Live refresh delayed. Showing the last snapshot."
+                return stale_result
+            raise OpenSkyAPIError("Live aircraft providers are temporarily unavailable.", status_code=503)
+
         # Independent public providers use the same ADS-B schema. A provider
         # outage must not make all live traffic unavailable on Vercel.
         last_error = None
+        last_status = None
+        rate_limited = False
+        rate_limit_payload: Dict[str, Any] = {}
         for provider in ("adsb.lol", "airplanes.live"):
             try:
                 response = self.session.get(
@@ -283,6 +337,16 @@ class OpenSkyClient:
                     },
                     timeout=8,
                 )
+                response_status = getattr(response, "status_code", None)
+                if isinstance(response_status, int) and response_status >= 400:
+                    last_status = response_status
+                    if response_status == 429:
+                        rate_limited = True
+                        rate_limit_payload = {
+                            "retry_after_seconds": response.headers.get("X-Rate-Limit-Retry-After-Seconds")
+                            or response.headers.get("Retry-After"),
+                            "provider": provider,
+                        }
                 response.raise_for_status()
                 payload = response.json()
                 if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
@@ -291,6 +355,13 @@ class OpenSkyClient:
             except (requests.RequestException, ValueError) as exc:
                 last_error = exc
         else:
+            self._live_provider_unavailable_until = now + 15
+            if rate_limited:
+                raise OpenSkyAPIError(
+                    "Live aircraft providers are rate limited.",
+                    status_code=429,
+                    payload=rate_limit_payload,
+                ) from last_error
             raise OpenSkyAPIError("Live aircraft providers are temporarily unavailable.", status_code=503) from last_error
 
         now_sec = int((payload.get("now") or time.time() * 1000) / 1000)
@@ -305,11 +376,17 @@ class OpenSkyClient:
                 and lon_min <= item["lon"] <= lon_max
             ]
 
-        return {
+        result = {
             "time": now_sec,
             "states": [self._airplanes_live_row(item, now_sec) for item in aircraft if item.get("hex")],
             "provider": provider,
         }
+        self._live_provider_unavailable_until = 0.0
+        if len(self._live_cache) >= 128:
+            oldest_key = min(self._live_cache, key=lambda key: self._live_cache[key].get("fetched_at", 0))
+            self._live_cache.pop(oldest_key, None)
+        self._live_cache[endpoint] = {"fetched_at": now, "result": result}
+        return result
 
     def get_departures(self, airport_icao: str, begin_timestamp: int, end_timestamp: int):
         params = {

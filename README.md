@@ -5,6 +5,7 @@ SkyTrace is a map-first flight intelligence interface powered by the OpenSky Net
 ## Features
 
 - Live aircraft polling in the visible map area
+- Wider live viewport coverage when zooming out, with a short provider cache and labelled stale-snapshot recovery during rate limits
 - Airport search by city, name, IATA, ICAO, region, or country
 - UTC arrival and departure queries
 - Flight filtering, sorting, status summaries, and detailed tracks
@@ -108,6 +109,8 @@ Unit and E2E tests use deterministic API responses and do not consume OpenSky cr
 The application stores only theme, live-refresh preference, recent airports, and favorites in browser `localStorage`. No user account or personal flight history is created. Map tiles come from OpenStreetMap. Flight history comes from OpenSky; on Vercel, live positions use ADSB.lol with Airplanes.live as a fallback. If OpenSky history is unavailable, an airport search returns a clearly labelled live snapshot around the airport so the map and list remain useful; it does not claim those aircraft are historical movements.
 
 Origin and destination for historical records come from OpenSky. For a live aircraft, the selected callsign is resolved on demand through the [ADSBDB callsign API](https://github.com/mrjackwills/adsbdb) and cached briefly; a missing or disabled resolver leaves the route explicitly unknown. Set `SKYTRACE_ROUTE_LOOKUP_ENABLED=0` to disable this enrichment.
+
+Live viewport requests use a short in-process cache and expand their provider radius with the visible map. `SKYTRACE_LIVE_CACHE_SECONDS`, `SKYTRACE_LIVE_STALE_SECONDS`, and `SKYTRACE_LIVE_MAX_RADIUS_NM` can tune those limits when running a private deployment.
 
 ## License
 
