@@ -557,9 +557,9 @@ class OpenSkyClient:
         # parallel; a six-cell airport-region grid still completes quickly,
         # while a wide map stays compliant with the providers' fair-use limits.
         try:
-            tile_interval = max(0.0, min(5.0, float(os.getenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "1.05"))))
+            tile_interval = max(0.0, min(5.0, float(os.getenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "1.3"))))
         except (TypeError, ValueError):
-            tile_interval = 1.05
+            tile_interval = 1.3
 
         def request_tile(provider: str, endpoint: str):
             now_for_gate = time.time()
