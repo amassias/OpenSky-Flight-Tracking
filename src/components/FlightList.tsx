@@ -133,7 +133,11 @@ export function FlightList({
       {notice && <div className="data-notice-inline" role="status">{notice}</div>}
 
       <div className="flight-list" aria-live="polite" aria-busy={loading}>
-        {loading && Array.from({ length: 5 }, (_, index) => <div className="flight-card skeleton" key={index} />)}
+        {loading && flights.length === 0 && <div className="movement-loading" role="status">
+          <span className="movement-loading-radar" aria-hidden="true"><span /></span>
+          <div><strong>Loading airport movements</strong><span>Checking recorded flights and the latest available traffic…</span></div>
+        </div>}
+        {loading && flights.length > 0 && <div className="list-refreshing" role="status"><span /> Refreshing movements</div>}
         {!loading && errorMessage && (
           <div className="message-state error-state">
             <span className="message-icon">!</span>
@@ -160,7 +164,7 @@ export function FlightList({
             <p>Search an airport to explore arrivals, departures and live aircraft.</p>
           </div>
         )}
-        {!loading && !errorMessage && visibleFlights.map((flight) => (
+        {!errorMessage && visibleFlights.map((flight) => (
           <FlightCard
             key={flightId(flight)}
             flight={flight}

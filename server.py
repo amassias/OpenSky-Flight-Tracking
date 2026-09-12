@@ -12,6 +12,7 @@ import mimetypes
 import os
 import socketserver
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -48,6 +49,30 @@ POPULAR_AIRPORTS = [
 ]
 
 LIVE_SNAPSHOT_CACHE_SECONDS = 60
+HISTORY_RESPONSE_CACHE = {}
+
+AIRCRAFT_TYPE_DESCRIPTIONS = {
+    "A19N": "Airbus A319neo", "A20N": "Airbus A320neo", "A21N": "Airbus A321neo",
+    "A318": "Airbus A318", "A319": "Airbus A319", "A320": "Airbus A320", "A321": "Airbus A321",
+    "A332": "Airbus A330-200", "A333": "Airbus A330-300", "A338": "Airbus A330-800neo", "A339": "Airbus A330-900neo",
+    "A343": "Airbus A340-300", "A346": "Airbus A340-600", "A359": "Airbus A350-900", "A35K": "Airbus A350-1000", "A388": "Airbus A380-800",
+    "B37M": "Boeing 737 MAX 7", "B38M": "Boeing 737 MAX 8", "B39M": "Boeing 737 MAX 9",
+    "B733": "Boeing 737-300", "B734": "Boeing 737-400", "B735": "Boeing 737-500", "B736": "Boeing 737-600",
+    "B737": "Boeing 737-700", "B738": "Boeing 737-800", "B739": "Boeing 737-900",
+    "B744": "Boeing 747-400", "B748": "Boeing 747-8", "B752": "Boeing 757-200", "B753": "Boeing 757-300",
+    "B762": "Boeing 767-200", "B763": "Boeing 767-300", "B764": "Boeing 767-400",
+    "B772": "Boeing 777-200", "B77L": "Boeing 777-200LR", "B773": "Boeing 777-300", "B77W": "Boeing 777-300ER",
+    "B788": "Boeing 787-8", "B789": "Boeing 787-9", "B78X": "Boeing 787-10",
+    "BCS1": "Airbus A220-100", "BCS3": "Airbus A220-300", "CRJ2": "Bombardier CRJ200", "CRJ7": "Bombardier CRJ700", "CRJ9": "Bombardier CRJ900",
+    "E170": "Embraer E170", "E175": "Embraer E175", "E190": "Embraer E190", "E195": "Embraer E195", "E290": "Embraer E190-E2", "E295": "Embraer E195-E2",
+    "AT43": "ATR 42-300", "AT45": "ATR 42-500", "AT72": "ATR 72-200", "AT75": "ATR 72-500", "AT76": "ATR 72-600",
+    "DH8D": "De Havilland Canada Dash 8-400", "C172": "Cessna 172 Skyhawk", "C208": "Cessna 208 Caravan",
+}
+
+
+def _describe_aircraft_type(type_code):
+    normalized = str(type_code or "").strip().upper()
+    return AIRCRAFT_TYPE_DESCRIPTIONS.get(normalized)
 
 
 def _safe_int(value, default=None):
@@ -186,11 +211,12 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 lamax = query_params.get("lamax", [None])[0]
                 lomax = query_params.get("lomax", [None])[0]
                 time_param = query_params.get("time", [None])[0]
+                fallback_only = query_params.get("fallback", ["0"])[0].strip().lower() in {"1", "true", "yes"}
 
                 if None in (lamin, lomin, lamax, lomax):
                     raise ValueError("Missing bounding box parameters: lamin, lomin, lamax, lomax")
 
-                payload = self.handle_live_flights(lamin, lomin, lamax, lomax, time_param)
+                payload = self.handle_live_flights(lamin, lomin, lamax, lomax, time_param, fallback_only)
                 self.send_json_response(200, payload)
                 return
 
@@ -501,7 +527,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             min(180.0, longitude + 0.45),
         )
         try:
-            states_payload = api_client.get_states(bbox=bbox, extended=True)
+            # History already spent its bounded OpenSky proxy attempt. Use one
+            # direct ADS-B tile for the live fallback instead of waiting on the
+            # same unavailable proxy a second time.
+            states_payload = api_client.get_live_fallback_states(bbox=bbox)
             now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
             parsed_states = self._parse_states((states_payload or {}).get("states", []))
             if not (states_payload or {}).get("degraded"):
@@ -652,6 +681,13 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         if mode_normalized not in ("departure", "arrival"):
             raise ValueError("mode must be either 'departure' or 'arrival'.")
 
+        cache_key = (airport, target_date.isoformat(), mode_normalized)
+        now = time.time()
+        cache_enabled = bool(os.getenv("VERCEL"))
+        cached_response = HISTORY_RESPONSE_CACHE.get(cache_key) if cache_enabled else None
+        if cached_response and now < cached_response[0]:
+            return cached_response[1]
+
         start_utc = datetime.combine(target_date, datetime.min.time(), tzinfo=timezone.utc)
         end_utc = start_utc + timedelta(days=1)
 
@@ -680,7 +716,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 if live_flights
                 else f"OpenSky history {history_reason} for {target_date.isoformat()}. Live traffic remains available on the map."
             )
-            return self._flights_response(
+            response = self._flights_response(
                 airport,
                 mode_normalized,
                 target_date,
@@ -688,6 +724,9 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 source="live-nearby" if live_flights else "unavailable",
                 notice=notice,
             )
+            if cache_enabled:
+                HISTORY_RESPONSE_CACHE[cache_key] = (now + 45, response)
+            return response
 
         if not isinstance(records, list):
             raise OpenSkyAPIError("OpenSky returned an invalid flight list.", payload={"response_type": type(records).__name__})
@@ -697,14 +736,25 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         # Remove malformed records without icao24.
         flights = [f for f in flights if f.get("icao24")]
 
-        self._enrich_live_states(flights)
+        # The map already refreshes live positions independently. Waiting for
+        # another state-vector pass here delays a complete historical result,
+        # especially on a serverless cold start. Keep local development's
+        # combined view, but return the recorded list immediately in Vercel.
+        if not os.getenv("VERCEL"):
+            self._enrich_live_states(flights)
 
         sort_key = "first_seen" if mode_normalized == "departure" else "last_seen"
         flights.sort(key=lambda item: item.get(sort_key) or 0, reverse=True)
 
-        return self._flights_response(airport, mode_normalized, target_date, flights)
+        response = self._flights_response(airport, mode_normalized, target_date, flights)
+        if cache_enabled:
+            if len(HISTORY_RESPONSE_CACHE) >= 128:
+                oldest_key = min(HISTORY_RESPONSE_CACHE, key=lambda item: HISTORY_RESPONSE_CACHE[item][0])
+                HISTORY_RESPONSE_CACHE.pop(oldest_key, None)
+            HISTORY_RESPONSE_CACHE[cache_key] = (now + 300, response)
+        return response
 
-    def handle_live_flights(self, lamin, lomin, lamax, lomax, time_param=None):
+    def handle_live_flights(self, lamin, lomin, lamax, lomax, time_param=None, fallback_only=False):
         bbox = (
             _safe_float(lamin),
             _safe_float(lomin),
@@ -723,7 +773,11 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
         time_sec = _safe_int(time_param) if time_param else None
         try:
-            states = api_client.get_states(bbox=bbox, extended=True, time_sec=time_sec)
+            states = (
+                api_client.get_live_fallback_states(bbox=bbox)
+                if fallback_only and time_sec is None
+                else api_client.get_states(bbox=bbox, extended=True, time_sec=time_sec)
+            )
         except OpenSkyAPIError as exc:
             if not (os.getenv("VERCEL") and time_sec is None and (exc.status_code is None or exc.status_code >= 500 or exc.status_code == 429)):
                 raise
@@ -775,24 +829,46 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         provided_callsign = (callsign_param or "").strip()
 
         current_state = None
-        # Enrich a selected aircraft with the public ADS-B profile (registration,
-        # type, operator and signal quality). This is intentionally one
-        # on-demand lookup, never part of the map polling loop.
-        try:
-            profile_response = api_client.get_aircraft_profile(code)
-            profile_row = profile_response.get("state") if isinstance(profile_response, dict) else None
-            if isinstance(profile_row, list):
-                current_state = self._state_row_to_object(profile_row)
-        except Exception:
-            current_state = None
         callsign_route = None
+        flightaware = None
+        route_queried = False
+        flightaware_queried = False
+
+        # A map click already gives us the callsign. Profile, route and
+        # operational details are independent network lookups, so resolve them
+        # together instead of making the drawer wait for their combined time.
         if provided_callsign:
-            # The browser already has the live callsign. Resolve it first so a
-            # slow historical OpenSky endpoint cannot hold up the details panel.
+            route_queried = True
+            flightaware_queried = True
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                profile_future = executor.submit(api_client.get_aircraft_profile, code)
+                route_future = executor.submit(api_client.get_callsign_route, provided_callsign)
+                operations_future = executor.submit(api_client.get_flightaware_details, provided_callsign, None)
+                try:
+                    profile_response = profile_future.result()
+                    profile_row = profile_response.get("state") if isinstance(profile_response, dict) else None
+                    if isinstance(profile_row, list):
+                        current_state = self._state_row_to_object(profile_row)
+                except Exception:
+                    current_state = None
+                try:
+                    candidate_route = route_future.result()
+                    callsign_route = candidate_route if isinstance(candidate_route, dict) else None
+                except Exception:
+                    callsign_route = None
+                try:
+                    candidate_operations = operations_future.result()
+                    flightaware = candidate_operations if isinstance(candidate_operations, dict) else None
+                except Exception:
+                    flightaware = None
+        else:
             try:
-                callsign_route = api_client.get_callsign_route(provided_callsign)
+                profile_response = api_client.get_aircraft_profile(code)
+                profile_row = profile_response.get("state") if isinstance(profile_response, dict) else None
+                if isinstance(profile_row, list):
+                    current_state = self._state_row_to_object(profile_row)
             except Exception:
-                callsign_route = None
+                current_state = None
 
         # For an on-demand live lookup, the selected state already contains the
         # telemetry shown by the UI. Only ask OpenSky when the profile lookup
@@ -827,7 +903,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         current_callsign = (current_state or {}).get("callsign", "").strip()
         callsign = provided_callsign or current_callsign or historical_callsign
 
-        if callsign and not callsign_route and not provided_callsign:
+        if callsign and not callsign_route and not route_queried:
             try:
                 callsign_route = api_client.get_callsign_route(callsign)
             except Exception:
@@ -841,8 +917,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         # user's Hermes flight-tracker skill. Keep it strictly on this
         # selection endpoint: map polling never calls it, and the client/server
         # caches keep repeat opens inside a conservative free-plan cadence.
-        flightaware = None
-        if callsign:
+        if callsign and not flightaware_queried:
             try:
                 candidate = api_client.get_flightaware_details(
                     callsign,
@@ -904,6 +979,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 return flightaware_name
             return local_name
 
+        resolved_aircraft_type = (current_state or {}).get("aircraft_type") or (flightaware or {}).get("aircraft_type")
+        resolved_registration = (current_state or {}).get("registration") or (flightaware or {}).get("registration")
+        resolved_aircraft_description = (current_state or {}).get("aircraft_description") or _describe_aircraft_type(resolved_aircraft_type)
+
         payload = {
             "success": True,
             "icao24": code,
@@ -922,6 +1001,9 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "route_provider": route_provider,
             "live_state": current_state,
             "flightaware": flightaware,
+            "registration": resolved_registration,
+            "aircraft_type": resolved_aircraft_type,
+            "aircraft_description": resolved_aircraft_description,
         }
 
         if current_state:

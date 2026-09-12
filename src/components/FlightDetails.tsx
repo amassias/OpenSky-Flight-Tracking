@@ -110,7 +110,7 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
         </div>
         {operations.progress_percent != null && operations.progress_percent >= 0 && <div className="operations-progress" aria-label={`Flight progress ${Math.round(operations.progress_percent)} percent`}>
           <div><span>Flight progress</span><strong className="mono">{Math.round(operations.progress_percent)}%</strong></div>
-          <div className="operations-progress-track"><span style={{ width: `${Math.max(0, Math.min(100, operations.progress_percent))}%` }} /></div>
+          <div className="operations-progress-track"><span style={{ transform: `scaleX(${Math.max(0, Math.min(100, operations.progress_percent)) / 100})` }} /></div>
         </div>}
         {operations.route && <p className="operations-route"><span>Filed route</span><strong className="mono">{operations.route}</strong></p>}
         <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Queried after selection and cached for 15 minutes.</p>
@@ -161,7 +161,7 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
       </section>
 
       <section className="profile-card">
-        <div className="profile-title"><span>Altitude profile</span><small className="mono">{trackLoading ? "Loading…" : path.length ? `${path.length} points` : "No track"}</small></div>
+        <div className="profile-title"><span>Altitude profile</span><small className="mono">{trackLoading ? "Loading full trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"}</small></div>
         {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
       </section>
     </aside>

@@ -50,6 +50,7 @@ class OpenSkyClient:
         # second API call during the provider's retry window.
         self._flightaware_cache: Dict[str, Dict[str, Any]] = {}
         self._flightaware_next_request_at = 0.0
+        self._track_cache: Dict[str, Dict[str, Any]] = {}
 
         if not self.client_id or not self.client_secret:
             print("Warning: OpenSky credentials not found in environment variables.")
@@ -1111,6 +1112,10 @@ class OpenSkyClient:
                 return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
             raise
 
+    def get_live_fallback_states(self, bbox: tuple):
+        """Fetch one provider-safe live tile without waiting on OpenSky."""
+        return self._get_airplanes_live_states(bbox=bbox)
+
     def get_track(self, icao24: str, time_sec: int):
         if os.getenv("VERCEL"):
             return self._get_adsb_lol_track(icao24)
@@ -1133,22 +1138,38 @@ class OpenSkyClient:
         return {}
 
     def _get_adsb_lol_track(self, icao24: str):
-        """Return a recent ADS-B trace using the OpenSky track response shape."""
+        """Return the fullest available ADS-B trace in the OpenSky shape."""
         code = str(icao24).lower()
+        now = time.time()
+        cached = self._track_cache.get(code)
+        if cached and now < float(cached.get("expires_at", 0)):
+            return cached.get("result") or {}
         suffix = code[-2:]
-        url = f"https://adsb.lol/data/traces/{suffix}/trace_recent_{code}.json"
-        try:
-            response = self.session.get(
-                url,
-                headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
-                timeout=15,
-            )
-            if response.status_code == 404:
-                return {}
-            response.raise_for_status()
-            payload = response.json()
-        except (requests.RequestException, ValueError) as exc:
-            raise OpenSkyAPIError(f"Recent ADS-B track request failed: {exc}") from exc
+        payload = None
+        last_error = None
+        trace_kind = "recent"
+        for candidate in ("full", "recent"):
+            url = f"https://adsb.lol/data/traces/{suffix}/trace_{candidate}_{code}.json"
+            try:
+                response = self.session.get(
+                    url,
+                    headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
+                    timeout=12,
+                )
+                if response.status_code == 404:
+                    continue
+                response.raise_for_status()
+                candidate_payload = response.json()
+                if isinstance(candidate_payload, dict) and candidate_payload.get("trace"):
+                    payload = candidate_payload
+                    trace_kind = candidate
+                    break
+            except (requests.RequestException, ValueError) as exc:
+                last_error = exc
+        if not isinstance(payload, dict):
+            if last_error:
+                raise OpenSkyAPIError(f"ADS-B track request failed: {last_error}") from last_error
+            return {}
 
         base_time = float(payload.get("timestamp") or 0)
         path = []
@@ -1170,14 +1191,17 @@ class OpenSkyClient:
 
         if not path:
             return {}
-        return {
+        result = {
             "icao24": code,
             "callsign": callsign,
             "startTime": path[0][0],
             "endTime": path[-1][0],
             "path": path,
             "source": "adsb.lol",
+            "trace_kind": trace_kind,
         }
+        self._track_cache[code] = {"expires_at": now + 90, "result": result}
+        return result
 
     def get_flights_by_aircraft(self, icao24: str, begin_timestamp: int, end_timestamp: int):
         params = {

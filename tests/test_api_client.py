@@ -254,10 +254,30 @@ def test_vercel_track_fallback_builds_altitude_path(monkeypatch):
 
     assert result["callsign"] == "TEST42"
     assert result["source"] == "adsb.lol"
+    assert result["trace_kind"] == "full"
+    assert "trace_full_abc123.json" in client.session.get.call_args.args[0]
     assert result["path"] == [
         [1_750_000_000, 48.0, 2.0, 0.0, 90, True],
         [1_750_000_060, 48.1, 2.1, 3048.0, 95, False],
     ]
+
+
+def test_track_falls_back_to_recent_when_full_trace_is_missing(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    missing = _json_response({}, status_code=404)
+    recent = _json_response({
+        "timestamp": 1_750_000_000.0,
+        "trace": [[0.0, 48.0, 2.0, 12_000, 220, 90]],
+    })
+    recent.raise_for_status = Mock()
+    client.session.get = Mock(side_effect=[missing, recent])
+
+    result = client.get_track("abc123", 0)
+
+    assert result["trace_kind"] == "recent"
+    assert client.session.get.call_count == 2
+    assert "trace_recent_abc123.json" in client.session.get.call_args_list[1].args[0]
 
 
 def test_live_provider_outage_uses_independent_fallback(monkeypatch):

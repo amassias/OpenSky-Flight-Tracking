@@ -91,6 +91,8 @@ export function App() {
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
     queryFn: () => api.flights(request!.airport.icao, request!.date, request!.mode),
     enabled: Boolean(request),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     retry: false,
   });
 

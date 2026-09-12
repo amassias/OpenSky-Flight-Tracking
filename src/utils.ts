@@ -91,6 +91,61 @@ export function quantizeBounds(bounds: Bounds, step = 0.1): Bounds {
   };
 }
 
+/**
+ * Add a small guard band around the visible map. Aircraft just beyond an edge
+ * are therefore already available when the user starts the next pan.
+ */
+export function expandBounds(bounds: Bounds, ratio = 0.18): Bounds {
+  const latPadding = Math.max(0, bounds.lamax - bounds.lamin) * ratio;
+  const lonPadding = Math.max(0, bounds.lomax - bounds.lomin) * ratio;
+  return {
+    lamin: Math.max(-90, bounds.lamin - latPadding),
+    lamax: Math.min(90, bounds.lamax + latPadding),
+    lomin: Math.max(-180, bounds.lomin - lonPadding),
+    lomax: Math.min(180, bounds.lomax + lonPadding),
+  };
+}
+
+/**
+ * Public ADS-B point feeds accept a circle up to 250 NM. Split a broad map
+ * into safe cells and order them from the centre out so the first visible
+ * aircraft arrive quickly. Extremely broad views are deliberately bounded;
+ * the user can keep moving while the next viewport replaces the queue.
+ */
+export function splitBoundsIntoTiles(bounds: Bounds, maxTiles = 24): Bounds[] {
+  const centerLat = (bounds.lamin + bounds.lamax) / 2;
+  const latitudeNm = Math.max(1, (bounds.lamax - bounds.lamin) * 60);
+  const longitudeNm = Math.max(1, (bounds.lomax - bounds.lomin) * 60 * Math.max(0.15, Math.cos(centerLat * Math.PI / 180)));
+  const safeCellNm = 285;
+  const rows = Math.max(1, Math.ceil(latitudeNm / safeCellNm));
+  const columns = Math.max(1, Math.ceil(longitudeNm / safeCellNm));
+  const tiles: Array<Bounds & { priority: number }> = [];
+
+  for (let row = 0; row < rows; row += 1) {
+    const lamin = bounds.lamin + row * (bounds.lamax - bounds.lamin) / rows;
+    const lamax = bounds.lamin + (row + 1) * (bounds.lamax - bounds.lamin) / rows;
+    for (let column = 0; column < columns; column += 1) {
+      const lomin = bounds.lomin + column * (bounds.lomax - bounds.lomin) / columns;
+      const lomax = bounds.lomin + (column + 1) * (bounds.lomax - bounds.lomin) / columns;
+      const rowOffset = row + 0.5 - rows / 2;
+      const columnOffset = column + 0.5 - columns / 2;
+      tiles.push({ lamin, lamax, lomin, lomax, priority: rowOffset * rowOffset + columnOffset * columnOffset });
+    }
+  }
+
+  return tiles
+    .sort((a, b) => a.priority - b.priority)
+    .slice(0, Math.max(1, maxTiles))
+    .map(({ lamin, lamax, lomin, lomax }) => quantizeBounds({ lamin, lamax, lomin, lomax }, 0.05));
+}
+
+export function viewportTileCount(bounds: Bounds): number {
+  const centerLat = (bounds.lamin + bounds.lamax) / 2;
+  const latitudeNm = Math.max(1, (bounds.lamax - bounds.lamin) * 60);
+  const longitudeNm = Math.max(1, (bounds.lomax - bounds.lomin) * 60 * Math.max(0.15, Math.cos(centerLat * Math.PI / 180)));
+  return Math.max(1, Math.ceil(latitudeNm / 285) * Math.ceil(longitudeNm / 285));
+}
+
 export function boundsEqual(a: Bounds | null, b: Bounds | null): boolean {
   if (!a || !b) return a === b;
   return a.lamin === b.lamin && a.lamax === b.lamax && a.lomin === b.lomin && a.lomax === b.lomax;

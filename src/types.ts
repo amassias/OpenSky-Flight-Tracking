@@ -235,6 +235,7 @@ export interface TrackResponse {
     startTime?: number;
     endTime?: number;
     path?: TrackPoint[];
+    trace_kind?: "full" | "recent" | string;
   };
   path_count: number;
   message?: string;

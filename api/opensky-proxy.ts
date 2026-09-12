@@ -51,7 +51,7 @@ function openskyRequest(
           headers: { ...headers, Host: hostname },
           // Keep each upstream attempt bounded. The Python caller allows time
           // for the static-address attempt and this one DNS retry.
-          timeout: 4_000,
+          timeout: 3_000,
         },
         (response) => {
           const responseStatus = response.statusCode ?? 502;

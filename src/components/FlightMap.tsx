@@ -1,11 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
-import { altitudeColor, boundsEqual, formatAltitude, formatSpeed, quantizeBounds } from "../utils";
+import { altitudeColor, boundsEqual, expandBounds, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount } from "../utils";
 import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
@@ -191,27 +190,24 @@ interface BoundsReporterProps { onBounds: (bounds: Bounds) => void }
 function BoundsReporter({ onBounds }: BoundsReporterProps) {
   const map = useMap();
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
     function report() {
-      clearTimeout(timer);
-      clearTimeout(initialTimer);
-      timer = setTimeout(() => {
-        const bounds = map.getBounds();
-        onBounds(quantizeBounds({
-          lamin: Math.max(-90, bounds.getSouth()),
-          lomin: bounds.getWest(),
-          lamax: Math.min(90, bounds.getNorth()),
-          lomax: bounds.getEast(),
-        }));
-      }, 250);
+      const bounds = map.getBounds();
+      onBounds(quantizeBounds(expandBounds({
+        lamin: Math.max(-90, bounds.getSouth()),
+        lomin: Math.max(-180, bounds.getWest()),
+        lamax: Math.min(90, bounds.getNorth()),
+        lomax: Math.min(180, bounds.getEast()),
+      })));
     }
     map.on("moveend", report);
-    const initialTimer = setTimeout(report, 1_000);
-    // MapController may immediately fly to the selected airport. Waiting one
-    // settle window avoids fetching the throwaway default viewport first.
+    const initialTimer = setTimeout(report, 120);
     const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
     observer.observe(map.getContainer());
-    return () => { clearTimeout(timer); clearTimeout(initialTimer); map.off("moveend", report); observer.disconnect(); };
+    return () => {
+      clearTimeout(initialTimer);
+      map.off("moveend", report);
+      observer.disconnect();
+    };
   }, [map, onBounds]);
   return null;
 }
@@ -323,6 +319,15 @@ interface FlightMapProps {
   onLiveSnapshot?: (data: LiveFlightsResponse, airportIcao: string | null) => void;
 }
 
+interface ProgressiveLiveState {
+  data: LiveFlightsResponse | null;
+  fetching: boolean;
+  loadedTiles: number;
+  totalTiles: number;
+  failedTiles: number;
+  error: string | null;
+}
+
 export function FlightMap({
   airport,
   selectedFlight,
@@ -342,7 +347,16 @@ export function FlightMap({
     setBounds((current) => (boundsEqual(current, next) ? current : next));
   }, []);
   const [locateRequest, setLocateRequest] = useState(0);
-  const [lastLiveData, setLastLiveData] = useState<LiveFlightsResponse | null>(null);
+  const aircraftCacheRef = useRef(new Map<string, LiveAircraft>());
+  const [liveRefresh, setLiveRefresh] = useState(0);
+  const [liveState, setLiveState] = useState<ProgressiveLiveState>({
+    data: null,
+    fetching: false,
+    loadedTiles: 0,
+    totalTiles: 0,
+    failedTiles: 0,
+    error: null,
+  });
   const [livePulse, setLivePulse] = useState(0);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -350,54 +364,121 @@ export function FlightMap({
   useEffect(() => {
     airportIcaoRef.current = airport?.icao ?? null;
   }, [airport?.icao]);
-  const liveQuery = useQuery({
-    queryKey: ["live-flights", bounds],
-    queryFn: ({ signal }) => api.liveFlights(bounds!, signal),
-    placeholderData: keepPreviousData,
-    staleTime: 15_000,
-    gcTime: 60_000,
-    // The API filters the provider response to the viewport. Let it handle
-    // wide bounds too, otherwise a zoom-out silently freezes the last box.
-    enabled: liveAvailable && liveEnabled && bounds !== null,
-    // The backend returns a provider-aware cadence. OpenSky's free quota is
-    // credit based (wide boxes cost more), while the public ADS-B fallback can
-    // safely refresh faster. Keeping this decision server-side prevents a
-    // zoomed-out map from accidentally polling an expensive box every 20s.
-    refetchInterval: (query) => {
-      if (!liveEnabled) return false;
-      const seconds = query.state.data?.refresh_after_seconds;
-      return Math.max(20_000, (seconds ?? 20) * 1_000);
-    },
-    retry: 1,
-    retryDelay: 1_500,
-  });
-
   useEffect(() => {
-    if (!liveQuery.data || liveQuery.data.degraded || liveQuery.isPlaceholderData) return;
-    setLastLiveData(liveQuery.data);
-    setLivePulse((value) => value + 1);
-    onLiveSnapshot?.(liveQuery.data, airportIcaoRef.current);
-  }, [liveQuery.data, liveQuery.isPlaceholderData, onLiveSnapshot]);
+    if (!bounds || !liveAvailable || !liveEnabled) return;
+    const controller = new AbortController();
+    const tiles = splitBoundsIntoTiles(bounds);
+    const totalViewportTiles = viewportTileCount(bounds);
+    const retained = new Map<string, LiveAircraft>();
+    for (const aircraft of aircraftCacheRef.current.values()) {
+      if (aircraft.latitude == null || aircraft.longitude == null) continue;
+      if (bounds.lamin <= aircraft.latitude && aircraft.latitude <= bounds.lamax && bounds.lomin <= aircraft.longitude && aircraft.longitude <= bounds.lomax) {
+        retained.set(aircraft.icao24, aircraft);
+      }
+    }
+    aircraftCacheRef.current = retained;
+    let loadedTiles = 0;
+    let failedTiles = 0;
+    let latestTime: number | null = null;
+    let provider: string | undefined;
+    // Refresh a complete grid at a cadence proportional to its request cost.
+    // A 12-sector Europe view therefore refreshes every three minutes instead
+    // of repeating 12 public-provider calls every 20 seconds.
+    let refreshAfterSeconds = Math.max(20, Math.min(180, 20 * tiles.length));
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const degradedLiveData = liveQuery.data?.degraded ? liveQuery.data : null;
-  const displayedLiveData = degradedLiveData && lastLiveData
-    ? (degradedLiveData.states.length >= lastLiveData.states.length ? degradedLiveData : lastLiveData)
-    : (liveQuery.data ?? lastLiveData);
-  const hasLiveSnapshot = Boolean(
-    lastLiveData
-      || (liveQuery.data && (!liveQuery.data.degraded || liveQuery.data.states.length > 0)),
-  );
+    const snapshot = (): LiveFlightsResponse => ({
+      success: true,
+      time: latestTime,
+      time_iso: latestTime ? new Date(latestTime * 1000).toISOString() : null,
+      count: retained.size,
+      states: Array.from(retained.values()),
+      provider,
+      refresh_after_seconds: refreshAfterSeconds,
+      coverage_tiles: loadedTiles,
+      coverage_complete: loadedTiles >= totalViewportTiles && failedTiles === 0,
+      degraded: failedTiles > 0,
+      notice: failedTiles > 0 ? "Some live sectors are delayed. Loaded sectors remain visible." : undefined,
+    });
+
+    setLiveState({
+      data: retained.size ? snapshot() : null,
+      fetching: true,
+      loadedTiles: 0,
+      totalTiles: totalViewportTiles,
+      failedTiles: 0,
+      error: null,
+    });
+
+    const loadTile = async (tile: Bounds) => {
+      try {
+        const response = await api.liveFlights(tile, controller.signal, true);
+        if (controller.signal.aborted) return;
+        for (const [icao24, aircraft] of retained) {
+          if (aircraft.latitude == null || aircraft.longitude == null) continue;
+          if (tile.lamin <= aircraft.latitude && aircraft.latitude <= tile.lamax && tile.lomin <= aircraft.longitude && aircraft.longitude <= tile.lomax) {
+            retained.delete(icao24);
+          }
+        }
+        for (const aircraft of response.states) retained.set(aircraft.icao24, aircraft);
+        loadedTiles += 1;
+        latestTime = Math.max(latestTime ?? 0, response.time ?? 0) || latestTime;
+        provider = response.provider || provider;
+        refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
+        const data = snapshot();
+        aircraftCacheRef.current = new Map(retained);
+        setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
+        setLivePulse((value) => value + 1);
+        onLiveSnapshot?.(data, airportIcaoRef.current);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        failedTiles += 1;
+        setLiveState({
+          data: retained.size ? snapshot() : null,
+          fetching: true,
+          loadedTiles,
+          totalTiles: totalViewportTiles,
+          failedTiles,
+          error: error instanceof Error ? error.message : "Live sector unavailable",
+        });
+      }
+    };
+
+    void Promise.all(tiles.map(loadTile)).then(() => {
+      if (controller.signal.aborted) return;
+      const data = retained.size ? snapshot() : null;
+      setLiveState({
+        data,
+        fetching: false,
+        loadedTiles,
+        totalTiles: totalViewportTiles,
+        failedTiles,
+        error: failedTiles && !retained.size ? "Live traffic is temporarily unavailable." : null,
+      });
+      refreshTimer = setTimeout(() => setLiveRefresh((value) => value + 1), Math.max(20, refreshAfterSeconds) * 1_000);
+    });
+
+    return () => {
+      controller.abort();
+      if (refreshTimer) clearTimeout(refreshTimer);
+    };
+  }, [bounds, liveAvailable, liveEnabled, liveRefresh, onLiveSnapshot]);
+
+  const displayedLiveData = liveState.data;
+  const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
   const displayedLiveStates = displayedLiveData?.states ?? [];
   // A broad viewport can contain thousands of aircraft. Keep the detailed
   // plane icons for normal views, then switch to a lightweight canvas layer so
   // zooming out does not turn every aircraft into a DOM subtree.
   const denseTraffic = displayedLiveStates.length > 750;
-  const liveStatus = liveQuery.isError || liveQuery.data?.degraded
-    ? hasLiveSnapshot ? "Live refresh delayed · showing last snapshot" : liveQuery.data?.notice ?? "Live traffic temporarily unavailable"
-    : liveQuery.isPending
-      ? "Loading live traffic…"
-      : liveQuery.isFetching
-        ? "Updating live traffic…"
+  const liveStatus = liveState.error || liveState.failedTiles > 0
+    ? hasLiveSnapshot ? `Live refresh delayed · showing last snapshot · ${liveState.loadedTiles}/${liveState.totalTiles} sectors loaded` : "Live traffic temporarily unavailable"
+    : liveState.fetching
+      ? liveState.loadedTiles > 0
+        ? `${displayedLiveData?.count ?? 0} aircraft · loading sector ${Math.min(liveState.loadedTiles + 1, liveState.totalTiles)}/${liveState.totalTiles}`
+        : "Scanning visible airspace…"
+      : liveState.loadedTiles < liveState.totalTiles
+        ? `${displayedLiveData?.count ?? 0} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
         : `${displayedLiveData?.count ?? 0} aircraft in view`;
 
   const trackPositions = useMemo(
@@ -487,7 +568,8 @@ export function FlightMap({
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
         <span className="live-badge-label">{!liveAvailable ? "OFFLINE" : !liveEnabled ? "PAUSED" : "LIVE"}</span>
         <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
-        {liveEnabled && (liveQuery.isError || liveQuery.data?.degraded) && <button type="button" className="live-retry" onClick={() => void liveQuery.refetch()}>Retry</button>}
+        {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}
+        {liveEnabled && (liveState.error || liveState.failedTiles > 0) && <button type="button" className="live-retry" onClick={() => setLiveRefresh((value) => value + 1)}>Retry</button>}
         {livePulse > 0 && <span key={livePulse} className="live-scan-line" aria-hidden="true" />}
       </div>
       <div className="map-controls">

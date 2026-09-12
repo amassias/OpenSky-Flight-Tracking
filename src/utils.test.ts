@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, altitudeColor, boundsEqual, extent, formatAltitude, formatSpeed, quantizeBounds } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, altitudeColor, boundsEqual, expandBounds, extent, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -55,5 +55,23 @@ describe("quantizeBounds", () => {
   it("clamps to valid geographic limits", () => {
     const result = quantizeBounds({ lamin: -95, lamax: 95, lomin: -185, lomax: 185 });
     expect(result).toEqual({ lamin: -90, lamax: 90, lomin: -180, lomax: 180 });
+  });
+});
+
+describe("progressive live viewport", () => {
+  it("prefetches a guard band around the visible bounds", () => {
+    expect(expandBounds({ lamin: 48, lamax: 50, lomin: 1, lomax: 3 }, 0.25)).toEqual({
+      lamin: 47.5, lamax: 50.5, lomin: 0.5, lomax: 3.5,
+    });
+  });
+
+  it("splits a wide viewport into centre-first provider-safe cells", () => {
+    const tiles = splitBoundsIntoTiles({ lamin: 40, lamax: 55, lomin: -5, lomax: 10 });
+    expect(tiles.length).toBeGreaterThan(1);
+    expect(tiles.length).toBeLessThanOrEqual(24);
+    expect(tiles[0].lamin).toBeLessThan(48);
+    expect(tiles[0].lamax).toBeGreaterThan(47);
+    expect(tiles.every((tile) => tile.lamax - tile.lamin <= 5.1)).toBe(true);
+    expect(viewportTileCount({ lamin: 40, lamax: 55, lomin: -5, lomax: 10 })).toBe(tiles.length);
   });
 });

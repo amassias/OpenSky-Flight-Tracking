@@ -41,7 +41,7 @@ async function request<T>(path: string, params?: Record<string, string | number 
   return payload as T;
 }
 
-const LIVE_REQUEST_MIN_INTERVAL_MS = 1_200;
+const LIVE_REQUEST_MIN_INTERVAL_MS = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? 25 : 1_200;
 let nextLiveRequestAt = 0;
 let liveRequestSlotQueue = Promise.resolve();
 
@@ -83,13 +83,13 @@ export const api = {
   searchAirports: (query: string) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }),
   flights: (airport: string, date: string, mode: FlightMode) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }),
-  liveFlights: async (bounds: Bounds, signal?: AbortSignal) => {
+  liveFlights: async (bounds: Bounds, signal?: AbortSignal, fallbackOnly = false) => {
     // Zoom and pan can emit several different boxes in quick succession. A
     // small client-side spacing keeps those changes responsive while avoiding
     // a provider rate-limit burst; obsolete queries are still cancelled by
     // TanStack Query through the same signal.
     await reserveLiveRequestSlot(signal);
-    return request<LiveFlightsResponse>("/api/live-flights", { ...bounds }, signal);
+    return request<LiveFlightsResponse>("/api/live-flights", { ...bounds, fallback: fallbackOnly ? 1 : undefined }, signal);
   },
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
   track: (icao24: string, time = 0) => request<TrackResponse>("/api/track", { icao24, time }),

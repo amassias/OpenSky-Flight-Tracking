@@ -212,6 +212,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .flight-list { flex: 1; min-height: 0; padding: 0 10px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(183,243,74,.28) transparent; }
 .flight-list::-webkit-scrollbar { width: 5px; }
 .flight-list::-webkit-scrollbar-thumb { border-radius: 5px; background: rgba(183,243,74,.28); }
+.movement-loading { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 13px; margin: 3px 8px; padding: 16px 14px; border: 1px solid var(--line); border-radius: 7px; background: rgba(4,13,23,.42); }
+.movement-loading > div { display: grid; gap: 5px; }
+.movement-loading strong { color: var(--text); font: 600 17px/1 var(--display); }
+.movement-loading span:not(.movement-loading-radar) { color: var(--quiet); font-size: 9px; line-height: 1.4; }
+.movement-loading-radar { position: relative; display: grid; place-items: center; width: 42px; height: 42px; overflow: hidden; border: 1px solid rgba(103,216,255,.32); border-radius: 50%; background: radial-gradient(circle, transparent 42%, rgba(103,216,255,.12) 44%, transparent 47%); }
+.movement-loading-radar::after { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1px; transform-origin: left; background: linear-gradient(90deg, var(--cyan), transparent); animation: radar 1.4s linear infinite; }
+.movement-loading-radar span { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 11px -9px 0 -1px rgba(183,243,74,.52); }
+.list-refreshing { display: flex; align-items: center; gap: 7px; margin: 0 8px 7px; padding: 6px 8px; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; background: rgba(103,216,255,.06); font: 600 8px/1 var(--mono); }
+.list-refreshing span { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px rgba(103,216,255,.45); animation: pulse 1.2s ease-in-out infinite; }
 .flight-card { position: relative; display: flex; align-items: center; width: 100%; min-height: 72px; margin-bottom: 5px; padding: 9px 10px 9px 14px; overflow: hidden; text-align: left; color: var(--text); border: 1px solid transparent; border-radius: 6px; background: rgba(255,255,255,.025); cursor: pointer; transition: background .14s ease, border-color .14s ease, transform .14s ease; }
 .flight-card:hover { background: rgba(103,216,255,.075); border-color: var(--line); transform: translateX(-1px); }
 .flight-card.selected { background: rgba(183,243,74,.11); border-color: rgba(183,243,74,.35); }
@@ -286,7 +295,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .operations-progress > div:first-child { display: flex; justify-content: space-between; align-items: center; }
 .operations-progress strong { color: var(--accent); font-size: 9px; }
 .operations-progress-track { height: 4px; overflow: hidden; border-radius: 2px; background: rgba(159,190,212,.16); }
-.operations-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--accent)); transition: width .3s ease-out; }
+.operations-progress-track span { display: block; width: 100%; height: 100%; transform-origin: left; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--accent)); transition: transform .3s ease-out; }
 .operations-route { display: grid; gap: 5px; margin: 9px 0 0; padding-top: 8px; border-top: 1px solid rgba(159,190,212,.12); }
 .operations-route strong { overflow: hidden; color: var(--text); font-size: 8px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .aircraft-profile-card, .signal-profile-card { margin-top: 7px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(14,35,54,.38); }
@@ -325,6 +334,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .chart-altitude-legend { justify-content: flex-start; padding: 2px 1px 0; }
 .chart-empty { display: grid; place-items: center; height: 78px; color: var(--quiet); font-size: 9px; }
 .chart-skeleton { height: 78px; margin-top: 7px; border-radius: 5px; background: linear-gradient(100deg, rgba(255,255,255,.02),rgba(103,216,255,.09),rgba(255,255,255,.02)); background-size: 300% 100%; animation: shimmer 1.5s infinite; }
+.live-coverage-progress { position: absolute; left: 8px; right: 8px; bottom: 3px; height: 1px; overflow: hidden; background: rgba(103,216,255,.14); }
+.live-coverage-progress span { display: block; width: 100%; height: 100%; transform-origin: left; background: var(--accent); transition: transform .22s ease-out; }
 .track-error { color: var(--muted); font-size: 11px; line-height: 1.5; }
 .toast { position: fixed; z-index: 3000; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 10px 15px; color: #07121f; border-radius: 5px; background: var(--accent); box-shadow: 0 12px 38px rgba(0,0,0,.5); font-size: 10px; font-weight: 700; animation: toast-in .18s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%,8px); } }

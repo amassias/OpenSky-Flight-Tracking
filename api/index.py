@@ -72,8 +72,9 @@ def live_flights(
     lamax: float,
     lomax: float,
     time: int | None = None,
+    fallback: bool = False,
 ):
-    return execute(lambda: service.handle_live_flights(lamin, lomin, lamax, lomax, time))
+    return execute(lambda: service.handle_live_flights(lamin, lomin, lamax, lomax, time, fallback))
 
 
 @app.get("/flight-info")
