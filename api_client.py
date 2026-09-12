@@ -576,7 +576,15 @@ class OpenSkyClient:
         payloads = []
         provider = None
         for candidate in ("adsb.lol", "airplanes.live"):
-            tile_results = [request_tile(candidate, endpoint) for endpoint in endpoints]
+            tile_results = []
+            for endpoint in endpoints:
+                tile_result = request_tile(candidate, endpoint)
+                tile_results.append(tile_result)
+                # ADSB.lol uses 420 ("Enhance Your Calm") as another form of
+                # rate limiting. Stop the grid immediately and let the stale
+                # snapshot/circuit-breaker path handle the remaining cells.
+                if tile_result[1] in (420, 429):
+                    break
             candidate_payloads = [item[0] for item in tile_results if item[0] is not None]
             if candidate_payloads:
                 payloads = candidate_payloads
@@ -585,7 +593,7 @@ class OpenSkyClient:
                 for _, status, error in failed_results:
                     if status is not None:
                         last_status = status
-                    if status == 429:
+                    if status in (420, 429):
                         rate_limited = True
                         rate_limit_payload = {
                             "retry_after_seconds": None,
@@ -597,7 +605,7 @@ class OpenSkyClient:
             for _, status, error in tile_results:
                 if status is not None:
                     last_status = status
-                if status == 429:
+                if status in (420, 429):
                     rate_limited = True
                     rate_limit_payload = {
                         "retry_after_seconds": None,

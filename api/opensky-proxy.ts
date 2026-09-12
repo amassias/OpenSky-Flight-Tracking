@@ -54,6 +54,20 @@ function openskyRequest(
           timeout: 4_000,
         },
         (response) => {
+          const responseStatus = response.statusCode ?? 502;
+          // Some Vercel egress paths reach the published address but receive
+          // a gateway/auth response before the hostname route is available.
+          // Retry the same request through DNS once so anonymous states are
+          // not discarded just because the first network path was rejected.
+          if (
+            allowDnsRetry
+            && connectHost === OPENSKY_IP
+            && (responseStatus === 401 || responseStatus === 403 || responseStatus === 408 || responseStatus >= 500)
+          ) {
+            response.resume();
+            attempt(hostname, false);
+            return;
+          }
           const chunks: Buffer[] = [];
           response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
           response.on("end", () => resolve({
