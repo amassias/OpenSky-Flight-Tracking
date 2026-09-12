@@ -102,6 +102,45 @@ def _iso_from_timestamp(timestamp):
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
 
 
+def _extract_current_flight_leg(path, gap_seconds=1800):
+    """Trim a multi-rotation trace down to just the most recent flight leg.
+
+    Track providers (OpenSky and the adsb.lol fallback alike) can return one
+    continuous trace covering every takeoff and landing an aircraft made
+    during the trace window, not just the flight the caller asked about. Each
+    waypoint is ``[time, lat, lon, baro_altitude, true_track, on_ground]``.
+    A leg boundary is a landing (on_ground True) followed later by another
+    takeoff (on_ground False again), or a reception gap wider than
+    ``gap_seconds`` with no data at all. We keep only the last leg, which is
+    the aircraft's current or most recently completed flight.
+    """
+    if not path:
+        return path
+
+    leg_start = 0
+    for index in range(1, len(path)):
+        previous_point = path[index - 1]
+        point = path[index]
+        previous_time = previous_point[0] if len(previous_point) > 0 else None
+        current_time = point[0] if len(point) > 0 else None
+        on_ground = point[5] if len(point) > 5 else None
+        previous_on_ground = previous_point[5] if len(previous_point) > 5 else None
+
+        if (
+            isinstance(previous_time, (int, float))
+            and isinstance(current_time, (int, float))
+            and current_time - previous_time > gap_seconds
+        ):
+            leg_start = index
+            continue
+
+        if previous_on_ground and not on_ground:
+            # A takeoff following a ground stop starts a new leg.
+            leg_start = index
+
+    return path[leg_start:]
+
+
 def _chunked(items, chunk_size):
     for i in range(0, len(items), chunk_size):
         yield items[i : i + chunk_size]
@@ -1124,18 +1163,24 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 "attempted_times": attempted_times,
             }
 
-        path = track_data.get("path", [])
+        full_path = track_data.get("path", [])
+        path = _extract_current_flight_leg(full_path)
+        current_leg_track = dict(track_data)
+        current_leg_track["path"] = path
+        if path:
+            current_leg_track["startTime"] = path[0][0]
+            current_leg_track["endTime"] = path[-1][0]
         altitudes = [p[3] for p in path if len(p) > 3 and p[3] is not None]
 
         summary = {
             "path_count": len(path),
-            "start_time": track_data.get("startTime"),
-            "end_time": track_data.get("endTime"),
-            "start_time_iso": _iso_from_timestamp(track_data.get("startTime")),
-            "end_time_iso": _iso_from_timestamp(track_data.get("endTime")),
+            "start_time": current_leg_track.get("startTime"),
+            "end_time": current_leg_track.get("endTime"),
+            "start_time_iso": _iso_from_timestamp(current_leg_track.get("startTime")),
+            "end_time_iso": _iso_from_timestamp(current_leg_track.get("endTime")),
             "duration_seconds": (
-                _safe_int(track_data.get("endTime"), 0) - _safe_int(track_data.get("startTime"), 0)
-                if track_data.get("startTime") is not None and track_data.get("endTime") is not None
+                _safe_int(current_leg_track.get("endTime"), 0) - _safe_int(current_leg_track.get("startTime"), 0)
+                if current_leg_track.get("startTime") is not None and current_leg_track.get("endTime") is not None
                 else None
             ),
             "max_altitude_m": max(altitudes) if altitudes else None,
@@ -1144,7 +1189,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
         return {
             "success": True,
-            "track": track_data,
+            "track": current_leg_track,
             "summary": summary,
             "path_count": len(path),
             "resolved_time": resolved_time,

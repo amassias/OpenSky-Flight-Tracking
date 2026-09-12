@@ -379,8 +379,12 @@ export function FlightMap({
   useEffect(() => {
     if (!bounds || !liveAvailable || !liveEnabled) return;
     const controller = new AbortController();
-    const tiles = splitBoundsIntoTiles(bounds);
-    const totalViewportTiles = viewportTileCount(bounds);
+    // The authenticated OpenSky proxy answers the whole viewport in a single
+    // call, so only split into a paced grid of small requests when we're
+    // limited to the public ADS-B fallback (which caps a single call to a
+    // 250 NM radius).
+    const tiles = liveAvailable ? [bounds] : splitBoundsIntoTiles(bounds);
+    const totalViewportTiles = liveAvailable ? 1 : viewportTileCount(bounds);
     const retained = new Map<string, LiveAircraft>();
     const freshAircraft = new Set<string>();
     const coveredTiles: Bounds[] = [];
@@ -426,7 +430,7 @@ export function FlightMap({
 
     const loadTile = async (tile: Bounds) => {
       try {
-        const response = await api.liveFlights(tile, controller.signal, true);
+        const response = await api.liveFlights(tile, controller.signal, !liveAvailable);
         if (controller.signal.aborted) return;
         for (const aircraft of response.states) {
           retained.set(aircraft.icao24, aircraft);
