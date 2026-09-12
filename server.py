@@ -762,7 +762,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "states": parsed_states,
         }
         if isinstance(states, dict):
-            for key in ("provider", "credit_cost", "refresh_after_seconds"):
+            for key in ("provider", "credit_cost", "refresh_after_seconds", "coverage_tiles", "coverage_complete"):
                 if states.get(key) is not None:
                     payload[key] = states[key]
         if degraded:

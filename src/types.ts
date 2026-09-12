@@ -166,6 +166,8 @@ export interface LiveFlightsResponse {
   provider?: "opensky" | "adsb.lol" | "airplanes.live" | string;
   credit_cost?: number;
   refresh_after_seconds?: number;
+  coverage_tiles?: number;
+  coverage_complete?: boolean;
 }
 
 export interface FlightInfoResponse {
