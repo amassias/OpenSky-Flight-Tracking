@@ -89,7 +89,7 @@ export function AltitudeChart({ points }: AltitudeChartProps) {
 
   return (
     <div className="altitude-profile">
-      <svg className="altitude-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Altitude from ${Math.round(min)} to ${Math.round(max)} metres`}>
+      <svg className="altitude-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Altitude from ${formatAltitude(min)} to ${formatAltitude(max)}`}>
         <title>Hover the altitude path to inspect each point</title>
         <defs>
           <linearGradient id="altitude-fill" x1="0" x2="0" y1="0" y2="1">

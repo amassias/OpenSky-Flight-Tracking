@@ -36,7 +36,8 @@ export function AirportSearch({
   }, [query]);
 
   useEffect(() => {
-    if (selected) setQuery(`${selected.icao} · ${selected.name}`);
+    if (selected && !open) setQuery(`${selected.icao} · ${selected.name}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   const search = useQuery({

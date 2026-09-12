@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Updater<T> = T | ((current: T) => T);
 
@@ -36,6 +36,18 @@ export function usePersistentState<T>(key: string, initialValue: T): [T, (value:
       // The interface remains usable when storage is disabled.
     }
   }, []);
+
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== keyRef.current) return;
+      const next = event.newValue == null ? initialValue : readStored(keyRef.current, initialValue);
+      valueRef.current = next;
+      setValue(next);
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   return [value, updateValue];
 }

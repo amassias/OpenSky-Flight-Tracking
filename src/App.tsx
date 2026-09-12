@@ -72,12 +72,14 @@ export function App() {
     if (restoredAirport.current) return;
 
     if (initialCode) {
+      if (initialAirport.isLoading) return;
       const fromUrl = initialAirport.data?.find((airport) => airport.icao === initialCode.toUpperCase());
-      if (!fromUrl) return;
-      restoredAirport.current = true;
-      if (selectedAirport?.icao !== fromUrl.icao) setSelectedAirport(fromUrl);
-      if (!request) setRequest({ airport: fromUrl, date, mode });
-      return;
+      if (fromUrl) {
+        restoredAirport.current = true;
+        if (selectedAirport?.icao !== fromUrl.icao) setSelectedAirport(fromUrl);
+        if (!request) setRequest({ airport: fromUrl, date, mode });
+        return;
+      }
     }
 
     if (!selectedAirport && popular.data?.length) {
@@ -85,7 +87,7 @@ export function App() {
       const fallback = recent[0] || popular.data.find((airport) => airport.icao === "LFPG") || popular.data[0];
       setSelectedAirport(fallback);
     }
-  }, [date, initialAirport.data, initialCode, mode, popular.data, recent, request, selectedAirport]);
+  }, [date, initialAirport.data, initialAirport.isLoading, initialCode, mode, popular.data, recent, request, selectedAirport]);
 
   const flights = useQuery({
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
@@ -102,13 +104,6 @@ export function App() {
     const match = flights.data.flights.find((flight) => flight.icao24 === requestedIcao24.toLowerCase());
     if (match) { restoredFlight.current = true; setSelectedFlight(match); }
   }, [flights.data, initialParams, selectedFlight]);
-
-  const track = useQuery({
-    queryKey: ["track", selectedFlight?.icao24, selectedFlight?.primary_time ?? selectedFlight?.first_seen ?? 0],
-    queryFn: () => api.track(selectedFlight!.icao24, selectedFlight!.primary_time ?? selectedFlight!.first_seen ?? 0),
-    enabled: Boolean(selectedFlight),
-    retry: false,
-  });
 
   const flightInfo = useQuery({
     queryKey: ["flight-info", selectedFlight?.icao24],
@@ -169,6 +164,13 @@ export function App() {
     };
   }, [flightInfo.data, selectedFlight]);
 
+  const track = useQuery({
+    queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0],
+    queryFn: () => api.track(detailsFlight!.icao24, detailsFlight!.primary_time ?? detailsFlight!.first_seen ?? 0),
+    enabled: Boolean(detailsFlight),
+    retry: false,
+  });
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (request) {
@@ -209,7 +211,9 @@ export function App() {
   );
   const livePreviewDuringLoad = Boolean(flights.isFetching && matchingLiveSnapshot);
   const clientLiveFallback = Boolean(flights.data?.source === "unavailable" && matchingLiveSnapshot);
-  const displayedFlights = clientLiveFallback || livePreviewDuringLoad ? liveFallbackSnapshot?.data.states ?? [] : flights.data?.flights ?? [];
+  const displayedFlights = clientLiveFallback || livePreviewDuringLoad
+    ? (liveFallbackSnapshot?.data.states ?? []).map((flight) => ({ ...flight, data_source: "live-nearby" as const }))
+    : flights.data?.flights ?? [];
   const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback;
   const summary = clientLiveFallback || livePreviewDuringLoad
     ? liveSnapshotSummary(displayedFlights)
@@ -238,9 +242,6 @@ export function App() {
     const flightMatch = displayedFlights.find((flight) => [
       flight.callsign,
       flight.icao24,
-      flight.airline_name,
-      flight.departure_airport,
-      flight.arrival_airport,
     ].some((value) => value?.toLowerCase().includes(normalized)));
     if (flightMatch) {
       setPreviewFlight(null);

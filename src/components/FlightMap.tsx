@@ -383,6 +383,7 @@ export function FlightMap({
     const totalViewportTiles = viewportTileCount(bounds);
     const retained = new Map<string, LiveAircraft>();
     const freshAircraft = new Set<string>();
+    const coveredTiles: Bounds[] = [];
     for (const aircraft of aircraftCacheRef.current.values()) {
       if (aircraft.latitude == null || aircraft.longitude == null) continue;
       if (bounds.lamin <= aircraft.latitude && aircraft.latitude <= bounds.lamax && bounds.lomin <= aircraft.longitude && aircraft.longitude <= bounds.lomax) {
@@ -432,6 +433,7 @@ export function FlightMap({
           freshAircraft.add(aircraft.icao24);
         }
         loadedTiles += 1;
+        coveredTiles.push(tile);
         latestTime = Math.max(latestTime ?? 0, response.time ?? 0) || latestTime;
         provider = response.provider || provider;
         refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
@@ -456,12 +458,20 @@ export function FlightMap({
 
     void Promise.all(tiles.map(loadTile)).then(() => {
       if (controller.signal.aborted) return;
-      if (failedTiles === 0 && tiles.length >= totalViewportTiles) {
-        for (const icao24 of retained.keys()) {
-          if (!freshAircraft.has(icao24)) retained.delete(icao24);
-        }
-        aircraftCacheRef.current = new Map(retained);
+      // Prune aircraft inside any tile we actually refreshed this round, even
+      // when the viewport is too wide to cover in full: those cells are known
+      // current, so anything not re-reported there has genuinely left. Aircraft
+      // outside every fetched tile are left untouched rather than guessed at.
+      for (const [icao24, aircraft] of retained) {
+        if (freshAircraft.has(icao24)) continue;
+        if (aircraft.latitude == null || aircraft.longitude == null) continue;
+        const insideCoveredTile = coveredTiles.some((tile) => (
+          tile.lamin <= aircraft.latitude! && aircraft.latitude! <= tile.lamax
+          && tile.lomin <= aircraft.longitude! && aircraft.longitude! <= tile.lomax
+        ));
+        if (insideCoveredTile) retained.delete(icao24);
       }
+      aircraftCacheRef.current = new Map(retained);
       const data = retained.size ? snapshot() : null;
       setLiveState({
         data,
