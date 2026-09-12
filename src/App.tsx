@@ -46,6 +46,9 @@ export function App() {
   const [mobileResultsExpanded, setMobileResultsExpanded] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [commandPending, setCommandPending] = useState(false);
+  const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
   const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
@@ -189,6 +192,50 @@ export function App() {
   const activeAirport = request?.airport ?? selectedAirport;
   const sourceLabel = showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
 
+  async function handleCommandSubmit() {
+    const query = commandQuery.trim();
+    if (!query) {
+      setMobileControlsOpen(true);
+      return;
+    }
+    const normalized = query.toLowerCase();
+    const flightMatch = displayedFlights.find((flight) => [
+      flight.callsign,
+      flight.icao24,
+      flight.airline_name,
+      flight.departure_airport,
+      flight.arrival_airport,
+    ].some((value) => value?.toLowerCase().includes(normalized)));
+    if (flightMatch) {
+      setPreviewFlight(null);
+      setSelectedFlight(flightMatch);
+      setCommandQuery("");
+      return;
+    }
+
+    setCommandPending(true);
+    try {
+      const matches = await api.searchAirports(query);
+      const airportMatch = matches[0];
+      if (!airportMatch) {
+        setToast("No airport, flight or callsign found.");
+        return;
+      }
+      setSelectedAirport(airportMatch);
+      setRequest({ airport: airportMatch, date, mode });
+      setSelectedFlight(null);
+      setPreviewFlight(null);
+      setLiveFallbackSnapshot(null);
+      setRecent([airportMatch, ...recent.filter((item) => item.icao !== airportMatch.icao)].slice(0, 6));
+      setCommandQuery("");
+      setMobileControlsOpen(false);
+    } catch (error) {
+      setToast(readableApiError(error));
+    } finally {
+      setCommandPending(false);
+    }
+  }
+
   function submitSearch() {
     if (!selectedAirport) {
       setToast("Select an airport before loading flights.");
@@ -226,6 +273,10 @@ export function App() {
         theme={theme}
         onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
         onToggleControls={() => setMobileControlsOpen(true)}
+        commandValue={commandQuery}
+        commandPending={commandPending}
+        onCommandChange={setCommandQuery}
+        onCommandSubmit={handleCommandSubmit}
       />
 
       <main className="workspace">
@@ -233,6 +284,7 @@ export function App() {
         <FlightMap
           airport={request?.airport ?? selectedAirport}
           selectedFlight={selectedFlight}
+          previewFlight={previewFlight}
           track={track.data}
           theme={theme}
           liveEnabled={liveEnabled && liveAvailable}
@@ -245,14 +297,20 @@ export function App() {
         />
 
         <aside className={`query-panel glass-panel ${mobileControlsOpen ? "mobile-open" : ""}`} aria-label="Flight search controls">
+          <div className="sheet-handle query-sheet-handle" aria-hidden="true" />
           <div className="mobile-panel-heading">
-            <div><span className="eyebrow">Explore traffic</span><strong>Flight search</strong></div>
+            <div><strong>Flight search</strong></div>
             <button className="icon-button" type="button" onClick={() => setMobileControlsOpen(false)} aria-label="Close search"><X size={19} /></button>
           </div>
+          <div className="panel-rail-head">
+            <div className="panel-rail-mark"><Activity size={18} aria-hidden="true" /></div>
+            <div>
+              <strong>Scan a region</strong>
+            </div>
+          </div>
           <div className="panel-intro">
-            <span className="eyebrow">Explore traffic</span>
             <h1>Find a flight.<br /><em>Follow its story.</em></h1>
-            <p>Live and historical movement data from the OpenSky network.</p>
+            <p>Search a field, open the live airspace, then follow every movement with its source and altitude.</p>
           </div>
           <div className="panel-context" role="status">
             <span className="panel-context-icon"><Activity size={15} aria-hidden="true" /></span>
@@ -262,12 +320,18 @@ export function App() {
             </span>
             <span className={`panel-context-state ${liveAvailable ? "online" : "offline"}`}>{liveAvailable ? "LIVE" : "OFFLINE"}</span>
           </div>
+          <div className="panel-signal-row" aria-label="Current data sources">
+            <span><i className="signal-bar signal-bar-live" />ADS-B</span>
+            <span><i className="signal-bar signal-bar-history" />History</span>
+            <span><i className="signal-bar signal-bar-route" />Routes</span>
+          </div>
           <AirportSearch
             selected={selectedAirport}
             popular={popular.data ?? []}
             recent={recent}
             favorites={favorites}
             onSelect={setSelectedAirport}
+            onClear={() => setSelectedAirport(null)}
             onToggleFavorite={toggleFavorite}
           />
           <div className="query-grid">
@@ -296,15 +360,16 @@ export function App() {
           <div className="data-note">
             <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
             <span>{liveAvailable ? "Live ADS-B enabled · select an aircraft" : "OpenSky credentials required for live data"}</span>
+            <span className="data-note-code mono">ST-01</span>
           </div>
         </aside>
 
         <section className={`results-panel glass-panel ${mobileResultsExpanded ? "mobile-expanded" : ""}`} id="flight-results">
+          <div className="sheet-handle results-sheet-handle" aria-hidden="true" />
           <header className="results-heading">
             <div className="results-heading-copy">
-              <span className="eyebrow">{request ? `${request.date} · UTC` : "OpenSky movement data"}</span>
               <h2>{requestTitle}</h2>
-              <p>{request ? request.airport.display_name : "Select an airport to begin"}</p>
+              <p>{request ? `${request.date} · UTC · ${request.airport.display_name}` : "Traffic board · select an airport to begin"}</p>
             </div>
             <div className="results-heading-actions">
               <span className={`source-pill ${showingLiveFallback ? "live" : request ? "history" : "ready"}`} role="status">
@@ -334,7 +399,8 @@ export function App() {
             errorMessage={flights.error ? readableApiError(flights.error) : undefined}
             notice={displayNotice}
             hasSearched={Boolean(request)}
-            onSelect={setSelectedFlight}
+            onSelect={(flight) => { setPreviewFlight(null); setSelectedFlight(flight); }}
+            onPreview={setPreviewFlight}
             onRetry={() => flights.refetch()}
           />
         </section>

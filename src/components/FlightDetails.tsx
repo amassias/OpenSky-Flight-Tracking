@@ -34,7 +34,6 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
       <div className="drawer-handle" aria-hidden="true" />
       <header className="details-heading">
         <div>
-          <span className="eyebrow">Selected flight</span>
           <h2 className="mono">{flight.callsign || flight.icao24.toUpperCase()}</h2>
           <p>{flight.airline_name || "Unidentified operator"}</p>
         </div>

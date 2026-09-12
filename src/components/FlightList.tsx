@@ -14,6 +14,7 @@ interface FlightListProps {
   notice?: string;
   hasSearched: boolean;
   onSelect: (flight: Flight) => void;
+  onPreview?: (flight: Flight | null) => void;
   onRetry: () => void;
 }
 
@@ -21,9 +22,10 @@ interface FlightCardProps {
   flight: Flight;
   selected: boolean;
   onSelect: (flight: Flight) => void;
+  onPreview?: (flight: Flight | null) => void;
 }
 
-const FlightCard = memo(function FlightCard({ flight, selected, onSelect }: FlightCardProps) {
+const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview }: FlightCardProps) {
   const status = statusLabel(flight.status, flight.on_ground);
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
@@ -31,6 +33,10 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect }: Flig
       type="button"
       className={`flight-card ${selected ? "selected" : ""}`}
       onClick={() => onSelect(flight)}
+      onMouseEnter={() => onPreview?.(flight)}
+      onMouseLeave={() => onPreview?.(null)}
+      onFocus={() => onPreview?.(flight)}
+      onBlur={() => onPreview?.(null)}
       aria-pressed={selected}
     >
       <span className={`flight-status-line status-${statusKey}`} />
@@ -66,6 +72,7 @@ export function FlightList({
   notice,
   hasSearched,
   onSelect,
+  onPreview,
   onRetry,
 }: FlightListProps) {
   const [query, setQuery] = useState("");
@@ -159,6 +166,7 @@ export function FlightList({
             flight={flight}
             selected={selectedFlight ? flightId(selectedFlight) === flightId(flight) : false}
             onSelect={onSelect}
+            onPreview={onPreview}
           />
         ))}
       </div>

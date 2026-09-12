@@ -56,19 +56,43 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
   // Leaflet from detaching and re-attaching listeners on every refresh.
   const aircraftRef = useRef(aircraft);
   aircraftRef.current = aircraft;
-  const eventHandlers = useMemo(() => ({
-    click: () => {
-      const current = aircraftRef.current;
-      onSelect({
-        ...current,
-        status: current.on_ground ? "on_ground" : "airborne",
-        primary_time: 0,
-        airline_name: "Live traffic",
-      });
-    },
-  }), [onSelect]);
+  const markerRef = useRef<L.Marker | null>(null);
+  const selectAircraft = useCallback(() => {
+    const current = aircraftRef.current;
+    onSelect({
+      ...current,
+      status: current.on_ground ? "on_ground" : "airborne",
+      primary_time: 0,
+      airline_name: "Live traffic",
+    });
+  }, [onSelect]);
+  const eventHandlers = useMemo(() => ({ click: selectAircraft }), [selectAircraft]);
+  useEffect(() => {
+    // Firefox can swallow Leaflet's delegated click while a map pan is still
+    // settling. Listening on the marker element itself keeps aircraft
+    // selection responsive during that short transition.
+    let element: HTMLElement | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    const bind = () => {
+      element = markerRef.current?.getElement() ?? null;
+      if (element) {
+        element.addEventListener("click", selectAircraft, true);
+        return;
+      }
+      if (attempts < 10) {
+        attempts += 1;
+        timer = setTimeout(bind, 50);
+      }
+    };
+    bind();
+    return () => {
+      if (timer) clearTimeout(timer);
+      element?.removeEventListener("click", selectAircraft, true);
+    };
+  }, [selectAircraft]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <Marker position={position} icon={icon} eventHandlers={eventHandlers}>
+  return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers}>
     <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
   </Marker>;
 }, areMarkersEqual);
@@ -193,7 +217,9 @@ function MapController({ airport, flight, track, locateRequest, onLocationFound,
       return;
     }
     if (airport?.latitude != null && airport.longitude != null) {
-      map.flyTo([airport.latitude, airport.longitude], 8, { duration: 0.5, animate });
+      // Keep the live markers interactive while the initial airport viewport
+      // settles. Route and aircraft focus still use the animated path above.
+      map.flyTo([airport.latitude, airport.longitude], 8, { duration: 0, animate: false });
     }
   }, [airport, flight, map, track]);
 
@@ -226,6 +252,7 @@ function MapController({ airport, flight, track, locateRequest, onLocationFound,
 interface FlightMapProps {
   airport: Airport | null;
   selectedFlight: Flight | null;
+  previewFlight?: Flight | null;
   track?: TrackResponse;
   theme: MapTheme;
   liveEnabled: boolean;
@@ -240,6 +267,7 @@ interface FlightMapProps {
 export function FlightMap({
   airport,
   selectedFlight,
+  previewFlight = null,
   track,
   theme,
   liveEnabled,
@@ -256,6 +284,7 @@ export function FlightMap({
   }, []);
   const [locateRequest, setLocateRequest] = useState(0);
   const [lastLiveData, setLastLiveData] = useState<LiveFlightsResponse | null>(null);
+  const [livePulse, setLivePulse] = useState(0);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const airportIcaoRef = useRef<string | null>(airport?.icao ?? null);
@@ -279,6 +308,7 @@ export function FlightMap({
   useEffect(() => {
     if (!liveQuery.data || liveQuery.data.degraded || liveQuery.isPlaceholderData) return;
     setLastLiveData(liveQuery.data);
+    setLivePulse((value) => value + 1);
     onLiveSnapshot?.(liveQuery.data, airportIcaoRef.current);
   }, [liveQuery.data, liveQuery.isPlaceholderData, onLiveSnapshot]);
 
@@ -349,9 +379,9 @@ export function FlightMap({
           <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 4, opacity: 0.9 }} />
         ))}
         {displayedLiveStates.map((aircraft) => denseTraffic ? (
-          <AircraftDot key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
+          <AircraftDot key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24} onSelect={onSelectFlight} />
         ) : (
-          <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
+          <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24} onSelect={onSelectFlight} />
         ))}
         {selectedFlight?.latitude != null && selectedFlight.longitude != null && !displayedLiveStates.some((item) => item.icao24 === selectedFlight.icao24) && (
           <Marker position={[selectedFlight.latitude, selectedFlight.longitude]} icon={selectedIcon} />
@@ -376,14 +406,21 @@ export function FlightMap({
       <div className="map-vignette" aria-hidden="true" />
       <div className="map-grid-overlay" aria-hidden="true" />
       <div className="map-label">
-        <span className="eyebrow">Live viewport</span>
         <strong>{airport ? `${airport.name} airspace` : "European airspace"}</strong>
         <span className="map-label-meta"><span className={`system-dot ${liveAvailable ? "online" : "warning"}`} /> {displayedLiveData ? `${displayedLiveData.count} aircraft tracked` : "Awaiting traffic feed"}</span>
+      </div>
+      <div className="map-footer" aria-label="Map data sources">
+        <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
+        <strong>{displayedLiveData ? `${displayedLiveData.count} targets` : "No targets"}</strong>
+        <span className="map-footer-rule" aria-hidden="true" />
+        <span>ADS-B · OSM</span>
       </div>
       <div className={`live-badge ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
         <span className="live-badge-label">{!liveAvailable ? "OFFLINE" : !liveEnabled ? "PAUSED" : "LIVE"}</span>
         <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
+        {liveEnabled && (liveQuery.isError || liveQuery.data?.degraded) && <button type="button" className="live-retry" onClick={() => void liveQuery.refetch()}>Retry</button>}
+        {livePulse > 0 && <span key={livePulse} className="live-scan-line" aria-hidden="true" />}
       </div>
       <div className="map-controls">
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>

@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-12T15:53:10Z",
+  "title": "Design System: SkyTrace",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Midnight Ground",
+        "canonical": "#07121f",
+        "tonalRamp": ["oklch(15% 0.03 250)", "oklch(20% 0.032 250)", "oklch(28% 0.035 250)", "oklch(38% 0.038 250)", "oklch(50% 0.04 250)", "oklch(64% 0.04 250)", "oklch(79% 0.03 250)", "oklch(95% 0.02 250)"]
+      },
+      "bg-deep": {
+        "role": "neutral",
+        "displayName": "Deep Ground",
+        "canonical": "#050d17",
+        "tonalRamp": ["oklch(12% 0.028 245)", "oklch(18% 0.03 245)", "oklch(26% 0.033 245)", "oklch(36% 0.036 245)", "oklch(48% 0.038 245)", "oklch(62% 0.038 245)", "oklch(78% 0.029 245)", "oklch(95% 0.02 245)"]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Translucent Panel Navy",
+        "canonical": "rgba(9, 24, 39, 0.97)",
+        "tonalRamp": ["oklch(16% 0.03 235)", "oklch(22% 0.032 235)", "oklch(30% 0.035 235)", "oklch(40% 0.038 235)", "oklch(52% 0.04 235)", "oklch(66% 0.038 235)", "oklch(81% 0.029 235)", "oklch(95% 0.018 235)"]
+      },
+      "panel-solid": {
+        "role": "neutral",
+        "displayName": "Panel Navy",
+        "canonical": "#0b1b2c",
+        "tonalRamp": ["oklch(17% 0.034 245)", "oklch(23% 0.036 245)", "oklch(31% 0.038 245)", "oklch(41% 0.04 245)", "oklch(53% 0.041 245)", "oklch(67% 0.038 245)", "oklch(82% 0.029 245)", "oklch(95% 0.018 245)"]
+      },
+      "panel-raised": {
+        "role": "neutral",
+        "displayName": "Raised Panel Navy",
+        "canonical": "#10263b",
+        "tonalRamp": ["oklch(20% 0.038 235)", "oklch(27% 0.04 235)", "oklch(35% 0.042 235)", "oklch(45% 0.043 235)", "oklch(57% 0.043 235)", "oklch(70% 0.04 235)", "oklch(84% 0.03 235)", "oklch(96% 0.018 235)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Quiet Cool Border",
+        "canonical": "rgba(144, 183, 210, 0.18)",
+        "tonalRamp": ["rgba(144, 183, 210, 0.10)", "rgba(144, 183, 210, 0.16)", "rgba(144, 183, 210, 0.22)", "rgba(144, 183, 210, 0.30)", "rgba(144, 183, 210, 0.40)", "rgba(144, 183, 210, 0.52)", "rgba(144, 183, 210, 0.66)", "rgba(144, 183, 210, 0.82)"]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Cool Border",
+        "canonical": "rgba(144, 183, 210, 0.34)",
+        "tonalRamp": ["rgba(144, 183, 210, 0.16)", "rgba(144, 183, 210, 0.24)", "rgba(144, 183, 210, 0.34)", "rgba(144, 183, 210, 0.44)", "rgba(144, 183, 210, 0.54)", "rgba(144, 183, 210, 0.66)", "rgba(144, 183, 210, 0.76)", "rgba(144, 183, 210, 0.9)"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Signal White",
+        "canonical": "#f2f7fb",
+        "tonalRamp": ["oklch(28% 0.012 220)", "oklch(38% 0.014 220)", "oklch(48% 0.015 220)", "oklch(60% 0.016 220)", "oklch(70% 0.016 220)", "oklch(80% 0.014 220)", "oklch(89% 0.01 220)", "oklch(97% 0.006 220)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Blue Gray",
+        "canonical": "#9cb1c1",
+        "tonalRamp": ["oklch(22% 0.025 220)", "oklch(31% 0.028 220)", "oklch(41% 0.03 220)", "oklch(52% 0.032 220)", "oklch(63% 0.032 220)", "oklch(73% 0.028 220)", "oklch(83% 0.022 220)", "oklch(94% 0.012 220)"]
+      },
+      "quiet": {
+        "role": "neutral",
+        "displayName": "Quiet Blue Gray",
+        "canonical": "#6f8799",
+        "tonalRamp": ["oklch(18% 0.027 220)", "oklch(26% 0.03 220)", "oklch(36% 0.032 220)", "oklch(47% 0.034 220)", "oklch(58% 0.033 220)", "oklch(69% 0.029 220)", "oklch(80% 0.022 220)", "oklch(93% 0.012 220)"]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Radar Lime",
+        "canonical": "#b7f34a",
+        "tonalRamp": ["oklch(25% 0.12 112)", "oklch(35% 0.15 112)", "oklch(46% 0.18 112)", "oklch(57% 0.2 112)", "oklch(67% 0.21 112)", "oklch(76% 0.2 112)", "oklch(86% 0.17 112)", "oklch(95% 0.11 112)"]
+      },
+      "accent-strong": {
+        "role": "primary",
+        "displayName": "Radar Lime Deep",
+        "canonical": "#8dc82f",
+        "tonalRamp": ["oklch(22% 0.11 110)", "oklch(32% 0.14 110)", "oklch(43% 0.16 110)", "oklch(54% 0.18 110)", "oklch(64% 0.19 110)", "oklch(74% 0.18 110)", "oklch(84% 0.15 110)", "oklch(94% 0.1 110)"]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Radar Lime Wash",
+        "canonical": "rgba(183, 243, 74, 0.12)",
+        "tonalRamp": ["rgba(183, 243, 74, 0.04)", "rgba(183, 243, 74, 0.08)", "rgba(183, 243, 74, 0.12)", "rgba(183, 243, 74, 0.18)", "rgba(183, 243, 74, 0.24)", "rgba(183, 243, 74, 0.32)", "rgba(183, 243, 74, 0.42)", "rgba(183, 243, 74, 0.56)"]
+      },
+      "cyan": {
+        "role": "secondary",
+        "displayName": "Flight Cyan",
+        "canonical": "#67d8ff",
+        "tonalRamp": ["oklch(27% 0.1 210)", "oklch(37% 0.13 210)", "oklch(47% 0.16 210)", "oklch(58% 0.18 210)", "oklch(68% 0.19 210)", "oklch(77% 0.18 210)", "oklch(87% 0.15 210)", "oklch(96% 0.1 210)"]
+      },
+      "cyan-soft": {
+        "role": "secondary",
+        "displayName": "Flight Cyan Wash",
+        "canonical": "rgba(103, 216, 255, 0.12)",
+        "tonalRamp": ["rgba(103, 216, 255, 0.04)", "rgba(103, 216, 255, 0.08)", "rgba(103, 216, 255, 0.12)", "rgba(103, 216, 255, 0.18)", "rgba(103, 216, 255, 0.24)", "rgba(103, 216, 255, 0.32)", "rgba(103, 216, 255, 0.42)", "rgba(103, 216, 255, 0.56)"]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Signal Amber",
+        "canonical": "#ffbf69",
+        "tonalRamp": ["oklch(28% 0.11 70)", "oklch(38% 0.14 70)", "oklch(49% 0.17 70)", "oklch(59% 0.19 70)", "oklch(69% 0.19 70)", "oklch(78% 0.18 70)", "oklch(88% 0.14 70)", "oklch(96% 0.09 70)"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Signal Coral",
+        "canonical": "#ff786f",
+        "tonalRamp": ["oklch(29% 0.12 25)", "oklch(39% 0.15 25)", "oklch(49% 0.18 25)", "oklch(60% 0.2 25)", "oklch(70% 0.2 25)", "oklch(79% 0.18 25)", "oklch(88% 0.15 25)", "oklch(96% 0.1 25)"]
+      },
+      "violet": {
+        "role": "tertiary",
+        "displayName": "Route Violet",
+        "canonical": "#b9a4ff",
+        "tonalRamp": ["oklch(27% 0.11 290)", "oklch(37% 0.14 290)", "oklch(47% 0.17 290)", "oklch(58% 0.19 290)", "oklch(68% 0.2 290)", "oklch(77% 0.18 290)", "oklch(87% 0.15 290)", "oklch(96% 0.1 290)"]
+      },
+      "command-surface": {
+        "role": "neutral",
+        "displayName": "Command Surface",
+        "canonical": "rgba(14, 35, 54, 0.72)",
+        "tonalRamp": ["oklch(18% 0.035 225)", "oklch(25% 0.038 225)", "oklch(34% 0.04 225)", "oklch(44% 0.042 225)", "oklch(56% 0.042 225)", "oklch(69% 0.039 225)", "oklch(83% 0.029 225)", "oklch(95% 0.018 225)"]
+      },
+      "overlay-surface": {
+        "role": "neutral",
+        "displayName": "Map Overlay Surface",
+        "canonical": "rgba(8, 22, 36, 0.94)",
+        "tonalRamp": ["oklch(15% 0.032 225)", "oklch(22% 0.035 225)", "oklch(30% 0.038 225)", "oklch(40% 0.04 225)", "oklch(52% 0.041 225)", "oklch(66% 0.038 225)", "oklch(81% 0.028 225)", "oklch(95% 0.018 225)"]
+      },
+      "card-surface": {
+        "role": "neutral",
+        "displayName": "Quiet Card Surface",
+        "canonical": "rgba(255, 255, 255, 0.025)",
+        "tonalRamp": ["rgba(255, 255, 255, 0.02)", "rgba(255, 255, 255, 0.04)", "rgba(255, 255, 255, 0.06)", "rgba(255, 255, 255, 0.09)", "rgba(255, 255, 255, 0.13)", "rgba(255, 255, 255, 0.18)", "rgba(255, 255, 255, 0.24)", "rgba(255, 255, 255, 0.32)"]
+      },
+      "details-surface": {
+        "role": "neutral",
+        "displayName": "Selected Details Surface",
+        "canonical": "rgba(9, 24, 39, 0.98)",
+        "tonalRamp": ["oklch(16% 0.03 235)", "oklch(22% 0.032 235)", "oklch(30% 0.035 235)", "oklch(40% 0.038 235)", "oklch(52% 0.04 235)", "oklch(66% 0.038 235)", "oklch(81% 0.029 235)", "oklch(95% 0.018 235)"]
+      },
+      "legend-surface": {
+        "role": "neutral",
+        "displayName": "Legend Overlay Surface",
+        "canonical": "rgba(8, 22, 36, 0.9)",
+        "tonalRamp": ["oklch(15% 0.032 225)", "oklch(22% 0.035 225)", "oklch(30% 0.038 225)", "oklch(40% 0.04 225)", "oklch(52% 0.041 225)", "oklch(66% 0.038 225)", "oklch(81% 0.028 225)", "oklch(95% 0.018 225)"]
+      },
+      "altitude-low": {
+        "role": "secondary",
+        "displayName": "Altitude Cyan Low",
+        "canonical": "#38bdf8",
+        "tonalRamp": ["oklch(25% 0.1 215)", "oklch(35% 0.13 215)", "oklch(46% 0.16 215)", "oklch(57% 0.18 215)", "oklch(67% 0.19 215)", "oklch(76% 0.18 215)", "oklch(86% 0.15 215)", "oklch(95% 0.1 215)"]
+      },
+      "altitude-climb": {
+        "role": "secondary",
+        "displayName": "Altitude Teal Climb",
+        "canonical": "#2dd4bf",
+        "tonalRamp": ["oklch(25% 0.1 175)", "oklch(35% 0.13 175)", "oklch(46% 0.16 175)", "oklch(57% 0.18 175)", "oklch(67% 0.19 175)", "oklch(76% 0.18 175)", "oklch(86% 0.15 175)", "oklch(95% 0.1 175)"]
+      },
+      "altitude-cruise": {
+        "role": "primary",
+        "displayName": "Altitude Lime Cruise",
+        "canonical": "#a3e635",
+        "tonalRamp": ["oklch(25% 0.12 112)", "oklch(35% 0.15 112)", "oklch(46% 0.18 112)", "oklch(57% 0.2 112)", "oklch(67% 0.21 112)", "oklch(76% 0.2 112)", "oklch(86% 0.17 112)", "oklch(95% 0.11 112)"]
+      },
+      "altitude-high": {
+        "role": "tertiary",
+        "displayName": "Altitude Amber High",
+        "canonical": "#fbbf24",
+        "tonalRamp": ["oklch(27% 0.12 85)", "oklch(37% 0.15 85)", "oklch(48% 0.18 85)", "oklch(59% 0.2 85)", "oklch(69% 0.2 85)", "oklch(78% 0.18 85)", "oklch(88% 0.15 85)", "oklch(96% 0.1 85)"]
+      },
+      "altitude-extreme": {
+        "role": "tertiary",
+        "displayName": "Altitude Coral Extreme",
+        "canonical": "#fb7185",
+        "tonalRamp": ["oklch(28% 0.12 20)", "oklch(38% 0.15 20)", "oklch(49% 0.18 20)", "oklch(60% 0.2 20)", "oklch(70% 0.2 20)", "oklch(79% 0.18 20)", "oklch(88% 0.15 20)", "oklch(96% 0.1 20)"]
+      },
+      "altitude-unknown": {
+        "role": "neutral",
+        "displayName": "Altitude Slate Unknown",
+        "canonical": "#94a3b8",
+        "tonalRamp": ["oklch(25% 0.018 245)", "oklch(35% 0.02 245)", "oklch(46% 0.022 245)", "oklch(57% 0.023 245)", "oklch(67% 0.023 245)", "oklch(76% 0.021 245)", "oklch(86% 0.017 245)", "oklch(95% 0.01 245)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Radar Display",
+        "purpose": "Compact invitation and high-level console statements in the left rail."
+      },
+      "headline": {
+        "displayName": "Console Headline",
+        "purpose": "Drawer titles and selected-flight callsigns that must be read at a glance."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Panel identities, route endpoints, and supporting headings."
+      },
+      "body": {
+        "displayName": "Operational Body",
+        "purpose": "Explanatory copy, operator names, and route descriptions."
+      },
+      "label": {
+        "displayName": "Data Label Mono",
+        "purpose": "Short uppercase captions, source states, and compact field labels."
+      },
+      "mono": {
+        "displayName": "Measurement Mono",
+        "purpose": "UTC times, airport codes, callsigns, statuses, and numeric values."
+      }
+    },
+    "shadows": [
+      {
+        "name": "console-elevation",
+        "value": "0 22px 58px rgba(0, 0, 0, 0.42)",
+        "purpose": "Shared ambient depth for the query rail, traffic drawer, and selected-flight panel."
+      },
+      {
+        "name": "map-overlay",
+        "value": "0 9px 26px rgba(0, 0, 0, 0.22)",
+        "purpose": "Shorter lift for the live badge and floating map controls."
+      },
+      {
+        "name": "result-popover",
+        "value": "0 18px 45px rgba(0, 0, 0, 0.56)",
+        "purpose": "Deep separation for airport suggestions above the query rail."
+      },
+      {
+        "name": "toast-elevation",
+        "value": "0 12px 38px rgba(0, 0, 0, 0.5)",
+        "purpose": "Broad contrast for transient feedback over the map."
+      }
+    ],
+    "motion": [
+      {
+        "name": "drawer-transition",
+        "value": "0.18s ease-out",
+        "purpose": "Opacity and scale changes for desktop drawers and map expansion."
+      },
+      {
+        "name": "mobile-sheet-transition",
+        "value": "0.22s ease-out",
+        "purpose": "Bottom-sheet entry and exit for compact search controls."
+      },
+      {
+        "name": "live-scan",
+        "value": "0.8s ease-out",
+        "purpose": "A single radar-lime sweep across the live status badge after refresh."
+      },
+      {
+        "name": "live-pulse",
+        "value": "2s infinite",
+        "purpose": "Expanding lime halo on an active live status dot."
+      },
+      {
+        "name": "location-pulse",
+        "value": "2.4s ease-out infinite",
+        "purpose": "Cyan accuracy pulse around the browser location marker."
+      },
+      {
+        "name": "marker-shift",
+        "value": "0.55s ease",
+        "purpose": "Aircraft heading transitions between live position updates."
+      },
+      {
+        "name": "loading-shimmer",
+        "value": "1.5s infinite",
+        "purpose": "Quiet cyan shimmer for traffic and altitude loading placeholders."
+      },
+      {
+        "name": "radar-sweep",
+        "value": "3s linear infinite",
+        "purpose": "Rotating sweep in the empty-state radar illustration."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tablet-wide",
+        "value": "1180px",
+        "purpose": "Compress the left rail and right drawer into a shallower desktop arrangement."
+      },
+      {
+        "name": "tablet",
+        "value": "900px",
+        "purpose": "Move search and traffic controls into reachable bottom-sheet surfaces."
+      },
+      {
+        "name": "mobile",
+        "value": "520px",
+        "purpose": "Collapse secondary labels and keep core metrics and controls readable."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Lime Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width action for loading the selected airport's traffic board.",
+      "html": "<button class='ds-btn-primary' type='button'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 5v14M5 12h14' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg><span>EXPLORE FLIGHTS</span></button>",
+      "css": ".ds-btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:42px;padding:0 16px;color:var(--bg,#07121f);border:0;border-radius:6px;background:var(--accent,#b7f34a);box-shadow:0 8px 24px rgba(126,181,36,.2);font:700 11px/1 var(--body,'DM Sans',system-ui,sans-serif);cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}.ds-btn-primary svg{width:17px;height:17px}.ds-btn-primary:hover:not(:disabled){transform:translateY(-1px);background:#c8fa70;box-shadow:0 12px 28px rgba(126,181,36,.28)}.ds-btn-primary:focus-visible{outline:2px solid var(--accent,#b7f34a);outline-offset:3px}.ds-btn-primary:active:not(:disabled){transform:translateY(0)}.ds-btn-primary:disabled{opacity:.52;cursor:wait}"
+    },
+    {
+      "name": "Command Search Input",
+      "kind": "input",
+      "refersTo": "command-search",
+      "description": "Centered command field for airport, flight, and callsign lookup.",
+      "html": "<form class='ds-command-search' role='search'><svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='11' cy='11' r='6' fill='none' stroke='currentColor' stroke-width='2'/><path d='m16 16 5 5' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg><input aria-label='Search airport, flight or callsign' placeholder='Search airport, flight or callsign'/><span class='ds-command-shortcut'>⌘K</span></form>",
+      "css": ".ds-command-search{display:flex;align-items:center;width:min(500px,100%);min-height:34px;gap:9px;padding:0 10px;color:var(--cyan,#67d8ff);border:1px solid var(--line-strong,rgba(144,183,210,.34));border-radius:7px;background:var(--command-surface,rgba(14,35,54,.72));transition:border-color .16s ease,box-shadow .16s ease}.ds-command-search:focus-within{border-color:rgba(103,216,255,.7);box-shadow:0 0 0 3px rgba(103,216,255,.1)}.ds-command-search svg{width:15px;height:15px;flex:0 0 auto}.ds-command-search input{width:100%;min-width:0;padding:0;color:var(--text,#f2f7fb);border:0;outline:0;background:transparent;font:500 10px/1 var(--body,'DM Sans',system-ui,sans-serif)}.ds-command-search input::placeholder{color:var(--quiet,#6f8799)}.ds-command-search input:focus-visible{outline:0}.ds-command-shortcut{flex:0 0 auto;color:var(--quiet,#6f8799);font:500 8px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace)}"
+    },
+    {
+      "name": "Panel Container",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Navy console surface for query controls, drawers, and grouped context.",
+      "html": "<section class='ds-panel'><div class='ds-panel-head'><span class='ds-panel-mark'>ST</span><div><strong>Traffic board</strong><small>Live viewport</small></div></div><div class='ds-panel-body'>Airspace / live</div></section>",
+      "css": ".ds-panel{padding:18px;color:var(--text,#f2f7fb);border:1px solid var(--line,rgba(144,183,210,.18));border-radius:12px;background:var(--panel,rgba(9,24,39,.97));box-shadow:0 22px 58px rgba(0,0,0,.42);font-family:var(--body,'DM Sans',system-ui,sans-serif)}.ds-panel-head{display:flex;align-items:center;gap:9px;padding-bottom:15px;border-bottom:1px solid var(--line,rgba(144,183,210,.18))}.ds-panel-mark{display:grid;place-items:center;width:31px;height:31px;color:var(--accent,#b7f34a);border:1px solid rgba(183,243,74,.4);border-radius:7px;background:var(--accent-soft,rgba(183,243,74,.12));font:600 9px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);letter-spacing:.08em}.ds-panel-head div{display:grid;gap:4px}.ds-panel-head strong{font:600 17px/1 var(--display,'Barlow Semi Condensed','Arial Narrow',sans-serif);letter-spacing:.02em}.ds-panel-head small{color:var(--quiet,#6f8799);font:500 8px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);text-transform:uppercase;letter-spacing:.08em}.ds-panel-body{padding-top:16px;color:var(--muted,#9cb1c1);font-size:11px;line-height:1.55}.ds-panel:focus-within{border-color:var(--line-strong,rgba(144,183,210,.34))}"
+    },
+    {
+      "name": "Traffic Card",
+      "kind": "card",
+      "refersTo": "traffic-card",
+      "description": "Compact selectable row for a live or recorded aircraft movement.",
+      "html": "<button class='ds-traffic-card' type='button'><span class='ds-traffic-status'></span><span class='ds-traffic-main'><span class='ds-traffic-identity'><span class='ds-traffic-callsign'>AFR123</span><span class='ds-traffic-airline'>Air France</span></span><span class='ds-traffic-route'>LFPG → EGLL</span><span class='ds-traffic-meta'>AIRBORNE · 36,000 FT · 421 KT</span></span><svg class='ds-traffic-plane' viewBox='0 0 24 24' aria-hidden='true'><path d='M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'/></svg></button>",
+      "css": ".ds-traffic-card{position:relative;display:flex;align-items:center;width:100%;min-height:72px;margin-bottom:5px;padding:9px 10px 9px 14px;overflow:hidden;text-align:left;color:var(--text,#f2f7fb);border:1px solid transparent;border-radius:6px;background:var(--card-surface,rgba(255,255,255,.025));font-family:var(--body,'DM Sans',system-ui,sans-serif);cursor:pointer;transition:background .14s ease,border-color .14s ease,transform .14s ease}.ds-traffic-card:hover{background:rgba(103,216,255,.075);border-color:var(--line,rgba(144,183,210,.18));transform:translateX(-1px)}.ds-traffic-card:focus-visible{outline:2px solid var(--accent,#b7f34a);outline-offset:3px}.ds-traffic-card:active{transform:translateX(0)}.ds-traffic-card.ds-is-selected{background:rgba(183,243,74,.11);border-color:rgba(183,243,74,.35)}.ds-traffic-status{position:absolute;left:0;top:11px;bottom:11px;width:1px;border-radius:1px;background:var(--accent,#b7f34a);box-shadow:0 0 8px rgba(183,243,74,.45)}.ds-traffic-main{display:grid;flex:1;min-width:0;grid-template-columns:1fr auto;gap:4px 10px}.ds-traffic-identity{display:grid;min-width:0;gap:3px}.ds-traffic-callsign{overflow:hidden;font:600 12px/1 var(--display,'Barlow Semi Condensed','Arial Narrow',sans-serif);letter-spacing:.04em;text-overflow:ellipsis;white-space:nowrap}.ds-traffic-airline{overflow:hidden;color:var(--muted,#9cb1c1);font-size:9px;text-overflow:ellipsis;white-space:nowrap}.ds-traffic-route{align-self:center;color:#c9dae4;font:500 9px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace)}.ds-traffic-meta{display:block;grid-column:1/-1;overflow:hidden;color:var(--quiet,#6f8799);font:500 7px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);white-space:nowrap}.ds-traffic-plane{width:17px;height:17px;margin-left:7px;color:var(--quiet,#6f8799);transform:rotate(45deg)}.ds-traffic-card.ds-is-selected .ds-traffic-plane{color:var(--accent,#b7f34a)}"
+    },
+    {
+      "name": "Source Pill",
+      "kind": "chip",
+      "refersTo": "source-pill",
+      "description": "Small provenance badge that separates live, recorded, and ready states.",
+      "html": "<span class='ds-source-pill ds-source-pill-live'><span class='ds-source-dot'></span><span>LIVE SNAPSHOT</span></span>",
+      "css": ".ds-source-pill{display:inline-flex;align-items:center;gap:6px;min-height:22px;padding:0 7px;color:var(--quiet,#6f8799);border:1px solid var(--line,rgba(144,183,210,.18));border-radius:4px;background:var(--card-surface,rgba(255,255,255,.025));font:700 7px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;transition:border-color .16s ease,background .16s ease}.ds-source-pill:hover{border-color:var(--line-strong,rgba(144,183,210,.34))}.ds-source-pill:focus-visible{outline:2px solid var(--accent,#b7f34a);outline-offset:3px}.ds-source-dot{width:5px;height:5px;border-radius:50%;background:currentColor}.ds-source-pill-live{color:var(--accent,#b7f34a);border-color:rgba(183,243,74,.3);background:var(--accent-soft,rgba(183,243,74,.12))}.ds-source-pill-history{color:var(--cyan,#67d8ff);border-color:rgba(103,216,255,.3);background:var(--cyan-soft,rgba(103,216,255,.12))}"
+    },
+    {
+      "name": "Selected Flight Panel",
+      "kind": "custom",
+      "refersTo": "selected-flight-panel",
+      "description": "Lower map sheet for route, provenance, measured flight data, and altitude profile.",
+      "html": "<aside class='ds-selected-flight-panel'><div class='ds-selected-head'><div><strong class='ds-selected-callsign'>AFR123</strong><span class='ds-selected-operator'>Air France</span></div><span class='ds-selected-status'>AIRBORNE</span></div><div class='ds-route'><div class='ds-route-stop'><span class='ds-route-icon'>↗</span><div><small>ORIGIN</small><strong>LFPG</strong><span>Paris Charles de Gaulle</span></div><time>14:20</time></div><div class='ds-route-line'></div><div class='ds-route-stop'><span class='ds-route-icon'>↘</span><div><small>DESTINATION</small><strong>EGLL</strong><span>London Heathrow</span></div><time>15:02</time></div><small class='ds-route-source'>Estimated from callsign · ADSBDB</small></div><div class='ds-metrics'><div><span>ALTITUDE</span><strong>36,000 FT</strong></div><div><span>GROUND SPEED</span><strong>421 KT</strong></div><div><span>ICAO24</span><strong>3941A2</strong></div><div><span>STATUS</span><strong>AIRBORNE</strong></div></div><div class='ds-profile'><div class='ds-profile-title'><span>Altitude profile</span><small>42 points</small></div><svg viewBox='0 0 260 60' aria-hidden='true'><polygon points='0,54 0,42 35,38 70,44 110,24 150,28 190,12 230,18 260,8 260,54' fill='rgba(130,244,202,.22)'/><polyline points='0,42 35,38 70,44 110,24 150,28 190,12 230,18 260,8' fill='none' stroke='#a3e635' stroke-width='3' stroke-linecap='round'/></svg></div></aside>",
+      "css": ".ds-selected-flight-panel{width:min(500px,calc(100vw - 760px));padding:17px;color:var(--text,#f2f7fb);border:1px solid var(--line-strong,rgba(144,183,210,.34));border-radius:10px;background:var(--details-surface,rgba(9,24,39,.98));box-shadow:0 22px 58px rgba(0,0,0,.42);font-family:var(--body,'DM Sans',system-ui,sans-serif);animation:ds-drawer-in .2s ease-out}.ds-selected-flight-panel:focus-within{border-color:rgba(183,243,74,.5)}.ds-selected-head{display:flex;justify-content:space-between;gap:18px}.ds-selected-head>div{display:grid;gap:3px}.ds-selected-callsign{font:600 24px/1 var(--display,'Barlow Semi Condensed','Arial Narrow',sans-serif);letter-spacing:.05em}.ds-selected-operator{color:var(--muted,#9cb1c1);font-size:9px}.ds-selected-status{display:inline-flex;align-items:center;min-height:25px;padding:0 7px;color:var(--accent,#b7f34a);border:1px solid rgba(183,243,74,.3);border-radius:4px;background:var(--accent-soft,rgba(183,243,74,.12));font:600 7px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);letter-spacing:.08em}.ds-route{margin:16px 0;padding:12px;border:1px solid var(--line,rgba(144,183,210,.18));border-radius:7px;background:rgba(14,35,54,.5)}.ds-route-stop{display:grid;grid-template-columns:19px 1fr auto;align-items:center;gap:8px}.ds-route-icon{color:var(--cyan,#67d8ff);font:600 15px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace)}.ds-route-stop>div{display:grid;gap:3px;min-width:0}.ds-route-stop small,.ds-route-source{color:var(--quiet,#6f8799);font:600 7px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);letter-spacing:.1em;text-transform:uppercase}.ds-route-stop strong{font:600 13px/1 var(--display,'Barlow Semi Condensed','Arial Narrow',sans-serif);letter-spacing:.04em}.ds-route-stop span{overflow:hidden;color:var(--muted,#9cb1c1);font-size:9px;text-overflow:ellipsis;white-space:nowrap}.ds-route-stop time{color:var(--muted,#9cb1c1);font:500 8px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace)}.ds-route-line{height:15px;margin-left:8px;border-left:1px dashed rgba(103,216,255,.45)}.ds-route-source{display:block;margin:10px 0 0 27px;color:var(--violet,#b9a4ff);font-weight:500;letter-spacing:.03em;text-transform:none}.ds-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.ds-metrics>div{display:grid;gap:5px;padding:9px;border:1px solid var(--line,rgba(144,183,210,.18));border-radius:6px;background:var(--card-surface,rgba(255,255,255,.025))}.ds-metrics span{color:var(--quiet,#6f8799);font:600 7px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace);letter-spacing:.04em}.ds-metrics strong{overflow:hidden;color:var(--text,#f2f7fb);font:600 11px/1 var(--display,'Barlow Semi Condensed','Arial Narrow',sans-serif);text-overflow:ellipsis}.ds-profile{margin-top:7px;padding:10px;border:1px solid var(--line,rgba(144,183,210,.18));border-radius:6px;background:var(--card-surface,rgba(255,255,255,.025))}.ds-profile-title{display:flex;justify-content:space-between;color:var(--muted,#9cb1c1);font-size:9px}.ds-profile-title small{color:var(--quiet,#6f8799);font:500 8px/1 var(--mono,'IBM Plex Mono',ui-monospace,monospace)}.ds-profile svg{display:block;width:100%;height:72px;margin-top:7px}@keyframes ds-drawer-in{from{opacity:0;transform:translateY(14px)}}"
+    },
+    {
+      "name": "Altitude Legend",
+      "kind": "custom",
+      "refersTo": "altitude-legend",
+      "description": "Compact mono key for the five altitude bands and unknown values.",
+      "html": "<div class='ds-altitude-legend' role='img' aria-label='Altitude colour scale'><span class='ds-altitude-title'>ALTITUDE</span><span class='ds-altitude-item'><i style='background:#38bdf8'></i><span>&lt;5K FT</span></span><span class='ds-altitude-item'><i style='background:#2dd4bf'></i><span>5–15K</span></span><span class='ds-altitude-item'><i style='background:#a3e635'></i><span>15–26K</span></span><span class='ds-altitude-item'><i style='background:#fbbf24'></i><span>26–36K</span></span><span class='ds-altitude-item'><i style='background:#fb7185'></i><span>36K+</span></span><span class='ds-altitude-item'><i style='background:#94a3b8'></i><span>UNKNOWN</span></span></div>",
+      "css": ".ds-altitude-legend{display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px;padding:7px 9px;color:var(--quiet,#6f8799);border:1px solid var(--line,rgba(144,183,210,.18));border-radius:6px;background:var(--legend-surface,rgba(8,22,36,.9));font:500 8px/1.2 var(--mono,'IBM Plex Mono',ui-monospace,monospace);letter-spacing:.02em}.ds-altitude-title{color:var(--muted,#9cb1c1);font-size:8px;letter-spacing:.08em;text-transform:uppercase}.ds-altitude-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.ds-altitude-item i{display:block;width:8px;height:8px;flex:0 0 auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.2)}.ds-altitude-legend:focus-visible{outline:2px solid var(--accent,#b7f34a);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Airspace Weather Scope",
+    "overview": "SkyTrace is a live operations surface that reads like an aviation weather radar console: a dark geographic field, bright altitude and status signals, a compact command bar, and information that slides in from the edges without hiding the traffic. The map is the instrument; every panel explains what the instrument is showing.\n\nThe interface borrows the useful interaction model of modern flight trackers—search above the map, floating map controls, a traffic list, and a selected-flight sheet—while using SkyTrace's own visual grammar, labels, data states, and route enrichment.",
+    "keyCharacteristics": [
+      "A map-first console that keeps live traffic visible while panels provide context.",
+      "Sparse radar lime for live and selected states, with cyan, violet, amber, and coral carrying distinct data meanings.",
+      "Tall display type for headings, a quiet sans-serif reading voice, and mono numerals for measurements and identifiers.",
+      "Opaque or lightly translucent navy surfaces, fine cool borders, and one ambient shadow vocabulary.",
+      "Compact edge panels that become reachable bottom sheets on smaller screens."
+    ],
+    "rules": [
+      {
+        "name": "The Signal Clarity Rule",
+        "body": "Reserve radar lime for live state, selection, focus, and actions; let the other signal colors keep their own meanings.",
+        "section": "colors"
+      },
+      {
+        "name": "The Provenance Color Rule",
+        "body": "Keep measured, estimated, degraded, error, and unknown states visually distinct wherever source status is shown.",
+        "section": "colors"
+      },
+      {
+        "name": "The Measurement Voice Rule",
+        "body": "Use IBM Plex Mono for values that must be compared quickly, and keep display headings in sentence case with tight tracking.",
+        "section": "typography"
+      },
+      {
+        "name": "The Layered Console Rule",
+        "body": "Let opaque or lightly translucent navy surfaces, fine borders, and a single ambient shadow establish depth; reserve stronger glow for live signals and selected aircraft.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the live map visible in the first viewport and preserve spatial context as panels open.",
+      "Do use the signal colors consistently for live, measured, estimated, warning, error, and altitude states.",
+      "Do keep UTC times, airport codes, callsigns, and measurements in IBM Plex Mono.",
+      "Do retain labelled controls, visible focus rings, keyboard dismissal, and reduced-motion behavior at every breakpoint.",
+      "Do make live snapshot, recorded history, unavailable data, and unknown route provenance explicit in both copy and styling."
+    ],
+    "donts": [
+      "Don't cover the map with a generic opaque dashboard layout or hide the traffic instrument behind a modal by default.",
+      "Don't spend radar lime on decorative surfaces where it would compete with live state and selection.",
+      "Don't merge recorded, live fallback, estimated, degraded, and unavailable states into one neutral badge.",
+      "Don't remove the map controls, focus ring, or source labels when the viewport becomes compact."
+    ]
+  }
+}

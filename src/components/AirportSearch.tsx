@@ -10,6 +10,7 @@ interface AirportSearchProps {
   recent: Airport[];
   favorites: Airport[];
   onSelect: (airport: Airport) => void;
+  onClear?: () => void;
   onToggleFavorite: (airport: Airport) => void;
 }
 
@@ -19,6 +20,7 @@ export function AirportSearch({
   recent,
   favorites,
   onSelect,
+  onClear,
   onToggleFavorite,
 }: AirportSearchProps) {
   const listboxId = useId();
@@ -112,7 +114,7 @@ export function AirportSearch({
           onKeyDown={handleKeyDown}
         />
         {query && (
-          <button type="button" className="clear-button" aria-label="Clear airport" onClick={() => { setQuery(""); setOpen(true); }}>
+          <button type="button" className="clear-button" aria-label="Clear airport" onClick={() => { setQuery(""); onClear?.(); setOpen(true); }}>
             <X size={15} />
           </button>
         )}

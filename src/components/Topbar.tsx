@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Clock3, Menu, Moon, Radio, Sun } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Clock3, Menu, Moon, Radio, Search, Sun } from "lucide-react";
 import type { HealthResponse, MapTheme } from "../types";
 
 interface TopbarProps {
@@ -8,6 +8,10 @@ interface TopbarProps {
   theme: MapTheme;
   onToggleTheme: () => void;
   onToggleControls: () => void;
+  commandValue: string;
+  commandPending?: boolean;
+  onCommandChange: (value: string) => void;
+  onCommandSubmit: () => void;
 }
 
 function UtcClock() {
@@ -25,9 +29,17 @@ export function Topbar({
   theme,
   onToggleTheme,
   onToggleControls,
+  commandValue,
+  commandPending = false,
+  onCommandChange,
+  onCommandSubmit,
 }: TopbarProps) {
   const liveAvailable = health?.live_available ?? health?.credentials_configured;
   const apiState = healthPending ? "Connecting" : liveAvailable ? "ADS-B enabled" : "Setup required";
+  function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onCommandSubmit();
+  }
 
   return (
     <header className="topbar">
@@ -35,19 +47,31 @@ export function Topbar({
         <span className="brand-mark"><Radio size={18} aria-hidden="true" /></span>
         <span>
           <strong>SKYTRACE</strong>
-          <small>Flight intelligence</small>
+          <small>Airspace intelligence</small>
         </span>
       </div>
 
-      <div className="topbar-center">
-        <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
-        <span role="status">{apiState}</span>
-        <span className="separator" />
-        <Clock3 size={14} aria-hidden="true" />
-        <UtcClock />
-      </div>
+      <form className="command-search" onSubmit={handleCommandSubmit} role="search">
+        <Search size={15} aria-hidden="true" />
+        <input
+          value={commandValue}
+          onChange={(event) => onCommandChange(event.target.value)}
+          aria-label="Search airport, flight or callsign"
+          placeholder="Search airport, flight or callsign"
+          autoComplete="off"
+        />
+        <span className="command-shortcut mono">{commandPending ? "…" : "⌘K"}</span>
+      </form>
 
       <div className="topbar-actions">
+        <div className="topbar-status">
+          <span className="topbar-channel">AIRSPACE / LIVE</span>
+          <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
+          <span role="status">{apiState}</span>
+          <span className="separator" />
+          <Clock3 size={14} aria-hidden="true" />
+          <UtcClock />
+        </div>
         <button className="icon-button" type="button" onClick={onToggleTheme} aria-label={`Use ${theme === "dark" ? "light" : "dark"} map`}>
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
