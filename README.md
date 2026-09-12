@@ -110,7 +110,7 @@ The application stores only theme, live-refresh preference, recent airports, and
 
 Origin and destination for historical records come from OpenSky. For a live aircraft, the selected callsign is resolved on demand through the [ADSBDB callsign API](https://github.com/mrjackwills/adsbdb) and cached briefly; a missing or disabled resolver leaves the route explicitly unknown. Set `SKYTRACE_ROUTE_LOOKUP_ENABLED=0` to disable this enrichment.
 
-Live viewport requests use a short in-process cache and expand their provider radius with the visible map. `SKYTRACE_LIVE_CACHE_SECONDS`, `SKYTRACE_LIVE_STALE_SECONDS`, and `SKYTRACE_LIVE_MAX_RADIUS_NM` can tune those limits when running a private deployment.
+Live viewport requests use a short in-process cache, a small client request spacing, and a provider radius that expands with the visible map. `SKYTRACE_LIVE_CACHE_SECONDS`, `SKYTRACE_LIVE_STALE_SECONDS`, and `SKYTRACE_LIVE_MAX_RADIUS_NM` can tune the server limits when running a private deployment.
 
 ## License
 

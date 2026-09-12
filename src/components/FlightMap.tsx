@@ -80,6 +80,7 @@ function BoundsReporter({ onBounds }: BoundsReporterProps) {
     let timer: ReturnType<typeof setTimeout>;
     function report() {
       clearTimeout(timer);
+      clearTimeout(initialTimer);
       timer = setTimeout(() => {
         const bounds = map.getBounds();
         onBounds(quantizeBounds({
@@ -91,10 +92,12 @@ function BoundsReporter({ onBounds }: BoundsReporterProps) {
       }, 250);
     }
     map.on("moveend", report);
-    report();
+    const initialTimer = setTimeout(report, 1_000);
+    // MapController may immediately fly to the selected airport. Waiting one
+    // settle window avoids fetching the throwaway default viewport first.
     const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
     observer.observe(map.getContainer());
-    return () => { clearTimeout(timer); map.off("moveend", report); observer.disconnect(); };
+    return () => { clearTimeout(timer); clearTimeout(initialTimer); map.off("moveend", report); observer.disconnect(); };
   }, [map, onBounds]);
   return null;
 }
