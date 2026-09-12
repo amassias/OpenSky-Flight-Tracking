@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
@@ -51,11 +51,11 @@ function AircraftSelectionBridge({ aircraft, onSelect }: {
   }, [aircraft]);
   aircraftRef.current = aircraftByHex;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = map.getContainer();
     const selectFromEvent = (event: Event) => {
       const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
+      if (!(target instanceof Element)) return;
       const marker = target.closest<HTMLElement>(".aircraft-marker[data-icao24]");
       const icao24 = marker?.dataset.icao24;
       if (!icao24) return;
@@ -72,9 +72,11 @@ function AircraftSelectionBridge({ aircraft, onSelect }: {
 
     // mousedown is deliberately included: Playwright and Firefox can dispatch
     // it before Leaflet's own click effect has been installed.
+    container.addEventListener("pointerdown", selectFromEvent, true);
     container.addEventListener("mousedown", selectFromEvent, true);
     container.addEventListener("click", selectFromEvent, true);
     return () => {
+      container.removeEventListener("pointerdown", selectFromEvent, true);
       container.removeEventListener("mousedown", selectFromEvent, true);
       container.removeEventListener("click", selectFromEvent, true);
     };
@@ -124,8 +126,14 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     const current = aircraftRef.current;
     onSelect(liveAircraftToFlight(current));
   }, [onSelect]);
-  const eventHandlers = useMemo(() => ({ click: selectAircraft }), [selectAircraft]);
-  useEffect(() => {
+  // Select on press so a progressive tile refresh cannot replace the marker
+  // between pointer-down and click-up. Keeping click covers keyboard/synthetic
+  // activation while the selection itself is idempotent.
+  const eventHandlers = useMemo(() => ({
+    mousedown: selectAircraft,
+    click: selectAircraft,
+  }), [selectAircraft]);
+  useLayoutEffect(() => {
     // Firefox can swallow Leaflet's delegated click while a map pan is still
     // settling. Listening on the marker element itself keeps aircraft
     // selection responsive during that short transition.
@@ -135,6 +143,8 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     const bind = () => {
       element = markerRef.current?.getElement() ?? null;
       if (element) {
+        element.addEventListener("pointerdown", selectAircraft, true);
+        element.addEventListener("mousedown", selectAircraft, true);
         element.addEventListener("click", selectAircraft, true);
         return;
       }
@@ -146,6 +156,8 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     bind();
     return () => {
       if (timer) clearTimeout(timer);
+      element?.removeEventListener("pointerdown", selectAircraft, true);
+      element?.removeEventListener("mousedown", selectAircraft, true);
       element?.removeEventListener("click", selectAircraft, true);
     };
   }, [selectAircraft]);
@@ -370,6 +382,7 @@ export function FlightMap({
     const tiles = splitBoundsIntoTiles(bounds);
     const totalViewportTiles = viewportTileCount(bounds);
     const retained = new Map<string, LiveAircraft>();
+    const freshAircraft = new Set<string>();
     for (const aircraft of aircraftCacheRef.current.values()) {
       if (aircraft.latitude == null || aircraft.longitude == null) continue;
       if (bounds.lamin <= aircraft.latitude && aircraft.latitude <= bounds.lamax && bounds.lomin <= aircraft.longitude && aircraft.longitude <= bounds.lomax) {
@@ -414,13 +427,10 @@ export function FlightMap({
       try {
         const response = await api.liveFlights(tile, controller.signal, true);
         if (controller.signal.aborted) return;
-        for (const [icao24, aircraft] of retained) {
-          if (aircraft.latitude == null || aircraft.longitude == null) continue;
-          if (tile.lamin <= aircraft.latitude && aircraft.latitude <= tile.lamax && tile.lomin <= aircraft.longitude && aircraft.longitude <= tile.lomax) {
-            retained.delete(icao24);
-          }
+        for (const aircraft of response.states) {
+          retained.set(aircraft.icao24, aircraft);
+          freshAircraft.add(aircraft.icao24);
         }
-        for (const aircraft of response.states) retained.set(aircraft.icao24, aircraft);
         loadedTiles += 1;
         latestTime = Math.max(latestTime ?? 0, response.time ?? 0) || latestTime;
         provider = response.provider || provider;
@@ -446,6 +456,12 @@ export function FlightMap({
 
     void Promise.all(tiles.map(loadTile)).then(() => {
       if (controller.signal.aborted) return;
+      if (failedTiles === 0 && tiles.length >= totalViewportTiles) {
+        for (const icao24 of retained.keys()) {
+          if (!freshAircraft.has(icao24)) retained.delete(icao24);
+        }
+        aircraftCacheRef.current = new Map(retained);
+      }
       const data = retained.size ? snapshot() : null;
       setLiveState({
         data,

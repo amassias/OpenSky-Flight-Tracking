@@ -70,7 +70,9 @@ test("airport suggestions dismiss when leaving the field", async ({page, isMobil
 });
 
 test("resolves origin and destination for a selected live aircraft", async ({ page }) => {
-  await page.locator(".aircraft-marker").first().click({ force: true });
+  // Click the Leaflet hit target a user interacts with. The inner plane SVG is
+  // rotated and can move under WebKit while a progressive sector settles.
+  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page.getByText("Estimated from callsign")).toBeVisible();
   await expect(page.getByText("Incheon International Airport")).toBeVisible();

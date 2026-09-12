@@ -202,18 +202,21 @@ export function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [mapExpanded, mobileControlsOpen, selectedFlight]);
 
-  const clientLiveFallback = Boolean(
-    flights.data?.source === "unavailable"
-      && request
+  const matchingLiveSnapshot = Boolean(
+    request
       && liveFallbackSnapshot?.airportIcao === request.airport.icao
       && liveFallbackSnapshot.data.states.length,
   );
-  const displayedFlights = clientLiveFallback ? liveFallbackSnapshot?.data.states ?? [] : flights.data?.flights ?? [];
+  const livePreviewDuringLoad = Boolean(flights.isFetching && matchingLiveSnapshot);
+  const clientLiveFallback = Boolean(flights.data?.source === "unavailable" && matchingLiveSnapshot);
+  const displayedFlights = clientLiveFallback || livePreviewDuringLoad ? liveFallbackSnapshot?.data.states ?? [] : flights.data?.flights ?? [];
   const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback;
-  const summary = clientLiveFallback
+  const summary = clientLiveFallback || livePreviewDuringLoad
     ? liveSnapshotSummary(displayedFlights)
     : flights.data?.summary;
-  const displayNotice = clientLiveFallback
+  const displayNotice = livePreviewDuringLoad
+    ? `Loading recorded ${request?.mode}s · showing current live traffic around ${request?.airport.icao} meanwhile.`
+    : clientLiveFallback
     ? `OpenSky history is unavailable for ${request?.date}. Showing the live map snapshot around ${request?.airport.icao}; these are not recorded ${request?.mode}s.`
     : flights.data?.notice;
   const requestTitle = request
@@ -277,7 +280,7 @@ export function App() {
     const nextRequest = { airport: selectedAirport, date, mode };
     setRequest(nextRequest);
     setSelectedFlight(null);
-    setLiveFallbackSnapshot(null);
+    if (liveFallbackSnapshot?.airportIcao !== selectedAirport.icao) setLiveFallbackSnapshot(null);
     setRecent([selectedAirport, ...recent.filter((item) => item.icao !== selectedAirport.icao)].slice(0, 6));
     setMobileControlsOpen(false);
   }
