@@ -28,6 +28,7 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
           : null;
   const originName = routeLoading && !flight.departure_airport ? "Resolving origin…" : flight.departure_airport_name || "Unknown origin";
   const destinationName = routeLoading && !flight.arrival_airport ? "Resolving destination…" : flight.arrival_airport_name || "Unknown destination";
+  const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
     <aside className="details-drawer" aria-label="Selected flight details">
       <div className="drawer-handle" aria-hidden="true" />
@@ -38,6 +39,7 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
           <p>{flight.airline_name || "Unidentified operator"}</p>
         </div>
         <div className="details-actions">
+          <span className={`details-status status-${statusKey}`}><span className={`status-dot status-${statusKey}`} />{statusLabel(flight.status, flight.on_ground)}</span>
           <button type="button" className="icon-button" onClick={onShare} aria-label="Copy share link"><Share2 size={17} /></button>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close flight details"><X size={19} /></button>
         </div>

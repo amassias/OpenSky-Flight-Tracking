@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "lucide-react";
+import { Activity, CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "lucide-react";
 import { api, readableApiError } from "./api";
 import { AirportSearch } from "./components/AirportSearch";
 import { FlightDetails } from "./components/FlightDetails";
@@ -186,6 +186,8 @@ export function App() {
       : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${request.airport.iata || request.airport.icao}`
     : "Flight movements";
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
+  const activeAirport = request?.airport ?? selectedAirport;
+  const sourceLabel = showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
 
   function submitSearch() {
     if (!selectedAirport) {
@@ -252,6 +254,14 @@ export function App() {
             <h1>Find a flight.<br /><em>Follow its story.</em></h1>
             <p>Live and historical movement data from the OpenSky network.</p>
           </div>
+          <div className="panel-context" role="status">
+            <span className="panel-context-icon"><Activity size={15} aria-hidden="true" /></span>
+            <span className="panel-context-copy">
+              <strong>{activeAirport ? `${activeAirport.iata || activeAirport.icao} airspace` : "European airspace"}</strong>
+              <small>{liveAvailable ? "ADS-B network connected" : "Historical search available"}</small>
+            </span>
+            <span className={`panel-context-state ${liveAvailable ? "online" : "offline"}`}>{liveAvailable ? "LIVE" : "OFFLINE"}</span>
+          </div>
           <AirportSearch
             selected={selectedAirport}
             popular={popular.data ?? []}
@@ -291,19 +301,26 @@ export function App() {
 
         <section className={`results-panel glass-panel ${mobileResultsExpanded ? "mobile-expanded" : ""}`} id="flight-results">
           <header className="results-heading">
-            <div>
+            <div className="results-heading-copy">
               <span className="eyebrow">{request ? `${request.date} · UTC` : "OpenSky movement data"}</span>
               <h2>{requestTitle}</h2>
+              <p>{request ? request.airport.display_name : "Select an airport to begin"}</p>
             </div>
-            <button
-              type="button"
-              className="mobile-results-toggle"
-              aria-label={mobileResultsExpanded ? "Collapse flight results" : "Expand flight results"}
-              aria-expanded={mobileResultsExpanded}
-              onClick={() => setMobileResultsExpanded(!mobileResultsExpanded)}
-            >
-              <ChevronDown size={18} />
-            </button>
+            <div className="results-heading-actions">
+              <span className={`source-pill ${showingLiveFallback ? "live" : request ? "history" : "ready"}`} role="status">
+                <span className="source-pill-dot" />
+                <span>{sourceLabel}</span>
+              </span>
+              <button
+                type="button"
+                className="mobile-results-toggle"
+                aria-label={mobileResultsExpanded ? "Collapse flight results" : "Expand flight results"}
+                aria-expanded={mobileResultsExpanded}
+                onClick={() => setMobileResultsExpanded(!mobileResultsExpanded)}
+              >
+                <ChevronDown size={18} />
+              </button>
+            </div>
           </header>
           <div className="stats-row">
             <div><strong className="mono">{summary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Total flights"}</span></div>

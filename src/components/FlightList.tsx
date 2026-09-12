@@ -1,7 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { ArrowDownUp, Filter, Plane, Search } from "lucide-react";
 import type { Flight } from "../types";
-import { flightId, formatTime, routeLabel, statusLabel } from "../utils";
+import { flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel } from "../utils";
 
 type StatusFilter = "all" | "airborne" | "on_ground" | "completed";
 type SortOrder = "time_desc" | "time_asc" | "airline_asc";
@@ -25,6 +25,7 @@ interface FlightCardProps {
 
 const FlightCard = memo(function FlightCard({ flight, selected, onSelect }: FlightCardProps) {
   const status = statusLabel(flight.status, flight.on_ground);
+  const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
     <button
       type="button"
@@ -32,17 +33,24 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect }: Flig
       onClick={() => onSelect(flight)}
       aria-pressed={selected}
     >
-      <span className={`flight-status-line status-${flight.status || "unknown"}`} />
+      <span className={`flight-status-line status-${statusKey}`} />
       <span className="flight-card-main">
         <span className="flight-identity">
-          <span className="callsign mono">{flight.callsign || flight.icao24.toUpperCase()}</span>
+          <span className="callsign-row">
+            <span className={`status-dot status-${statusKey}`} aria-hidden="true" />
+            <span className="callsign mono">{flight.callsign || flight.icao24.toUpperCase()}</span>
+          </span>
           <span className="airline">{flight.airline_name || "Unidentified operator"}</span>
         </span>
         <span className="route mono">{routeLabel(flight)}</span>
         <span className="flight-meta">
-          <span>{status}</span>
+          <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>
           <span>·</span>
           <span>{formatTime(flight.primary_time ?? flight.first_seen ?? flight.last_seen)} UTC</span>
+          <span className="flight-meta-divider" aria-hidden="true" />
+          <span>{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</span>
+          <span>·</span>
+          <span>{formatSpeed(flight.velocity)}</span>
         </span>
       </span>
       <Plane className="flight-plane" size={17} aria-hidden="true" />

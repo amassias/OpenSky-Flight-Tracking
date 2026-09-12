@@ -332,10 +332,12 @@ export function FlightMap({
       <div className="map-label">
         <span className="eyebrow">Live viewport</span>
         <strong>{airport ? `${airport.name} airspace` : "European airspace"}</strong>
+        <span className="map-label-meta"><span className={`system-dot ${liveAvailable ? "online" : "warning"}`} /> {displayedLiveData ? `${displayedLiveData.count} aircraft tracked` : "Awaiting traffic feed"}</span>
       </div>
-      <div className="live-badge" aria-live="polite">
+      <div className={`live-badge ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
-        {!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : !liveEnabled ? "Live traffic paused" : liveStatus}
+        <span className="live-badge-label">{!liveAvailable ? "OFFLINE" : !liveEnabled ? "PAUSED" : area > 350 ? "ZOOM" : "LIVE"}</span>
+        <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : area > 350 ? "Zoom in for live traffic" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
       </div>
       <div className="map-controls">
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>
