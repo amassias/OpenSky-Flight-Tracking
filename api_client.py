@@ -1,6 +1,5 @@
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from math import asin, ceil, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
@@ -38,6 +37,7 @@ class OpenSkyClient:
         # and the server layer still keeps its own stale snapshot fallback.
         self._live_cache: Dict[str, Dict[str, Any]] = {}
         self._live_provider_unavailable_until = 0.0
+        self._live_provider_next_request_at = 0.0
         # OpenSky's authenticated states endpoint is the only live source that
         # accepts the complete viewport bounding box. Keep a separate cache and
         # a small request gate for the Vercel proxy so a pan/zoom burst cannot
@@ -552,9 +552,23 @@ class OpenSkyClient:
             except (requests.RequestException, ValueError) as exc:
                 return None, response_status, exc
 
-        # Parallelise a bounded grid so a large map remains inside the Vercel
-        # function timeout, while the small client-side request queue still
-        # prevents zoom/pan bursts from starting multiple grids at once.
+        # The public ADS-B services apply per-IP request pacing. Send grid
+        # cells sequentially through a shared gate instead of bursting them in
+        # parallel; a six-cell airport-region grid still completes quickly,
+        # while a wide map stays compliant with the providers' fair-use limits.
+        try:
+            tile_interval = max(0.0, min(5.0, float(os.getenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "1.05"))))
+        except (TypeError, ValueError):
+            tile_interval = 1.05
+
+        def request_tile(provider: str, endpoint: str):
+            now_for_gate = time.time()
+            wait_seconds = self._live_provider_next_request_at - now_for_gate
+            if wait_seconds > 0:
+                time.sleep(wait_seconds)
+            self._live_provider_next_request_at = time.time() + tile_interval
+            return fetch_endpoint(provider, endpoint)
+
         last_error = None
         last_status = None
         rate_limited = False
@@ -562,11 +576,7 @@ class OpenSkyClient:
         payloads = []
         provider = None
         for candidate in ("adsb.lol", "airplanes.live"):
-            if len(endpoints) == 1:
-                tile_results = [fetch_endpoint(candidate, endpoints[0])]
-            else:
-                with ThreadPoolExecutor(max_workers=min(6, len(endpoints))) as executor:
-                    tile_results = list(executor.map(lambda endpoint: fetch_endpoint(candidate, endpoint), endpoints))
+            tile_results = [request_tile(candidate, endpoint) for endpoint in endpoints]
             candidate_payloads = [item[0] for item in tile_results if item[0] is not None]
             if candidate_payloads:
                 payloads = candidate_payloads

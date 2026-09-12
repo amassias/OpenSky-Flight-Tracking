@@ -194,6 +194,7 @@ def test_aircraft_profile_keeps_provider_metadata(monkeypatch):
 
 def test_live_viewport_grid_covers_wide_view_and_reuses_a_recent_response(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
     client = OpenSkyClient()
     response = _json_response({
         "now": 1_750_000_000_000,
