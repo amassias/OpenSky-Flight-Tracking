@@ -281,6 +281,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "success": True,
             "airports_loaded": len(ALL_AIRPORTS),
             "credentials_configured": api_client.credentials_available(),
+            "flightaware_configured": bool(os.getenv("FLIGHTAWARE_AEROAPI_KEY")),
             "live_available": bool(os.getenv("VERCEL")) or api_client.credentials_available(),
             "server_time_utc": datetime.now(timezone.utc).isoformat(),
         }
@@ -324,7 +325,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         def idx(i):
             return row[i] if len(row) > i else None
 
-        return {
+        state = {
             "icao24": idx(0),
             "callsign": (idx(1) or "").strip(),
             "origin_country": idx(2),
@@ -344,6 +345,13 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "position_source": idx(16),
             "category": idx(17),
         }
+        # Public ADS-B fallbacks append a sanitised aircraft profile after the
+        # standard OpenSky state-vector fields. Native OpenSky rows remain
+        # unchanged and simply have no profile to merge.
+        profile = idx(18)
+        if isinstance(profile, dict):
+            state.update(profile)
+        return state
 
     def _parse_states(self, states_list):
         parsed = []
@@ -753,6 +761,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "count": len(parsed_states),
             "states": parsed_states,
         }
+        if isinstance(states, dict):
+            for key in ("provider", "credit_cost", "refresh_after_seconds"):
+                if states.get(key) is not None:
+                    payload[key] = states[key]
         if degraded:
             payload["degraded"] = True
             payload["notice"] = states.get("notice") or "Live refresh delayed. Showing the last snapshot for this viewport."
@@ -763,6 +775,16 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         provided_callsign = (callsign_param or "").strip()
 
         current_state = None
+        # Enrich a selected aircraft with the public ADS-B profile (registration,
+        # type, operator and signal quality). This is intentionally one
+        # on-demand lookup, never part of the map polling loop.
+        try:
+            profile_response = api_client.get_aircraft_profile(code)
+            profile_row = profile_response.get("state") if isinstance(profile_response, dict) else None
+            if isinstance(profile_row, list):
+                current_state = self._state_row_to_object(profile_row)
+        except Exception:
+            current_state = None
         callsign_route = None
         if provided_callsign:
             # The browser already has the live callsign. Resolve it first so a
@@ -773,10 +795,11 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 callsign_route = None
 
         # For an on-demand live lookup, the selected state already contains the
-        # telemetry shown by the UI. Avoid a second slow OpenSky round trip when
-        # the callsign route was resolved (or explicitly supplied by the UI).
+        # telemetry shown by the UI. Only ask OpenSky when the profile lookup
+        # could not return a current state and the browser did not provide a
+        # callsign (the latter is the fast path for map clicks).
         flights = []
-        if not provided_callsign:
+        if not provided_callsign and current_state is None:
             try:
                 states = api_client.get_states(icao24_list=[code], extended=True)
                 if states and states.get("states"):
@@ -814,30 +837,71 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         if not isinstance(callsign_route, dict):
             callsign_route = None
 
+        # FlightAware is the operational enrichment source connected to the
+        # user's Hermes flight-tracker skill. Keep it strictly on this
+        # selection endpoint: map polling never calls it, and the client/server
+        # caches keep repeat opens inside a conservative free-plan cadence.
+        flightaware = None
+        if callsign:
+            try:
+                candidate = api_client.get_flightaware_details(
+                    callsign,
+                    (current_state or {}).get("registration"),
+                )
+                if isinstance(candidate, dict):
+                    flightaware = candidate
+            except Exception:
+                # Operational enrichment is optional. A FlightAware timeout or
+                # quota response must never hide the live ADS-B details.
+                flightaware = None
+
         historical_departure = (most_recent.get("estDepartureAirport") if most_recent else None) or None
         historical_arrival = (most_recent.get("estArrivalAirport") if most_recent else None) or None
         route_departure = (callsign_route or {}).get("departure_airport")
         route_arrival = (callsign_route or {}).get("arrival_airport")
-        departure_airport = historical_departure or route_departure
-        arrival_airport = historical_arrival or route_arrival
+        flightaware_origin = (flightaware or {}).get("origin") if isinstance((flightaware or {}).get("origin"), dict) else {}
+        flightaware_destination = (flightaware or {}).get("destination") if isinstance((flightaware or {}).get("destination"), dict) else {}
+        flightaware_departure = flightaware_origin.get("code_icao") or flightaware_origin.get("code") or flightaware_origin.get("code_iata")
+        flightaware_arrival = flightaware_destination.get("code_icao") or flightaware_destination.get("code") or flightaware_destination.get("code_iata")
+        departure_airport = historical_departure or route_departure or flightaware_departure
+        arrival_airport = historical_arrival or route_arrival or flightaware_arrival
 
         if historical_departure or historical_arrival:
-            route_source = "mixed" if callsign_route and (not historical_departure or not historical_arrival) else "opensky"
-            route_provider = "OpenSky" if route_source == "opensky" else "OpenSky + ADSBDB"
+            missing_from_history = not historical_departure or not historical_arrival
+            if missing_from_history and callsign_route:
+                route_source = "mixed"
+                route_provider = "OpenSky + ADSBDB"
+            elif missing_from_history and flightaware:
+                route_source = "mixed"
+                route_provider = "OpenSky + FlightAware"
+            else:
+                route_source = "opensky"
+                route_provider = "OpenSky"
         elif callsign_route:
             route_source = "callsign"
             route_provider = callsign_route.get("route_provider")
+        elif flightaware:
+            route_source = "flightaware"
+            route_provider = "FlightAware"
         else:
             route_source = "unknown"
             route_provider = None
 
         def route_name(airport_code, key):
             if not airport_code:
-                return (callsign_route or {}).get(key)
+                callsign_name = (callsign_route or {}).get(key)
+                if callsign_name:
+                    return callsign_name
+                airport = flightaware_origin if key == "departure_airport_name" else flightaware_destination
+                return airport.get("name") or airport.get("city")
             local_name = self._airport_name(airport_code)
             external_name = (callsign_route or {}).get(key)
             if external_name and local_name == str(airport_code).upper():
                 return external_name
+            airport = flightaware_origin if key == "departure_airport_name" else flightaware_destination
+            flightaware_name = airport.get("name") or airport.get("city")
+            if flightaware_name and local_name == str(airport_code).upper():
+                return flightaware_name
             return local_name
 
         payload = {
@@ -857,6 +921,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "route_source": route_source,
             "route_provider": route_provider,
             "live_state": current_state,
+            "flightaware": flightaware,
         }
 
         if current_state:
@@ -870,9 +935,18 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                     "true_track": current_state.get("true_track"),
                     "vertical_rate": current_state.get("vertical_rate"),
                     "on_ground": current_state.get("on_ground"),
-                    "status": "on_ground" if current_state.get("on_ground") else "airborne",
+                    "status": "on_ground" if current_state.get("on_ground") is True else "airborne" if current_state.get("on_ground") is False else "unknown",
                 }
             )
+            for key in (
+                "registration", "aircraft_type", "aircraft_description", "aircraft_owner",
+                "aircraft_year", "aircraft_category", "emergency", "nav_qnh",
+                "nav_altitude_mcp", "nav_heading", "nav_modes", "messages", "rssi",
+                "seen_seconds", "seen_position_seconds", "nic", "rc", "nac_p", "nac_v",
+                "sil", "sil_type", "source", "squawk", "category", "last_contact", "time_position",
+            ):
+                if current_state.get(key) is not None:
+                    payload[key] = current_state[key]
 
         return payload
 

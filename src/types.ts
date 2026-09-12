@@ -1,7 +1,60 @@
 export type FlightMode = "departure" | "arrival";
 export type FlightStatus = "airborne" | "on_ground" | "completed" | "unknown";
 export type MapTheme = "dark" | "light";
-export type RouteSource = "opensky" | "callsign" | "mixed" | "unknown";
+export type RouteSource = "opensky" | "callsign" | "flightaware" | "mixed" | "unknown";
+
+export interface FlightAwareAirport {
+  code_icao?: string | null;
+  code_iata?: string | null;
+  code?: string | null;
+  name?: string | null;
+  city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  timezone?: string | null;
+}
+
+export interface FlightAwareDetails {
+  provider: "FlightAware" | string;
+  queried_ident?: string | null;
+  fa_flight_id?: string | null;
+  ident?: string | null;
+  atc_ident?: string | null;
+  status?: string | null;
+  airline_code?: string | null;
+  airline_name?: string | null;
+  origin?: FlightAwareAirport | null;
+  destination?: FlightAwareAirport | null;
+  route?: string | null;
+  aircraft_type?: string | null;
+  registration?: string | null;
+  progress_percent?: number | null;
+  departure_delay?: number | null;
+  arrival_delay?: number | null;
+  cancelled?: boolean | null;
+  diverted?: boolean | null;
+  position_only?: boolean | null;
+  foresight_predictions_available?: boolean | null;
+  scheduled_out?: string | null;
+  estimated_out?: string | null;
+  actual_out?: string | null;
+  scheduled_off?: string | null;
+  estimated_off?: string | null;
+  actual_off?: string | null;
+  scheduled_on?: string | null;
+  estimated_on?: string | null;
+  actual_on?: string | null;
+  scheduled_in?: string | null;
+  estimated_in?: string | null;
+  actual_in?: string | null;
+  gate_orig?: string | null;
+  gate_dest?: string | null;
+  terminal_orig?: string | null;
+  terminal_dest?: string | null;
+  filed_ete?: number | null;
+  filed_airspeed?: number | null;
+  filed_altitude?: number | null;
+}
 
 export interface Airport {
   icao: string;
@@ -18,6 +71,7 @@ export interface HealthResponse {
   success: boolean;
   airports_loaded: number;
   credentials_configured: boolean;
+  flightaware_configured?: boolean;
   live_available?: boolean;
   server_time_utc: string;
 }
@@ -42,11 +96,38 @@ export interface Flight {
   true_track?: number | null;
   vertical_rate?: number | null;
   on_ground?: boolean | null;
+  squawk?: string | null;
+  category?: number | null;
+  last_contact?: number | null;
+  time_position?: number | null;
   status?: FlightStatus;
   origin_country?: string | null;
   data_source?: "opensky" | "live-nearby";
   route_source?: RouteSource;
   route_provider?: string | null;
+  registration?: string | null;
+  aircraft_type?: string | null;
+  aircraft_description?: string | null;
+  aircraft_owner?: string | null;
+  aircraft_year?: string | number | null;
+  aircraft_category?: string | number | null;
+  emergency?: string | null;
+  nav_qnh?: number | null;
+  nav_altitude_mcp?: number | null;
+  nav_heading?: number | null;
+  nav_modes?: string[] | null;
+  messages?: number | null;
+  rssi?: number | null;
+  seen_seconds?: number | null;
+  seen_position_seconds?: number | null;
+  nic?: number | null;
+  rc?: number | null;
+  nac_p?: number | null;
+  nac_v?: number | null;
+  sil?: number | null;
+  sil_type?: string | null;
+  source?: string | null;
+  flightaware?: FlightAwareDetails | null;
 }
 
 export interface FlightsResponse {
@@ -72,10 +153,6 @@ export interface FlightsResponse {
 
 export interface LiveAircraft extends Flight {
   origin_country?: string;
-  last_contact?: number;
-  time_position?: number;
-  squawk?: string;
-  category?: number;
 }
 
 export interface LiveFlightsResponse {
@@ -86,6 +163,9 @@ export interface LiveFlightsResponse {
   states: LiveAircraft[];
   degraded?: boolean;
   notice?: string;
+  provider?: "opensky" | "adsb.lol" | "airplanes.live" | string;
+  credit_cost?: number;
+  refresh_after_seconds?: number;
 }
 
 export interface FlightInfoResponse {
@@ -114,6 +194,33 @@ export interface FlightInfoResponse {
   vertical_rate?: number | null;
   on_ground?: boolean | null;
   status?: FlightStatus;
+  squawk?: string | null;
+  category?: number | null;
+  last_contact?: number | null;
+  time_position?: number | null;
+  registration?: string | null;
+  aircraft_type?: string | null;
+  aircraft_description?: string | null;
+  aircraft_owner?: string | null;
+  aircraft_year?: string | number | null;
+  aircraft_category?: string | number | null;
+  emergency?: string | null;
+  nav_qnh?: number | null;
+  nav_altitude_mcp?: number | null;
+  nav_heading?: number | null;
+  nav_modes?: string[] | null;
+  messages?: number | null;
+  rssi?: number | null;
+  seen_seconds?: number | null;
+  seen_position_seconds?: number | null;
+  nic?: number | null;
+  rc?: number | null;
+  nac_p?: number | null;
+  nac_v?: number | null;
+  sil?: number | null;
+  sil_type?: string | null;
+  source?: string | null;
+  flightaware?: FlightAwareDetails | null;
 }
 
 export type TrackPoint = [number, number, number, number | null, number | null, boolean | null];

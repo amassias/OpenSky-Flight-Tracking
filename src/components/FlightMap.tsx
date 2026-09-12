@@ -300,7 +300,15 @@ export function FlightMap({
     // The API filters the provider response to the viewport. Let it handle
     // wide bounds too, otherwise a zoom-out silently freezes the last box.
     enabled: liveAvailable && liveEnabled && bounds !== null,
-    refetchInterval: liveEnabled ? 20_000 : false,
+    // The backend returns a provider-aware cadence. OpenSky's free quota is
+    // credit based (wide boxes cost more), while the public ADS-B fallback can
+    // safely refresh faster. Keeping this decision server-side prevents a
+    // zoomed-out map from accidentally polling an expensive box every 20s.
+    refetchInterval: (query) => {
+      if (!liveEnabled) return false;
+      const seconds = query.state.data?.refresh_after_seconds;
+      return Math.max(20_000, (seconds ?? 20) * 1_000);
+    },
     retry: 1,
     retryDelay: 1_500,
   });

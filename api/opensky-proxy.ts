@@ -14,6 +14,7 @@ const ALLOWED_ENDPOINTS = new Set([
 
 let cachedToken = "";
 let tokenExpiresAt = 0;
+let authUnavailableUntil = 0;
 
 interface UpstreamResponse {
   status: number;
@@ -36,31 +37,45 @@ function openskyRequest(
   body = "",
 ): Promise<UpstreamResponse> {
   return new Promise((resolve, reject) => {
-    const request = https.request(
-      {
-        hostname: OPENSKY_IP,
-        servername: hostname,
-        path,
-        method,
-        headers: { ...headers, Host: hostname },
-        // Fail quickly so the Python handler can return a graceful fallback
-        // instead of holding the browser request for a full serverless timeout.
-        timeout: 4_000,
-      },
-      (response) => {
-        const chunks: Buffer[] = [];
-        response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        response.on("end", () => resolve({
-          status: response.statusCode ?? 502,
-          headers: response.headers,
-          body: Buffer.concat(chunks).toString("utf8"),
-        }));
-      },
-    );
-    request.on("timeout", () => request.destroy(new Error("OpenSky connection timed out.")));
-    request.on("error", reject);
-    if (body) request.write(body);
-    request.end();
+    const attempt = (connectHost: string, allowDnsRetry: boolean) => {
+      const request = https.request(
+        {
+          // OpenSky publishes a stable address and Vercel can occasionally
+          // time out while resolving its hostname. Try the pinned address
+          // first, then retry once through normal DNS so either network path
+          // can serve the proxy without exposing credentials to the client.
+          hostname: connectHost,
+          servername: hostname,
+          path,
+          method,
+          headers: { ...headers, Host: hostname },
+          // Keep each upstream attempt bounded. The Python caller allows time
+          // for the static-address attempt and this one DNS retry.
+          timeout: 4_000,
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+          response.on("end", () => resolve({
+            status: response.statusCode ?? 502,
+            headers: response.headers,
+            body: Buffer.concat(chunks).toString("utf8"),
+          }));
+        },
+      );
+      request.on("timeout", () => request.destroy(new Error("OpenSky connection timed out.")));
+      request.on("error", (error) => {
+        if (allowDnsRetry && connectHost === OPENSKY_IP) {
+          attempt(hostname, false);
+          return;
+        }
+        reject(error);
+      });
+      if (body) request.write(body);
+      request.end();
+    };
+
+    attempt(OPENSKY_IP, true);
   });
 }
 
@@ -120,25 +135,59 @@ export default async function handler(request: IncomingMessage, response: Server
   const upstreamPath = `/api${endpoint}${upstreamParams.size ? `?${upstreamParams}` : ""}`;
 
   try {
-    const token = await accessToken();
+    let token = "";
+    let anonymous = false;
+    const anonymousFallbackEnabled = process.env.OPEN_SKY_PROXY_ANONYMOUS_FALLBACK !== "0";
+    if (endpoint === "/states/all" && anonymousFallbackEnabled && Date.now() < authUnavailableUntil) {
+      anonymous = true;
+    } else {
+      try {
+        token = await accessToken();
+      } catch (error) {
+        // The public states endpoint supports anonymous access. If the stored
+        // client credentials are rejected, keep complete viewport coverage
+        // with a deliberately slower, credit-safe cadence in the Python layer
+        // instead of silently shrinking back to the map centre.
+        const authFailure = error instanceof OpenSkyProxyError && [401, 403].includes(error.statusCode);
+        if (endpoint !== "/states/all" || !anonymousFallbackEnabled || !authFailure) throw error;
+        anonymous = true;
+        authUnavailableUntil = Date.now() + 15 * 60 * 1000;
+      }
+    }
     const upstream = await openskyRequest(
       "opensky-network.org",
       upstreamPath,
       "GET",
-      {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-        "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; contact: massias.arthur@gmail.com)",
-      },
+      anonymous
+        ? {
+            Accept: "application/json",
+            "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; anonymous states fallback)",
+          }
+        : {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; contact: massias.arthur@gmail.com)",
+          },
     );
+    if (anonymous && upstream.status >= 400) {
+      console.error("OpenSky anonymous states request failed", { status: upstream.status, endpoint });
+    }
     response.statusCode = upstream.status;
     response.setHeader("Content-Type", upstream.headers["content-type"] ?? "application/json");
     response.setHeader("Cache-Control", "no-store");
+    if (anonymous) response.setHeader("X-SkyTrace-Auth", "anonymous");
     response.end(upstream.body);
   } catch (error) {
     const status = error instanceof OpenSkyProxyError && error.statusCode >= 400 && error.statusCode < 500
       ? error.statusCode
       : 502;
+    // Keep a status-only breadcrumb for Vercel runtime logs. Never include
+    // credentials, request headers, or upstream response bodies here.
+    console.error("OpenSky proxy request failed", {
+      status,
+      message: error instanceof Error ? error.message : "unknown error",
+      endpoint,
+    });
     sendJson(response, status, {
       success: false,
       error: error instanceof Error ? error.message : "OpenSky proxy request failed.",

@@ -111,7 +111,11 @@ export function App() {
   const flightInfo = useQuery({
     queryKey: ["flight-info", selectedFlight?.icao24],
     queryFn: ({ signal }) => api.flightInfo(selectedFlight!.icao24, selectedFlight!.callsign, signal),
-    enabled: selectedFlight?.data_source === "live-nearby",
+    // A selected historical card can still have a current operational record
+    // (and a useful aircraft profile), so use the same on-demand enrichment
+    // path for every selected aircraft. The server keeps the provider calls
+    // outside the map polling loop and caches them per identifier.
+    enabled: Boolean(selectedFlight),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
     retry: false,
@@ -133,6 +137,33 @@ export function App() {
       last_seen: info.last_seen ?? selectedFlight.last_seen,
       route_source: info.route_source ?? selectedFlight.route_source,
       route_provider: info.route_provider ?? selectedFlight.route_provider,
+      registration: info.registration ?? selectedFlight.registration,
+      aircraft_type: info.aircraft_type ?? selectedFlight.aircraft_type,
+      aircraft_description: info.aircraft_description ?? selectedFlight.aircraft_description,
+      aircraft_owner: info.aircraft_owner ?? selectedFlight.aircraft_owner,
+      aircraft_year: info.aircraft_year ?? selectedFlight.aircraft_year,
+      aircraft_category: info.aircraft_category ?? selectedFlight.aircraft_category,
+      emergency: info.emergency ?? selectedFlight.emergency,
+      nav_qnh: info.nav_qnh ?? selectedFlight.nav_qnh,
+      nav_altitude_mcp: info.nav_altitude_mcp ?? selectedFlight.nav_altitude_mcp,
+      nav_heading: info.nav_heading ?? selectedFlight.nav_heading,
+      nav_modes: info.nav_modes ?? selectedFlight.nav_modes,
+      messages: info.messages ?? selectedFlight.messages,
+      rssi: info.rssi ?? selectedFlight.rssi,
+      seen_seconds: info.seen_seconds ?? selectedFlight.seen_seconds,
+      seen_position_seconds: info.seen_position_seconds ?? selectedFlight.seen_position_seconds,
+      nic: info.nic ?? selectedFlight.nic,
+      rc: info.rc ?? selectedFlight.rc,
+      nac_p: info.nac_p ?? selectedFlight.nac_p,
+      nac_v: info.nac_v ?? selectedFlight.nac_v,
+      sil: info.sil ?? selectedFlight.sil,
+      sil_type: info.sil_type ?? selectedFlight.sil_type,
+      source: info.source ?? selectedFlight.source,
+      squawk: info.squawk ?? selectedFlight.squawk,
+      category: info.category ?? selectedFlight.category,
+      last_contact: info.last_contact ?? selectedFlight.last_contact,
+      time_position: info.time_position ?? selectedFlight.time_position,
+      flightaware: info.flightaware ?? selectedFlight.flightaware,
     };
   }, [flightInfo.data, selectedFlight]);
 

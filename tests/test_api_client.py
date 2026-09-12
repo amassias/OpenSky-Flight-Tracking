@@ -123,6 +123,75 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     assert request_url.startswith("https://api.adsb.lol/v2/point/")
 
 
+def test_vercel_live_states_use_authenticated_proxy_for_complete_bbox(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
+    monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
+    client = OpenSkyClient()
+    client.session.request = Mock(return_value=_json_response({
+        "time": 1_750_000_000,
+        "states": [["abc123", "WIDE1 ", "France", 1_750_000_000, 1_750_000_000, 7.0, 52.0, 9000, False, 220, 90, 0, None, 9100, "7000", False, 0, 4]],
+    }))
+    client.session.get = Mock()
+
+    result = client.get_states(bbox=(30.0, -10.0, 60.0, 20.0), extended=True)
+
+    assert result["provider"] == "opensky"
+    assert result["credit_cost"] == 4
+    assert result["refresh_after_seconds"] >= 100
+    client.session.get.assert_not_called()
+    call = client.session.request.call_args
+    assert call.args[1] == "https://deployment.example/api/opensky-proxy"
+    assert call.kwargs["headers"] == {"X-SkyTrace-Proxy-Secret": "internal-secret"}
+    assert call.kwargs["params"]["endpoint"] == "/states/all"
+    assert call.kwargs["params"]["lamin"] == 30.0
+
+
+def test_vercel_proxy_anonymous_fallback_marks_safe_cadence(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
+    monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
+    client = OpenSkyClient()
+    client._make_request = Mock(return_value={
+        "time": 1_750_000_000,
+        "states": [],
+        "_skytrace_auth_mode": "anonymous",
+    })
+
+    result = client.get_states(bbox=(30.0, -10.0, 60.0, 20.0), extended=True)
+
+    assert result["provider"] == "opensky-anonymous"
+    assert result["credit_cost"] == 4
+    assert result["refresh_after_seconds"] >= 864
+    assert "_skytrace_auth_mode" not in result
+
+
+def test_aircraft_profile_keeps_provider_metadata(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("OPEN_SKY_PROXY_SECRET", raising=False)
+    client = OpenSkyClient()
+    response = _json_response({
+        "now": 1_750_000_000_000,
+        "ac": [{
+            "hex": "abc123", "flight": "AFR123 ", "lat": 49.1, "lon": 2.7,
+            "alt_baro": 28000, "t": "A359", "r": "F-HABC",
+            "desc": "AIRBUS A-350-941", "ownOp": "Air France",
+            "year": "2020", "category": "A5", "messages": 12345,
+            "rssi": -12.5, "seen": 0.7, "seen_pos": 1.2,
+        }],
+    })
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+
+    result = client.get_aircraft_profile("abc123")
+
+    assert result["provider"] == "adsb.lol"
+    assert result["profile"]["registration"] == "F-HABC"
+    assert result["profile"]["aircraft_type"] == "A359"
+    assert result["profile"]["aircraft_owner"] == "Air France"
+    assert result["state"][18]["messages"] == 12345
+
+
 def test_live_viewport_radius_expands_and_reuses_a_recent_response(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     client = OpenSkyClient()
@@ -253,3 +322,56 @@ def test_callsign_route_caches_empty_404_response(monkeypatch):
     assert client.get_callsign_route("UNKNOWN1") is None
     assert client.get_callsign_route("UNKNOWN1") is None
     client.session.get.assert_called_once()
+
+
+def test_flightaware_details_selects_and_caches_operational_record(monkeypatch):
+    monkeypatch.setenv("FLIGHTAWARE_AEROAPI_KEY", "test-flightaware-key")
+    monkeypatch.setenv("FLIGHTAWARE_MIN_INTERVAL_SECONDS", "1")
+    response = _json_response({
+        "flights": [
+            {
+                "ident": "AFR123",
+                "atc_ident": "AFR123",
+                "status": "En Route",
+                "airline": {"icao": "AFR", "name": "Air France"},
+                "origin": {"code_icao": "LFPG", "code_iata": "CDG", "name": "Paris Charles de Gaulle", "city": "Paris"},
+                "destination": {"code_icao": "EGLL", "code_iata": "LHR", "name": "London Heathrow", "city": "London"},
+                "aircraft_type": "A359",
+                "registration": "F-HABC",
+                "progress_percent": 64,
+                "departure_delay": 300,
+                "scheduled_out": "2026-09-12T08:00:00Z",
+                "estimated_in": "2026-09-12T10:00:00Z",
+                "route": "DCT DVR",
+                "cancelled": False,
+                "diverted": False,
+            },
+        ]
+    })
+    response.raise_for_status = Mock()
+    client = OpenSkyClient()
+    client.session.get = Mock(return_value=response)
+
+    result = client.get_flightaware_details(" afr123 ", "F-HABC")
+    cached = client.get_flightaware_details("AFR123", "F-HABC")
+
+    assert result == cached
+    assert result["provider"] == "FlightAware"
+    assert result["status"] == "En Route"
+    assert result["origin"]["code_icao"] == "LFPG"
+    assert result["destination"]["code_iata"] == "LHR"
+    assert result["progress_percent"] == 64
+    assert result["departure_delay"] == 300
+    assert result["route"] == "DCT DVR"
+    assert client.session.get.call_count == 1
+    assert client.session.get.call_args.kwargs["headers"]["x-apikey"] == "test-flightaware-key"
+    assert client.session.get.call_args.args[0].endswith("/AFR123")
+
+
+def test_flightaware_missing_key_is_a_noop(monkeypatch):
+    monkeypatch.delenv("FLIGHTAWARE_AEROAPI_KEY", raising=False)
+    client = OpenSkyClient()
+    client.session.get = Mock()
+
+    assert client.get_flightaware_details("AFR123") is None
+    client.session.get.assert_not_called()

@@ -17,6 +17,7 @@ def test_health_reports_loaded_data_and_credential_state():
     assert payload["success"] is True
     assert payload["airports_loaded"] > 1000
     assert payload["credentials_configured"] is True
+    assert "flightaware_configured" in payload
 
 
 def test_airport_validation_rejects_unknown_codes():
@@ -128,6 +129,30 @@ def test_live_flights_normalizes_state_vectors():
     assert payload["states"][0]["data_source"] == "live-nearby"
 
 
+def test_live_flights_exposes_provider_and_aircraft_profile_metadata():
+    state = [
+        "39abcd", "AFR123 ", "France", 100, 101, 2.5, 49.0, 9000, False, 230, 90, 0,
+        None, 9100, "1234", False, 0, "A5",
+        {"registration": "F-HABC", "aircraft_type": "A359", "aircraft_owner": "Air France", "messages": 1234},
+    ]
+    fake_client = Mock()
+    fake_client.get_states.return_value = {
+        "time": 101,
+        "states": [state],
+        "provider": "opensky",
+        "credit_cost": 2,
+        "refresh_after_seconds": 60,
+    }
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_live_flights(48, 2, 50, 3)
+
+    assert payload["provider"] == "opensky"
+    assert payload["credit_cost"] == 2
+    assert payload["refresh_after_seconds"] == 60
+    assert payload["states"][0]["registration"] == "F-HABC"
+    assert payload["states"][0]["aircraft_type"] == "A359"
+
+
 def test_flight_info_resolves_live_route_from_callsign_when_history_is_empty():
     live_state = [
         "39abcd", "AFR123 ", "France", 100, 101, 2.7, 49.1, 8400, False, 220, 72, 0,
@@ -179,6 +204,34 @@ def test_flight_info_uses_browser_callsign_before_slow_opensky_sources():
     assert payload["route_source"] == "callsign"
     fake_client.get_states.assert_not_called()
     fake_client.get_flights_by_aircraft.assert_not_called()
+
+
+def test_flight_info_uses_flightaware_route_and_operations_when_other_routes_are_empty():
+    fake_client = Mock()
+    fake_client.get_aircraft_profile.return_value = None
+    fake_client.get_callsign_route.return_value = None
+    fake_client.get_flightaware_details.return_value = {
+        "provider": "FlightAware",
+        "ident": "AFR123",
+        "status": "En Route",
+        "origin": {"code_icao": "LFPG", "name": "Paris Charles de Gaulle"},
+        "destination": {"code_icao": "EGLL", "name": "London Heathrow"},
+        "progress_percent": 58,
+        "scheduled_out": "2026-09-12T08:00:00Z",
+        "estimated_in": "2026-09-12T10:00:00Z",
+    }
+
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_flight_info("39abcd", "AFR123")
+
+    assert payload["route_source"] == "flightaware"
+    assert payload["route_provider"] == "FlightAware"
+    assert payload["departure_airport"] == "LFPG"
+    assert "Charles de Gaulle" in payload["departure_airport_name"]
+    assert payload["arrival_airport"] == "EGLL"
+    assert "Heathrow" in payload["arrival_airport_name"]
+    assert payload["flightaware"]["progress_percent"] == 58
+    fake_client.get_flightaware_details.assert_called_once_with("AFR123", None)
 
 
 def test_vercel_live_provider_outage_returns_degraded_success(monkeypatch):

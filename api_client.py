@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime, timezone
 from math import asin, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
 from urllib.parse import quote
@@ -36,6 +37,18 @@ class OpenSkyClient:
         # and the server layer still keeps its own stale snapshot fallback.
         self._live_cache: Dict[str, Dict[str, Any]] = {}
         self._live_provider_unavailable_until = 0.0
+        # OpenSky's authenticated states endpoint is the only live source that
+        # accepts the complete viewport bounding box. Keep a separate cache and
+        # a small request gate for the Vercel proxy so a pan/zoom burst cannot
+        # spend the daily credits on near-identical boxes.
+        self._opensky_live_cache: Dict[str, Dict[str, Any]] = {}
+        self._opensky_live_next_request_at = 0.0
+        # FlightAware is an on-demand enrichment source. Keep it completely
+        # outside the map polling loop and cache both positive and empty
+        # responses so a user opening the same aircraft again cannot spend a
+        # second API call during the provider's retry window.
+        self._flightaware_cache: Dict[str, Dict[str, Any]] = {}
+        self._flightaware_next_request_at = 0.0
 
         if not self.client_id or not self.client_secret:
             print("Warning: OpenSky credentials not found in environment variables.")
@@ -138,7 +151,12 @@ class OpenSkyClient:
         # host can block hyperscaler egress), so do not spend a second timeout
         # retrying it before the caller can use its fallback.
         request_attempts = 1 if using_proxy else 2
-        proxy_timeout = float(os.getenv("OPEN_SKY_PROXY_TIMEOUT_SECONDS", "3"))
+        # A cold Vercel proxy may need one round trip for OAuth and another for
+        # the states request. Three seconds caused every first wide-viewport
+        # request to fall back to a centre-radius provider before the proxy
+        # could finish. Keep a bounded ten-second window so complete-bbox
+        # coverage wins while an actual outage still degrades gracefully.
+        proxy_timeout = float(os.getenv("OPEN_SKY_PROXY_TIMEOUT_SECONDS", "10"))
         request_timeout = min(timeout_sec, max(1.0, proxy_timeout)) if using_proxy else timeout_sec
 
         for attempt in range(request_attempts):
@@ -209,6 +227,9 @@ class OpenSkyClient:
                         status_code=502,
                         payload={"response_preview": parsed[:240]},
                     )
+                if using_proxy and isinstance(parsed, dict) and response.headers.get("X-SkyTrace-Auth"):
+                    parsed = dict(parsed)
+                    parsed["_skytrace_auth_mode"] = response.headers.get("X-SkyTrace-Auth")
                 return parsed
 
             return body_text
@@ -224,11 +245,126 @@ class OpenSkyClient:
         return 3440.065 * 2 * asin(sqrt(a))
 
     @staticmethod
+    def _states_credit_cost(bbox: Optional[tuple]) -> int:
+        """Return OpenSky's documented credit cost for a viewport."""
+        if not bbox:
+            return 4
+        lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
+        area = max(0.0, lat_max - lat_min) * max(0.0, lon_max - lon_min)
+        if area <= 25:
+            return 1
+        if area <= 100:
+            return 2
+        if area <= 400:
+            return 3
+        return 4
+
+    @classmethod
+    def _states_refresh_seconds(cls, bbox: Optional[tuple]) -> int:
+        """Choose a polling interval that leaves headroom in a free quota.
+
+        The standard OpenSky allowance is 4,000 credits per endpoint/day. A
+        target of 3,000 credits keeps room for an occasional manual refresh or
+        a selected-flight lookup while still updating small airport views
+        about every 30 seconds.
+        """
+        try:
+            daily_budget = int(float(os.getenv("SKYTRACE_OPENSKY_DAILY_BUDGET", "3000")))
+        except (TypeError, ValueError):
+            daily_budget = 3000
+        daily_budget = max(1, min(4000, daily_budget))
+        cost = cls._states_credit_cost(bbox)
+        interval = int((24 * 60 * 60 * cost + daily_budget - 1) / daily_budget)
+        return max(30, min(300, interval))
+
+    @classmethod
+    def _states_anonymous_refresh_seconds(cls, bbox: Optional[tuple]) -> int:
+        """Keep the documented 400-credit anonymous bucket below its limit."""
+        cost = cls._states_credit_cost(bbox)
+        # Five minutes is enough for a small airport box; wider boxes use a
+        # longer interval so even four-credit requests stay under 400/day.
+        return max(300, int((24 * 60 * 60 * cost + 399) / 400))
+
+    @staticmethod
+    def _state_params(icao24_list: Optional[Iterable[str]], bbox: Optional[tuple], extended: bool, time_sec: Optional[int]) -> Dict[str, Any]:
+        params: Dict[str, Any] = {}
+        if icao24_list:
+            params["icao24"] = [str(code).lower() for code in list(icao24_list)[:50] if code]
+        if bbox:
+            params.update({"lamin": bbox[0], "lomin": bbox[1], "lamax": bbox[2], "lomax": bbox[3]})
+        if extended:
+            params["extended"] = 1
+        if time_sec is not None:
+            params["time"] = int(time_sec)
+        return params
+
+    @staticmethod
+    def _state_cache_key(params: Dict[str, Any]) -> str:
+        parts = []
+        for key in sorted(params):
+            value = params[key]
+            if isinstance(value, list):
+                value = ",".join(str(item) for item in value)
+            parts.append(f"{key}={value}")
+        return "&".join(parts) or "all"
+
+    def _vercel_opensky_proxy_enabled(self) -> bool:
+        if not os.getenv("VERCEL"):
+            return False
+        if not os.getenv("OPEN_SKY_PROXY_SECRET"):
+            return False
+        return bool(os.getenv("OPEN_SKY_PROXY_BASE_URL") or os.getenv("VERCEL_URL"))
+
+    def _get_opensky_live_states(self, params: Dict[str, Any], bbox: Optional[tuple]):
+        """Fetch a complete viewport through the authenticated Vercel proxy."""
+        key = self._state_cache_key(params)
+        refresh_seconds = self._states_refresh_seconds(bbox)
+        now = time.time()
+        cached = self._opensky_live_cache.get(key)
+        if cached:
+            age = now - float(cached.get("fetched_at", 0))
+            if age <= refresh_seconds:
+                return cached["result"]
+
+        try:
+            min_interval = max(1.2, float(os.getenv("SKYTRACE_OPENSKY_MIN_INTERVAL_SECONDS", "5")))
+        except (TypeError, ValueError):
+            min_interval = 5.0
+        if now < self._opensky_live_next_request_at:
+            if cached and now - float(cached.get("fetched_at", 0)) <= max(refresh_seconds * 3, 120):
+                stale = dict(cached["result"])
+                stale["degraded"] = True
+                stale["notice"] = "OpenSky refresh throttled. Showing the last viewport snapshot."
+                return stale
+            raise OpenSkyAPIError(
+                "OpenSky live refresh is being throttled.",
+                status_code=503,
+                payload={"retry_after_seconds": max(1, int(self._opensky_live_next_request_at - now))},
+            )
+
+        result = self._make_request("GET", "/states/all", params=params)
+        if not isinstance(result, dict):
+            raise OpenSkyAPIError("OpenSky returned an invalid live state response.", status_code=502)
+        result = dict(result)
+        anonymous = result.pop("_skytrace_auth_mode", None) == "anonymous"
+        if anonymous:
+            refresh_seconds = max(refresh_seconds, self._states_anonymous_refresh_seconds(bbox))
+        result["provider"] = "opensky-anonymous" if anonymous else "opensky"
+        result["credit_cost"] = self._states_credit_cost(bbox)
+        result["refresh_after_seconds"] = refresh_seconds
+        self._opensky_live_next_request_at = now + min_interval
+        if len(self._opensky_live_cache) >= 64:
+            oldest_key = min(self._opensky_live_cache, key=lambda item: self._opensky_live_cache[item].get("fetched_at", 0))
+            self._opensky_live_cache.pop(oldest_key, None)
+        self._opensky_live_cache[key] = {"fetched_at": now, "result": result}
+        return result
+
+    @staticmethod
     def _airplanes_live_row(aircraft: Dict[str, Any], now_sec: int):
         """Convert an Airplanes.live aircraft object to an OpenSky state vector."""
         altitude_ft = aircraft.get("alt_baro")
         on_ground = altitude_ft == "ground"
-        baro_altitude = None if altitude_ft is None else (0.0 if on_ground else float(altitude_ft) * 0.3048)
+        baro_altitude = None if altitude_ft is None else (0.0 if on_ground else float(altitude_ft) * 0.3048 if isinstance(altitude_ft, (int, float)) else None)
         geo_altitude_ft = aircraft.get("alt_geom")
         geo_altitude = float(geo_altitude_ft) * 0.3048 if isinstance(geo_altitude_ft, (int, float)) else None
         speed_knots = aircraft.get("gs")
@@ -237,6 +373,32 @@ class OpenSkyClient:
         vertical_rate = float(vertical_fpm) * 0.00508 if isinstance(vertical_fpm, (int, float)) else None
         seen_pos = aircraft.get("seen_pos")
         seen = aircraft.get("seen")
+
+        details = {
+            "registration": aircraft.get("r"),
+            "aircraft_type": aircraft.get("t"),
+            "aircraft_description": aircraft.get("desc"),
+            "aircraft_owner": aircraft.get("ownOp"),
+            "aircraft_year": aircraft.get("year"),
+            "aircraft_category": aircraft.get("category"),
+            "emergency": aircraft.get("emergency"),
+            "nav_qnh": aircraft.get("nav_qnh"),
+            "nav_altitude_mcp": aircraft.get("nav_altitude_mcp"),
+            "nav_heading": aircraft.get("nav_heading"),
+            "nav_modes": aircraft.get("nav_modes"),
+            "messages": aircraft.get("messages"),
+            "rssi": aircraft.get("rssi"),
+            "seen_seconds": aircraft.get("seen"),
+            "seen_position_seconds": aircraft.get("seen_pos"),
+            "nic": aircraft.get("nic"),
+            "rc": aircraft.get("rc"),
+            "nac_p": aircraft.get("nac_p"),
+            "nac_v": aircraft.get("nac_v"),
+            "sil": aircraft.get("sil"),
+            "sil_type": aircraft.get("sil_type"),
+            "source": aircraft.get("type"),
+        }
+        details = {key: value for key, value in details.items() if value not in (None, "", [])}
 
         return [
             str(aircraft.get("hex") or "").lower(),
@@ -256,7 +418,8 @@ class OpenSkyClient:
             aircraft.get("squawk"),
             False,
             0,
-            None,
+            aircraft.get("category"),
+            details,
         ]
 
     def _get_airplanes_live_states(
@@ -380,6 +543,8 @@ class OpenSkyClient:
             "time": now_sec,
             "states": [self._airplanes_live_row(item, now_sec) for item in aircraft if item.get("hex")],
             "provider": provider,
+            "refresh_after_seconds": 20,
+            "credit_cost": 0,
         }
         self._live_provider_unavailable_until = 0.0
         if len(self._live_cache) >= 128:
@@ -445,6 +610,314 @@ class OpenSkyClient:
         self._route_cache[normalized] = (now + ttl, result)
         return result
 
+    def get_aircraft_profile(self, icao24: str) -> Optional[Dict[str, Any]]:
+        """Fetch a rich, on-demand profile for one selected aircraft.
+
+        The public ADS-B ``hex`` endpoint includes registration, type,
+        operator and signal fields that are not part of an OpenSky state
+        vector. The normal live cache makes repeated clicks inexpensive, and
+        callers treat a missing profile as an enrichment failure.
+        """
+        code = str(icao24 or "").strip().lower()
+        if len(code) != 6:
+            return None
+        try:
+            result = self._get_airplanes_live_states(icao24_list=[code])
+        except (OpenSkyAPIError, ValueError, TypeError):
+            return None
+        if not isinstance(result, dict):
+            return None
+        rows = result.get("states") or []
+        if not rows:
+            return None
+        row = rows[0]
+        if not isinstance(row, list) or not row:
+            return None
+        profile = row[18] if len(row) > 18 and isinstance(row[18], dict) else {}
+        return {
+            "state": row,
+            "profile": profile,
+            "provider": result.get("provider"),
+        }
+
+    @staticmethod
+    def _flightaware_ident(value: Any) -> str:
+        """Normalise a callsign or registration for an AeroAPI path segment."""
+        return "".join(character for character in str(value or "").upper() if character.isalnum())[:16]
+
+    @staticmethod
+    def _provider_timestamp(value: Any) -> Optional[int]:
+        """Parse an AeroAPI ISO timestamp for flight selection scoring."""
+        if value in (None, ""):
+            return None
+        if isinstance(value, (int, float)):
+            raw = float(value)
+            return int(raw / 1000) if raw > 10_000_000_000 else int(raw)
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return int(parsed.timestamp())
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    @classmethod
+    def _pick_flightaware_flight(
+        cls,
+        payload: Dict[str, Any],
+        callsign: str,
+        registration: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Choose the current record from AeroAPI's list response.
+
+        ``/flights/{ident}`` can contain a scheduled, en-route and completed
+        record at once. Prefer an exact identifier/tail match and records with
+        operational timestamps, then choose the one closest to now.
+        """
+        flights = payload.get("flights")
+        if not isinstance(flights, list):
+            return None
+        target_callsign = cls._flightaware_ident(callsign)
+        target_registration = cls._flightaware_ident(registration)
+        now = int(time.time())
+
+        def score(item: Dict[str, Any]):
+            score_value = 0
+            atc_ident = cls._flightaware_ident(item.get("atc_ident"))
+            ident = cls._flightaware_ident(item.get("ident"))
+            item_registration = cls._flightaware_ident(item.get("registration") or item.get("tailnumber"))
+            if target_callsign and atc_ident == target_callsign:
+                score_value += 150
+            if target_callsign and ident == target_callsign:
+                score_value += 120
+            if target_registration and item_registration == target_registration:
+                score_value += 90
+            if item.get("actual_out"):
+                score_value += 120
+            if item.get("actual_in"):
+                score_value += 100
+            status = str(item.get("status") or "").lower()
+            if status.startswith("arriv") or status.startswith("land"):
+                score_value += 100
+            elif status.startswith("en route") or status.startswith("airborne"):
+                score_value += 80
+            elif status.startswith("scheduled"):
+                score_value += 20
+            scheduled_out = cls._provider_timestamp(item.get("scheduled_out"))
+            distance = abs(now - scheduled_out) if scheduled_out is not None else 86_400
+            progress = item.get("progress_percent")
+            try:
+                score_value += max(0, min(10, int(float(progress) // 10)))
+            except (TypeError, ValueError):
+                pass
+            return score_value, 1 if item.get("actual_out") else 0, -distance
+
+        candidates = [item for item in flights if isinstance(item, dict)]
+        return max(candidates, key=score) if candidates else None
+
+    @staticmethod
+    def _flightaware_airport(value: Any) -> Optional[Dict[str, Any]]:
+        """Keep only the public airport fields needed by the details panel."""
+        if not isinstance(value, dict):
+            return None
+        result: Dict[str, Any] = {}
+        for key in ("code_icao", "code_iata", "code", "name", "city", "latitude", "longitude", "timezone"):
+            item = value.get(key)
+            if item in (None, ""):
+                continue
+            if key in {"latitude", "longitude"}:
+                try:
+                    result[key] = float(item)
+                except (TypeError, ValueError):
+                    continue
+            else:
+                result[key] = str(item).strip()
+        return result or None
+
+    @classmethod
+    def _normalize_flightaware_flight(cls, flight: Dict[str, Any], queried_ident: str) -> Dict[str, Any]:
+        """Return a compact, stable contract instead of forwarding raw data."""
+        airline = flight.get("airline") or flight.get("operator")
+        airline_code = None
+        airline_name = None
+        if isinstance(airline, dict):
+            airline_code = airline.get("icao") or airline.get("iata") or airline.get("code")
+            airline_name = airline.get("name") or airline.get("display_name")
+        elif airline not in (None, ""):
+            airline_name = str(airline).strip()
+
+        fields = {
+            "provider": "FlightAware",
+            "queried_ident": queried_ident,
+            "fa_flight_id": flight.get("fa_flight_id"),
+            "ident": flight.get("ident"),
+            "atc_ident": flight.get("atc_ident"),
+            "status": flight.get("status"),
+            "airline_code": airline_code,
+            "airline_name": airline_name,
+            "origin": cls._flightaware_airport(flight.get("origin")),
+            "destination": cls._flightaware_airport(flight.get("destination")),
+            "route": flight.get("route"),
+            "aircraft_type": flight.get("aircraft_type") or flight.get("type"),
+            "registration": flight.get("registration") or flight.get("tailnumber"),
+            "progress_percent": flight.get("progress_percent"),
+            "departure_delay": flight.get("departure_delay"),
+            "arrival_delay": flight.get("arrival_delay"),
+            "cancelled": flight.get("cancelled"),
+            "diverted": flight.get("diverted"),
+            "position_only": flight.get("position_only"),
+            "foresight_predictions_available": flight.get("foresight_predictions_available"),
+            "scheduled_out": flight.get("scheduled_out"),
+            "estimated_out": flight.get("estimated_out"),
+            "actual_out": flight.get("actual_out"),
+            "scheduled_off": flight.get("scheduled_off"),
+            "estimated_off": flight.get("estimated_off"),
+            "actual_off": flight.get("actual_off"),
+            "scheduled_on": flight.get("scheduled_on"),
+            "estimated_on": flight.get("estimated_on"),
+            "actual_on": flight.get("actual_on"),
+            "scheduled_in": flight.get("scheduled_in"),
+            "estimated_in": flight.get("estimated_in"),
+            "actual_in": flight.get("actual_in"),
+            "gate_orig": flight.get("gate_orig"),
+            "gate_dest": flight.get("gate_dest"),
+            "terminal_orig": flight.get("terminal_orig"),
+            "terminal_dest": flight.get("terminal_dest"),
+            "filed_ete": flight.get("filed_ete"),
+            "filed_airspeed": flight.get("filed_airspeed"),
+            "filed_altitude": flight.get("filed_altitude"),
+        }
+        # Keep numeric values numeric and omit provider-specific blanks. This
+        # also prevents an unexpected nested object from reaching the browser.
+        allowed_numbers = {
+            "progress_percent", "departure_delay", "arrival_delay", "filed_ete",
+            "filed_airspeed", "filed_altitude",
+        }
+        normalized: Dict[str, Any] = {}
+        for key, value in fields.items():
+            if value in (None, "", []):
+                continue
+            if key in allowed_numbers:
+                try:
+                    normalized[key] = int(float(value))
+                except (TypeError, ValueError):
+                    continue
+            elif key in {"cancelled", "diverted", "position_only", "foresight_predictions_available"}:
+                normalized[key] = bool(value)
+            elif key in {"origin", "destination"}:
+                if isinstance(value, dict):
+                    normalized[key] = value
+            else:
+                normalized[key] = value
+        return normalized
+
+    def get_flightaware_details(
+        self,
+        callsign: str,
+        registration: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch one operational FlightAware record after a user selects an aircraft.
+
+        The key is server-side only. A successful response is cached for 15
+        minutes (24 hours for completed/cancelled flights), while empty or
+        failed lookups are cached for the retry window. This keeps FlightAware
+        outside the live map polling path and protects a free-plan allowance.
+        """
+        if os.getenv("SKYTRACE_FLIGHTAWARE_ENABLED", "1").strip().lower() in {"0", "false", "no", "off"}:
+            return None
+        api_key = (os.getenv("FLIGHTAWARE_AEROAPI_KEY") or "").strip()
+        if not api_key:
+            return None
+
+        primary_ident = self._flightaware_ident(callsign) or self._flightaware_ident(registration)
+        if not primary_ident:
+            return None
+        registration_ident = self._flightaware_ident(registration)
+        now = time.time()
+        cached = self._flightaware_cache.get(primary_ident)
+        if cached and now < float(cached.get("expires_at", 0)):
+            result = cached.get("result")
+            return result if isinstance(result, dict) else None
+
+        try:
+            min_retry = max(30.0, float(os.getenv("FLIGHTAWARE_MIN_RETRY_SECONDS", "900")))
+        except (TypeError, ValueError):
+            min_retry = 900.0
+        if cached and now - float(cached.get("checked_at", 0)) < min_retry:
+            result = cached.get("result")
+            return result if isinstance(result, dict) else None
+
+        # A small process-wide gate protects a burst of different aircraft
+        # selections. The browser's React query cache provides the primary
+        # deduplication; this gate is the serverless-instance safety net.
+        try:
+            min_interval = max(1.0, float(os.getenv("FLIGHTAWARE_MIN_INTERVAL_SECONDS", "5")))
+        except (TypeError, ValueError):
+            min_interval = 5.0
+        if now < self._flightaware_next_request_at:
+            if cached:
+                result = cached.get("result")
+                return result if isinstance(result, dict) else None
+            return None
+
+        candidates = [primary_ident]
+        if registration_ident and registration_ident not in candidates:
+            candidates.append(registration_ident)
+        try:
+            timeout = max(2.0, min(10.0, float(os.getenv("FLIGHTAWARE_TIMEOUT_SECONDS", "5"))))
+        except (TypeError, ValueError):
+            timeout = 5.0
+
+        selected: Optional[Dict[str, Any]] = None
+        queried_ident = primary_ident
+        for ident in candidates:
+            url = f"https://aeroapi.flightaware.com/aeroapi/flights/{quote(ident, safe='')}"
+            try:
+                response = self.session.get(
+                    url,
+                    headers={
+                        "Accept": "application/json",
+                        "x-apikey": api_key,
+                        "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; FlightAware enrichment)",
+                    },
+                    timeout=timeout,
+                )
+                if response.status_code in (401, 403, 404, 429):
+                    continue
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    continue
+                selected = self._pick_flightaware_flight(payload, callsign, registration)
+                queried_ident = ident
+                if selected:
+                    break
+            except (requests.RequestException, ValueError, TypeError):
+                continue
+
+        self._flightaware_next_request_at = now + min_interval
+        result: Optional[Dict[str, Any]] = None
+        if selected:
+            result = self._normalize_flightaware_flight(selected, queried_ident)
+
+        try:
+            cache_ttl = max(60.0, float(os.getenv("FLIGHTAWARE_CACHE_TTL_SECONDS", "900")))
+            stable_ttl = max(cache_ttl, float(os.getenv("FLIGHTAWARE_STABLE_CACHE_TTL_SECONDS", "86400")))
+        except (TypeError, ValueError):
+            cache_ttl, stable_ttl = 900.0, 86_400.0
+        status = str((result or {}).get("status") or "").lower()
+        stable = bool((result or {}).get("actual_in")) or status.startswith(("arriv", "land", "cancel", "divert"))
+        expires_at = now + (stable_ttl if stable else cache_ttl)
+        if len(self._flightaware_cache) >= 256:
+            oldest_key = min(self._flightaware_cache, key=lambda key: self._flightaware_cache[key].get("checked_at", 0))
+            self._flightaware_cache.pop(oldest_key, None)
+        self._flightaware_cache[primary_ident] = {
+            "checked_at": now,
+            "expires_at": expires_at if result else now + min_retry,
+            "result": result,
+        }
+        return result
+
     @staticmethod
     def _normalize_callsign_route(flight_route: Any, callsign: str) -> Optional[Dict[str, Any]]:
         if not isinstance(flight_route, dict):
@@ -500,28 +973,24 @@ class OpenSkyClient:
         extended: bool = False,
         time_sec: Optional[int] = None,
     ):
-        # Vercel cannot route to OpenSky's single public IP. Keep live traffic
-        # fast there instead of waiting for the historical-data proxy timeout.
+        params = self._state_params(icao24_list, bbox, extended, time_sec)
+
+        # The authenticated proxy can return the complete visible bounding
+        # box in one request. This fixes the zoom-out coverage gap caused by a
+        # point-radius fallback that only covered the map centre.
+        if os.getenv("VERCEL") and time_sec is None and self._vercel_opensky_proxy_enabled():
+            try:
+                return self._get_opensky_live_states(params, bbox)
+            except OpenSkyAPIError:
+                # Public ADS-B providers remain the resilience path when the
+                # proxy or OpenSky itself is briefly unavailable.
+                return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
+
+        # Vercel cannot route directly to OpenSky's single public IP when the
+        # private proxy is not configured. Keep live traffic available through
+        # the public ADS-B fallback in that case.
         if os.getenv("VERCEL") and time_sec is None:
             return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
-
-        params: Dict[str, Any] = {}
-
-        if icao24_list:
-            # API expects repeated query params. requests handles list expansion.
-            params["icao24"] = [str(code).lower() for code in list(icao24_list)[:50] if code]
-
-        if bbox:
-            params["lamin"] = bbox[0]
-            params["lomin"] = bbox[1]
-            params["lamax"] = bbox[2]
-            params["lomax"] = bbox[3]
-
-        if extended:
-            params["extended"] = 1
-
-        if time_sec is not None:
-            params["time"] = int(time_sec)
 
         try:
             return self._make_request("GET", "/states/all", params=params)

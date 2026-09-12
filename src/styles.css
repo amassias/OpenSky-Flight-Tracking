@@ -271,6 +271,42 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .route-stop time { color: var(--muted); font-size: 8px; }
 .route-line { height: 15px; margin-left: 8px; border-left: 1px dashed rgba(103,216,255,.45); }
 .route-source { display: block; margin: 10px 0 0 27px; color: var(--violet); font: 500 8px/1.3 var(--mono); letter-spacing: .03em; }
+.operations-card { margin-top: 7px; padding: 10px; border: 1px solid rgba(103,216,255,.25); border-radius: 6px; background: linear-gradient(145deg, rgba(103,216,255,.1), rgba(14,35,54,.38)); }
+.operations-card .profile-section-heading > span svg { color: var(--cyan); }
+.operations-status-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 8px; }
+.operations-status-row strong { overflow: hidden; color: var(--text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.operations-flag { flex: 0 0 auto; padding: 4px 6px; color: var(--accent); border: 1px solid rgba(183,243,74,.3); border-radius: 4px; background: var(--accent-soft); font: 600 7px/1 var(--mono); text-transform: uppercase; }
+.operations-flag.is-warning { color: var(--amber); border-color: rgba(255,191,105,.35); background: rgba(255,191,105,.08); }
+.operations-flag.is-alert { color: var(--danger); border-color: rgba(255,120,111,.35); background: rgba(255,120,111,.08); }
+.operations-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 9px; }
+.operations-grid > div { display: grid; min-width: 0; gap: 4px; padding: 6px 0; border-top: 1px solid rgba(159,190,212,.12); }
+.operations-grid span, .operations-route > span, .operations-progress span { color: var(--quiet); font: 600 7px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.operations-grid strong { overflow: hidden; color: var(--text); font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.operations-progress { display: grid; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(159,190,212,.12); }
+.operations-progress > div:first-child { display: flex; justify-content: space-between; align-items: center; }
+.operations-progress strong { color: var(--accent); font-size: 9px; }
+.operations-progress-track { height: 4px; overflow: hidden; border-radius: 2px; background: rgba(159,190,212,.16); }
+.operations-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--accent)); transition: width .3s ease-out; }
+.operations-route { display: grid; gap: 5px; margin: 9px 0 0; padding-top: 8px; border-top: 1px solid rgba(159,190,212,.12); }
+.operations-route strong { overflow: hidden; color: var(--text); font-size: 8px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.aircraft-profile-card, .signal-profile-card { margin-top: 7px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(14,35,54,.38); }
+.profile-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 9px; color: var(--muted); font: 600 9px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.profile-section-heading > span { display: inline-flex; align-items: center; gap: 6px; }
+.profile-section-heading > span svg { color: var(--cyan); }
+.profile-section-heading > small { color: var(--quiet); font: 500 7px/1 var(--mono); letter-spacing: .04em; }
+.aircraft-profile-grid, .signal-profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 9px; }
+.aircraft-profile-grid > div, .signal-profile-grid > div { display: grid; min-width: 0; gap: 4px; padding: 6px 0; border-top: 1px solid rgba(159,190,212,.1); }
+.aircraft-profile-grid > div:nth-child(-n + 2), .signal-profile-grid > div:nth-child(-n + 2) { border-top: 0; }
+.aircraft-profile-grid span, .signal-profile-grid span { color: var(--quiet); font: 600 7px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.aircraft-profile-grid strong, .signal-profile-grid strong { overflow: hidden; color: var(--text); font-size: 10px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.aircraft-profile-wide { grid-column: 1 / -1; }
+.aircraft-profile-wide strong { white-space: normal; }
+.signal-profile-card { background: rgba(255,255,255,.025); }
+.signal-profile-card .profile-section-heading > span svg { color: var(--accent); }
+.signal-alert { display: inline-flex; align-items: center; gap: 4px; color: var(--amber) !important; }
+.signal-alert-text { color: var(--amber) !important; }
+.profile-footnote { display: flex; align-items: center; gap: 5px; margin: 9px 0 0; color: var(--quiet); font: 500 8px/1.35 var(--mono); }
+.profile-footnote svg { flex: 0 0 auto; color: var(--violet); }
 .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; }
 .metric-card { display: grid; gap: 5px; padding: 9px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,255,255,.025); }
 .metric-card > svg { color: var(--accent); }
