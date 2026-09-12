@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import L from "leaflet";
-import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
@@ -71,6 +71,37 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
   return <Marker position={position} icon={icon} eventHandlers={eventHandlers}>
     <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
   </Marker>;
+}, areMarkersEqual);
+
+const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect }: {
+  aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void;
+}) {
+  const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
+  const color = altitudeColor(aircraft.baro_altitude ?? aircraft.geo_altitude);
+  const pathOptions = useMemo(() => ({
+    color,
+    fillColor: color,
+    fillOpacity: active ? 1 : 0.78,
+    opacity: active ? 1 : 0.9,
+    weight: active ? 2 : 1,
+  }), [active, color]);
+  const aircraftRef = useRef(aircraft);
+  aircraftRef.current = aircraft;
+  const eventHandlers = useMemo(() => ({
+    click: () => {
+      const current = aircraftRef.current;
+      onSelect({
+        ...current,
+        status: current.on_ground ? "on_ground" : "airborne",
+        primary_time: 0,
+        airline_name: "Live traffic",
+      });
+    },
+  }), [onSelect]);
+  if (aircraft.latitude == null || aircraft.longitude == null) return null;
+  return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers}>
+    <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
+  </CircleMarker>;
 }, areMarkersEqual);
 
 interface BoundsReporterProps { onBounds: (bounds: Bounds) => void }
@@ -260,6 +291,10 @@ export function FlightMap({
       || (liveQuery.data && (!liveQuery.data.degraded || liveQuery.data.states.length > 0)),
   );
   const displayedLiveStates = displayedLiveData?.states ?? [];
+  // A broad viewport can contain thousands of aircraft. Keep the detailed
+  // plane icons for normal views, then switch to a lightweight canvas layer so
+  // zooming out does not turn every aircraft into a DOM subtree.
+  const denseTraffic = displayedLiveStates.length > 750;
   const liveStatus = liveQuery.isError || liveQuery.data?.degraded
     ? hasLiveSnapshot ? "Live refresh delayed · showing last snapshot" : liveQuery.data?.notice ?? "Live traffic temporarily unavailable"
     : liveQuery.isPending
@@ -313,7 +348,9 @@ export function FlightMap({
         {trackSegments.map((segment, index) => (
           <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 4, opacity: 0.9 }} />
         ))}
-        {displayedLiveStates.map((aircraft) => (
+        {displayedLiveStates.map((aircraft) => denseTraffic ? (
+          <AircraftDot key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
+        ) : (
           <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24} onSelect={onSelectFlight} />
         ))}
         {selectedFlight?.latitude != null && selectedFlight.longitude != null && !displayedLiveStates.some((item) => item.icao24 === selectedFlight.icao24) && (
