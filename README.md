@@ -16,7 +16,7 @@ Public demo: [opensky-flight-tracking.vercel.app](https://opensky-flight-trackin
 - Recent and favorite airports stored locally in the browser
 - Altitude-colored tracks with a hover readout for each profile point
 - Rich aircraft profile on selection (registration, type, operator, signal and navigation data)
-- Category-specific aircraft markers with MIT-licensed [Tabler Icons](https://github.com/tabler/tabler-icons) airplane and helicopter silhouettes
+- Category-specific aircraft markers using the MIT-licensed [Tabler plane icon](https://github.com/tabler/tabler-icons) and the [CC BY 4.0 Font Awesome helicopter icon](https://fontawesome.com/icons/classic/solid/helicopter)
 - Optional browser geolocation marker with an accuracy radius
 - Desktop, tablet, and mobile layouts with keyboard support
 - Explicit loading, empty, rate-limit, credential, and network states

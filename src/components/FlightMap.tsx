@@ -4,6 +4,7 @@ import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer,
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "lucide-react";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
+import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
 import { aircraftIconKind, altitudeColor, boundsEqual, expandBounds, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { AltitudeLegend } from "./AltitudeLegend";
 
@@ -12,20 +13,13 @@ const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 // Tabler Icons (MIT): https://github.com/tabler/tabler-icons
 // The source SVGs and license notice live in src/assets/aircraft/.
 const TABLER_PLANE_PATH = "M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2 -7h-4l-2 2h-3l2 -4l-2 -4h3l2 2h4l-2 -7h3l4 7";
-const TABLER_HELICOPTER_PATHS = [
-  "M3 10l1 2h6",
-  "M12 9a2 2 0 0 0 -2 2v3c0 1.1 .9 2 2 2h7a2 2 0 0 0 2 -2c0 -3.31 -3.13 -5 -7 -5h-2",
-  "M13 9l0 -3",
-  "M5 6l15 0",
-  "M15 9.1v3.9h5.5",
-  "M15 19l0 -3",
-  "M19 19l-8 0",
-];
+// Font Awesome Free (CC BY 4.0): https://fontawesome.com/icons/classic/solid/helicopter
+const FONT_AWESOME_HELICOPTER_PATH = "M176 32c-13.3 0-24 10.7-24 24s10.7 24 24 24l152 0 0 48-220.8 0-32.8-39.4C69.9 83.2 63.1 80 56 80L24 80C15.7 80 8 84.3 3.6 91.4s-4.8 15.9-1.1 23.4l48 96C54.6 218.9 62.9 224 72 224l107.8 0 104 143.1c15.1 20.7 39.1 32.9 64.7 32.9l75.5 0c75.1 0 136-60.9 136-136S499.1 128 424 128l-48 0 0-48 152 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L176 32zM376 192l48 0c39.8 0 72 32.2 72 72s-32.2 72-72 72l-48 0 0-144zM552 416c-13.3 0-24 10.7-24 24 0 4.4-3.6 8-8 8l-272 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l272 0c30.9 0 56-25.1 56-56 0-13.3-10.7-24-24-24z";
 
 function aircraftIconSvg(kind: AircraftIconKind): string {
   switch (kind) {
     case "helicopter":
-      return `<g class="aircraft-svg-stroke">${TABLER_HELICOPTER_PATHS.map((path) => `<path d="${path}" />`).join("")}</g>`;
+      return `<path class="aircraft-svg-fill" d="${FONT_AWESOME_HELICOPTER_PATH}"/>`;
     case "glider":
       return '<path d="M2 11.2h20v1.6H2zM11.2 12.8h1.6l1.9 8.2h-1.9l-.8-3.2-.8 3.2H9.3z"/>';
     case "balloon":
@@ -42,9 +36,10 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
 }
 
 function planeIcon(heading = 0, active = false, onGround = false, icao24?: string, kind: AircraftIconKind = "airliner") {
+  const viewBox = kind === "helicopter" ? "0 0 576 512" : "0 0 24 24";
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
-    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
+    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="${viewBox}" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -502,6 +497,8 @@ export function FlightMap({
   }, []);
   const [locateRequest, setLocateRequest] = useState(0);
   const aircraftCacheRef = useRef(new Map<string, LiveAircraft>());
+  const aircraftCacheSeenAtRef = useRef(new Map<string, number>());
+  const viewportCacheRef = useRef(new Map<string, ViewportCacheEntry>());
   const [liveRefresh, setLiveRefresh] = useState(0);
   const [liveState, setLiveState] = useState<ProgressiveLiveState>({
     data: null,
@@ -535,20 +532,42 @@ export function FlightMap({
     // fast without turning every refresh into an extra public-provider call.
     const shouldSeedViewport = usePrivateViewport && !seededViewportRef.current;
     const seedTile = shouldSeedViewport ? splitBoundsIntoTiles(bounds, 1)[0] ?? bounds : null;
-    const retained = new Map<string, LiveAircraft>();
-    const freshAircraft = new Set<string>();
-    const coveredTiles: Bounds[] = [];
-    for (const aircraft of aircraftCacheRef.current.values()) {
-      if (aircraft.latitude == null || aircraft.longitude == null) continue;
-      if (bounds.lamin <= aircraft.latitude && aircraft.latitude <= bounds.lamax && bounds.lomin <= aircraft.longitude && aircraft.longitude <= bounds.lomax) {
-        retained.set(aircraft.icao24, aircraft);
+    const viewportKey = viewportCacheKey(bounds);
+    const now = Date.now();
+    const staleBefore = now - LIVE_AIRCRAFT_CACHE_TTL_MS;
+    for (const [icao24, seenAt] of aircraftCacheSeenAtRef.current) {
+      if (seenAt < staleBefore) {
+        aircraftCacheSeenAtRef.current.delete(icao24);
+        aircraftCacheRef.current.delete(icao24);
       }
     }
-    aircraftCacheRef.current = retained;
+    // Expire both the identifier cache and the per-viewport snapshots from
+    // the same clock. A failed refresh may keep a snapshot visible, but it
+    // must not extend its freshness window indefinitely.
+    pruneExpiredViewportCache(viewportCacheRef.current, staleBefore);
+    const cachedViewport = viewportCacheRef.current.get(viewportKey);
+    const retained = new Map<string, LiveAircraft>();
+    // Restore a previously visited viewport before making a network request.
+    // It is deliberately short-lived: the response below remains authoritative
+    // and replaces stale rows as soon as the provider answers.
+    for (const aircraft of cachedViewport?.states ?? []) {
+      if (!isAircraftInBounds(aircraft, bounds)) continue;
+      retained.set(aircraft.icao24, aircraft);
+      aircraftCacheRef.current.set(aircraft.icao24, aircraft);
+      if (!aircraftCacheSeenAtRef.current.has(aircraft.icao24)) {
+        aircraftCacheSeenAtRef.current.set(aircraft.icao24, cachedViewport?.cachedAt ?? now);
+      }
+    }
+    for (const aircraft of aircraftCacheRef.current.values()) {
+      if (isAircraftInBounds(aircraft, bounds)) retained.set(aircraft.icao24, aircraft);
+    }
+    const freshAircraft = new Set<string>();
+    const coveredTiles: Bounds[] = [];
     let loadedTiles = 0;
     let failedTiles = 0;
-    let latestTime: number | null = null;
-    let provider: string | undefined;
+    let latestTime: number | null = cachedViewport?.time ?? null;
+    let provider: string | undefined = cachedViewport?.provider;
+    let cacheTimestamp: number | null = cachedViewport?.cachedAt ?? null;
     // Refresh a complete grid at a cadence proportional to its request cost.
     // A 12-sector Europe view therefore refreshes every three minutes instead
     // of repeating 12 public-provider calls every 20 seconds.
@@ -569,6 +588,24 @@ export function FlightMap({
       notice: failedTiles > 0 ? "Some live sectors are delayed. Loaded sectors remain visible." : undefined,
     });
 
+    const rememberAircraft = (states: LiveAircraft[]) => {
+      const seenAt = Date.now();
+      for (const aircraft of states) {
+        if (!aircraft.icao24) continue;
+        aircraftCacheRef.current.set(aircraft.icao24, aircraft);
+        aircraftCacheSeenAtRef.current.set(aircraft.icao24, seenAt);
+      }
+    };
+    const saveViewportCache = () => {
+      if (cacheTimestamp == null) return;
+      writeViewportCache(viewportCacheRef.current, viewportKey, {
+        states: Array.from(retained.values()),
+        cachedAt: cacheTimestamp,
+        time: latestTime,
+        provider,
+      });
+    };
+
     setLiveState({
       data: retained.size ? snapshot() : null,
       fetching: true,
@@ -582,6 +619,7 @@ export function FlightMap({
       try {
         const response = await api.liveFlights(tile, controller.signal, !usePrivateViewport);
         if (controller.signal.aborted) return;
+        rememberAircraft(response.states);
         for (const aircraft of response.states) {
           retained.set(aircraft.icao24, aircraft);
           freshAircraft.add(aircraft.icao24);
@@ -591,8 +629,9 @@ export function FlightMap({
         latestTime = Math.max(latestTime ?? 0, response.time ?? 0) || latestTime;
         provider = response.provider || provider;
         refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
+        cacheTimestamp = Date.now();
         const data = snapshot();
-        aircraftCacheRef.current = new Map(retained);
+        saveViewportCache();
         setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
         setLivePulse((value) => value + 1);
         onLiveSnapshot?.(data, airportIcaoRef.current);
@@ -616,12 +655,14 @@ export function FlightMap({
         const response = await api.liveFlights(seedTile, controller.signal, true);
         if (controller.signal.aborted) return;
         seededViewportRef.current = true;
+        rememberAircraft(response.states);
         for (const aircraft of response.states) retained.set(aircraft.icao24, aircraft);
         latestTime = response.time ?? latestTime;
         provider = response.provider || provider;
         refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
+        cacheTimestamp = Date.now();
         const data = snapshot();
-        aircraftCacheRef.current = new Map(retained);
+        saveViewportCache();
         setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
         setLivePulse((value) => value + 1);
         onLiveSnapshot?.(data, airportIcaoRef.current);
@@ -645,9 +686,13 @@ export function FlightMap({
           tile.lamin <= aircraft.latitude! && aircraft.latitude! <= tile.lamax
           && tile.lomin <= aircraft.longitude! && aircraft.longitude! <= tile.lomax
         ));
-        if (insideCoveredTile) retained.delete(icao24);
+        if (insideCoveredTile) {
+          retained.delete(icao24);
+          aircraftCacheRef.current.delete(icao24);
+          aircraftCacheSeenAtRef.current.delete(icao24);
+        }
       }
-      aircraftCacheRef.current = new Map(retained);
+      saveViewportCache();
       const data = retained.size ? snapshot() : null;
       setLiveState({
         data,

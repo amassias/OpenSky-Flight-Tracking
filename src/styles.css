@@ -127,7 +127,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .aircraft-marker { display: grid; place-items: center; width: 28px; height: 28px; color: var(--cyan); transform: rotate(calc(var(--heading) - 90deg)); filter: drop-shadow(0 1px 4px rgba(0,0,0,.88)); transition: transform .55s ease, color .18s ease, background .18s ease; }
 .aircraft-marker svg { width: 20px; height: 20px; fill: currentColor; }
 .aircraft-marker .aircraft-svg-stroke { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.aircraft-marker.kind-helicopter svg { width: 22px; height: 22px; }
+.aircraft-marker .aircraft-svg-fill { fill: currentColor; stroke: none; }
+.aircraft-marker.kind-helicopter svg { width: 24px; height: 22px; }
 .aircraft-marker.kind-glider svg { width: 23px; height: 23px; }
 .aircraft-marker.kind-balloon svg { width: 20px; height: 20px; }
 .aircraft-marker.kind-small svg { width: 17px; height: 17px; }
