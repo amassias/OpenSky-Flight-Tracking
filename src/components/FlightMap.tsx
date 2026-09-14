@@ -508,7 +508,6 @@ export function FlightMap({
     failedTiles: 0,
     error: null,
   });
-  const [livePulse, setLivePulse] = useState(0);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const airportIcaoRef = useRef<string | null>(airport?.icao ?? null);
@@ -633,7 +632,6 @@ export function FlightMap({
         const data = snapshot();
         saveViewportCache();
         setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
-        setLivePulse((value) => value + 1);
         onLiveSnapshot?.(data, airportIcaoRef.current);
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -664,7 +662,6 @@ export function FlightMap({
         const data = snapshot();
         saveViewportCache();
         setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
-        setLivePulse((value) => value + 1);
         onLiveSnapshot?.(data, airportIcaoRef.current);
       } catch {
         // The complete request below remains authoritative. A seed failure is
@@ -874,8 +871,6 @@ export function FlightMap({
         )}
       </MapContainer>
 
-      <div className="map-vignette" aria-hidden="true" />
-      <div className="map-grid-overlay" aria-hidden="true" />
       <div className="map-label">
         <strong>{airport ? `${airport.name} airspace` : "European airspace"}</strong>
         <span className="map-label-meta"><span className={`system-dot ${liveAvailable ? "online" : "warning"}`} /> {displayedLiveData ? `${displayedLiveData.count} aircraft tracked` : "Awaiting traffic feed"}</span>
@@ -892,7 +887,6 @@ export function FlightMap({
         <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
         {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}
         {liveEnabled && (liveState.error || liveState.failedTiles > 0) && <button type="button" className="live-retry" onClick={() => setLiveRefresh((value) => value + 1)}>Retry</button>}
-        {livePulse > 0 && <span key={livePulse} className="live-scan-line" aria-hidden="true" />}
       </div>
       <div className="map-controls">
         <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>
