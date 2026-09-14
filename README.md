@@ -92,6 +92,10 @@ npm run dev
 
 Open `http://localhost:5173`. Vite proxies `/api` to the Python server at `http://localhost:8000`.
 
+### Live mode with the deployed APIs
+
+If local OpenSky credentials are unavailable, set `SKYTRACE_API_ORIGIN=https://opensky-flight-tracking.vercel.app` in `.env.local`. The frontend remains on `localhost:5173` for Impeccable Live, while `/api` is proxied to the authenticated production backend. Do not put API secrets in this setting.
+
 ## Production build
 
 ```bash

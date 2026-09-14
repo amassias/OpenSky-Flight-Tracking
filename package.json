@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:live": "SKYTRACE_API_ORIGIN=https://opensky-flight-tracking.vercel.app vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
