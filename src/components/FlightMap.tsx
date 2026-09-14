@@ -9,22 +9,33 @@ import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 
-const AIRCRAFT_PLANE_PATH = "M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z";
+// Tabler Icons (MIT): https://github.com/tabler/tabler-icons
+// The source SVGs and license notice live in src/assets/aircraft/.
+const TABLER_PLANE_PATH = "M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2 -7h-4l-2 2h-3l2 -4l-2 -4h3l2 2h4l-2 -7h3l4 7";
+const TABLER_HELICOPTER_PATHS = [
+  "M3 10l1 2h6",
+  "M12 9a2 2 0 0 0 -2 2v3c0 1.1 .9 2 2 2h7a2 2 0 0 0 2 -2c0 -3.31 -3.13 -5 -7 -5h-2",
+  "M13 9l0 -3",
+  "M5 6l15 0",
+  "M15 9.1v3.9h5.5",
+  "M15 19l0 -3",
+  "M19 19l-8 0",
+];
 
 function aircraftIconSvg(kind: AircraftIconKind): string {
   switch (kind) {
     case "helicopter":
-      return '<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.65"><path d="M3 6.5h18M12 6.5v3.7m0 0-2.6 2.5H7.2a2.4 2.4 0 0 0-2.2 1.5h9.5l2.8-2.8h2.1"/><path d="M9.2 15.3h6.9l1.4 2.3H7.8z"/><path d="M11 17.6 10 21m3-3.4 1 3.4"/></g>';
+      return `<g class="aircraft-svg-stroke">${TABLER_HELICOPTER_PATHS.map((path) => `<path d="${path}" />`).join("")}</g>`;
     case "glider":
       return '<path d="M2 11.2h20v1.6H2zM11.2 12.8h1.6l1.9 8.2h-1.9l-.8-3.2-.8 3.2H9.3z"/>';
     case "balloon":
       return '<path d="M12 2a6.2 6.2 0 0 1 6.2 6.2c0 3.2-2 5.4-4.2 7.1l-.8.6h-2.4l-.8-.6c-2.2-1.7-4.2-3.9-4.2-7.1A6.2 6.2 0 0 1 12 2Zm-1.2 14h2.4v2.1h-2.4zM9.8 20h4.4v2H9.8z"/>';
     case "small":
-      return `<path transform="scale(.84) translate(2.3 2.3)" d="${AIRCRAFT_PLANE_PATH}"/>`;
+      return `<path class="aircraft-svg-stroke" transform="scale(.84) translate(2.3 2.3)" d="${TABLER_PLANE_PATH}"/>`;
     case "heavy":
-      return '<path d="M21.8 16.2v-2.4l-8.3-5.1V3.4c0-.8-.7-1.4-1.5-1.4s-1.5.6-1.5 1.4v5.3l-8.3 5.1v2.4l8.3-2.2v5.1L8 20.4V22l4-1.1 4 1.1v-1.6l-2.5-1.3V14z"/>';
+      return `<path class="aircraft-svg-stroke" transform="scale(1.08) translate(-.9 -.9)" d="${TABLER_PLANE_PATH}"/>`;
     case "airliner":
-      return `<path d="${AIRCRAFT_PLANE_PATH}"/>`;
+      return `<path class="aircraft-svg-stroke" d="${TABLER_PLANE_PATH}"/>`;
     default:
       return '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3m14 0h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"/>';
   }
@@ -32,7 +43,7 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
 
 function planeIcon(heading = 0, active = false, onGround = false, icao24?: string, kind: AircraftIconKind = "airliner") {
   return L.divIcon({
-    className: "aircraft-marker-wrap",
+    className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
     html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
@@ -114,11 +125,37 @@ function userLocationIcon() {
   });
 }
 
+function routeEndpointIcon(kind: "start" | "end") {
+  const start = kind === "start";
+  const color = start ? "#67d8ff" : "#b7f34a";
+  const path = start
+    ? '<path d="M6 21V3m0 0h12l-3 4 3 4H6" />'
+    : '<path d="M5 21V3m0 0h13l-3 4 3 4H5m0 0h13v6H5" />';
+  return L.divIcon({
+    className: "route-endpoint-icon-wrap",
+    html: `<span class="route-endpoint-marker route-endpoint-${kind}" style="--endpoint-color:${color}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+}
+
+type MarkerPosition = [number, number];
+
+interface AircraftMarkerProps {
+  aircraft: LiveAircraft;
+  active: boolean;
+  onSelect: (flight: Flight) => void;
+  positionOverride?: MarkerPosition;
+  headingOverride?: number | null;
+}
+
 function areMarkersEqual(
-  previous: { aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void },
-  next: { aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void },
+  previous: AircraftMarkerProps,
+  next: AircraftMarkerProps,
 ) {
   if (previous.active !== next.active || previous.onSelect !== next.onSelect) return false;
+  if (previous.positionOverride?.[0] !== next.positionOverride?.[0] || previous.positionOverride?.[1] !== next.positionOverride?.[1]) return false;
+  if (previous.headingOverride !== next.headingOverride) return false;
   const a = previous.aircraft;
   const b = next.aircraft;
   // Every poll returns fresh objects, so compare the fields the marker draws
@@ -137,12 +174,11 @@ function areMarkersEqual(
     && a.aircraft_description === b.aircraft_description;
 }
 
-const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect }: {
-  aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void;
-}) {
+const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect, positionOverride, headingOverride }: AircraftMarkerProps) {
   const iconKind = aircraftIconKind(aircraft);
-  const icon = useMemo(() => planeIcon(aircraft.true_track ?? 0, active, aircraft.on_ground === true, aircraft.icao24, iconKind), [aircraft.icao24, aircraft.true_track, aircraft.on_ground, active, iconKind]);
-  const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
+  const heading = headingOverride ?? aircraft.true_track ?? 0;
+  const icon = useMemo(() => planeIcon(heading, active, aircraft.on_ground === true, aircraft.icao24, iconKind), [aircraft.icao24, aircraft.on_ground, active, iconKind, heading]);
+  const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
   // Read through a ref so the handler identity never changes, which keeps
   // Leaflet from detaching and re-attaching listeners on every refresh.
   const aircraftRef = useRef(aircraft);
@@ -187,16 +223,14 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
       element?.removeEventListener("click", selectAircraft, true);
     };
   }, [selectAircraft]);
-  if (aircraft.latitude == null || aircraft.longitude == null) return null;
+  if (positionOverride == null && (aircraft.latitude == null || aircraft.longitude == null)) return null;
   return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers}>
     <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
   </Marker>;
 }, areMarkersEqual);
 
-const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect }: {
-  aircraft: LiveAircraft; active: boolean; onSelect: (flight: Flight) => void;
-}) {
-  const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
+const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, positionOverride }: AircraftMarkerProps) {
+  const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
   const color = altitudeColor(aircraft.baro_altitude ?? aircraft.geo_altitude);
   const pathOptions = useMemo(() => ({
     color,
@@ -218,7 +252,7 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect }: {
       });
     },
   }), [onSelect]);
-  if (aircraft.latitude == null || aircraft.longitude == null) return null;
+  if (positionOverride == null && (aircraft.latitude == null || aircraft.longitude == null)) return null;
   return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers}>
     <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
   </CircleMarker>;
@@ -649,30 +683,51 @@ export function FlightMap({
         ? `${displayedLiveData?.count ?? 0} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
         : `${displayedLiveData?.count ?? 0} aircraft in view`;
 
+  const selectedIcao24 = selectedFlight ? selectedFlight.icao24.toLowerCase() : null;
+  const trackPoints = useMemo(() => {
+    if (selectedIcao24 && track?.track.icao24 && track.track.icao24.toLowerCase() !== selectedIcao24) return [];
+    return (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
+  }, [selectedIcao24, track]);
   const trackPositions = useMemo(
-    () => (track?.track.path ?? [])
-      .filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]))
-      .map((point) => [point[1], point[2]] as [number, number]),
-    [track],
+    () => trackPoints.map((point) => [point[1], point[2]] as MarkerPosition),
+    [trackPoints],
   );
+  // OpenSky returns trace points in time order. Once the trace is available,
+  // use its latest point for the selected marker so the aircraft sits exactly
+  // on the route instead of remaining at a stale live-feed coordinate.
+  const trackLatest = useMemo(() => {
+    const point = trackPoints[trackPoints.length - 1];
+    if (!point) return null;
+    return {
+      position: [point[1], point[2]] as MarkerPosition,
+      altitude: point[3],
+      heading: Number.isFinite(point[4]) ? point[4] : null,
+    };
+  }, [trackPoints]);
   const trackEndpoints = useMemo(() => {
-    const points = (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
-    if (points.length < 2) return null;
-    const first = points[0];
-    const last = points[points.length - 1];
+    if (trackPoints.length < 2) return null;
+    const first = trackPoints[0];
+    const last = trackPoints[trackPoints.length - 1];
     return {
       start: [first[1], first[2]] as [number, number],
       end: [last[1], last[2]] as [number, number],
       startAltitude: first[3],
       endAltitude: last[3],
     };
-  }, [track]);
-  const trackSegments = useMemo(() => buildAltitudeSegments(track?.track.path ?? []), [track]);
+  }, [trackPoints]);
+  const trackSegments = useMemo(() => buildAltitudeSegments(trackPoints), [trackPoints]);
   const selectedIconKind = useMemo(() => selectedFlight ? aircraftIconKind(selectedFlight) : "unknown", [selectedFlight]);
   const selectedIcon = useMemo(
-    () => planeIcon(selectedFlight?.true_track ?? 0, true, selectedFlight?.on_ground === true, selectedFlight?.icao24, selectedIconKind),
-    [selectedFlight?.icao24, selectedFlight?.on_ground, selectedFlight?.true_track, selectedIconKind],
+    () => planeIcon(trackLatest?.heading ?? selectedFlight?.true_track ?? 0, true, selectedFlight?.on_ground === true, selectedFlight?.icao24, selectedIconKind),
+    [selectedFlight?.icao24, selectedFlight?.on_ground, selectedFlight?.true_track, selectedIconKind, trackLatest?.heading],
   );
+  const selectedMapPosition = trackLatest?.position ?? (
+    selectedFlight?.latitude != null && selectedFlight.longitude != null
+      ? [selectedFlight.latitude, selectedFlight.longitude] as MarkerPosition
+      : null
+  );
+  const routeStartIcon = useMemo(() => routeEndpointIcon("start"), []);
+  const routeEndIcon = useMemo(() => routeEndpointIcon("end"), []);
   const locationIcon = useMemo(() => userLocationIcon(), []);
   const handleLocationFound = useCallback((location: UserLocation) => {
     setUserLocation(location);
@@ -723,26 +778,39 @@ export function FlightMap({
           />
         ))}
         {trackEndpoints && <>
-          <CircleMarker center={trackEndpoints.start} radius={6} pathOptions={{ color: "#f2f7fb", weight: 2, fillColor: "#38bdf8", fillOpacity: 1 }}>
+          <Marker position={trackEndpoints.start} icon={routeStartIcon}>
             <Popup>
               <strong>Trace start</strong><br />
               <span className="mono">{formatAltitude(trackEndpoints.startAltitude)}</span>
             </Popup>
-          </CircleMarker>
-          <CircleMarker center={trackEndpoints.end} radius={6} pathOptions={{ color: "#f2f7fb", weight: 2, fillColor: "#b7f34a", fillOpacity: 1 }}>
+          </Marker>
+          <Marker position={trackEndpoints.end} icon={routeEndIcon}>
             <Popup>
               <strong>Latest trace point</strong><br />
               <span className="mono">{formatAltitude(trackEndpoints.endAltitude)}</span>
             </Popup>
-          </CircleMarker>
+          </Marker>
         </>}
         {displayedLiveStates.map((aircraft) => denseTraffic ? (
-          <AircraftDot key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24} onSelect={onSelectFlight} />
+          <AircraftDot
+            key={aircraft.icao24}
+            aircraft={aircraft}
+            active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
+            onSelect={onSelectFlight}
+            positionOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.position : undefined}
+          />
         ) : (
-          <AircraftMarker key={aircraft.icao24} aircraft={aircraft} active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24} onSelect={onSelectFlight} />
+          <AircraftMarker
+            key={aircraft.icao24}
+            aircraft={aircraft}
+            active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
+            onSelect={onSelectFlight}
+            positionOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.position : undefined}
+            headingOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.heading : undefined}
+          />
         ))}
-        {selectedFlight?.latitude != null && selectedFlight.longitude != null && !displayedLiveStates.some((item) => item.icao24 === selectedFlight.icao24) && (
-          <Marker position={[selectedFlight.latitude, selectedFlight.longitude]} icon={selectedIcon} />
+        {selectedMapPosition && !displayedLiveStates.some((item) => item.icao24 === selectedFlight?.icao24) && (
+          <Marker position={selectedMapPosition} icon={selectedIcon} />
         )}
         {userLocation && (
           <>

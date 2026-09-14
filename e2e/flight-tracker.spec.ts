@@ -84,6 +84,20 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByText("64% complete")).toBeVisible();
 });
 
+test("anchors the selected aircraft to the latest trace point", async ({ page }) => {
+  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  await expect(page.locator(".route-endpoint-marker")).toHaveCount(2);
+  await expect.poll(async () => {
+    const aircraftBox = await page.locator('.aircraft-marker[data-icao24="39abcd"]').boundingBox();
+    const endpointBox = await page.locator(".route-endpoint-end").boundingBox();
+    if (!aircraftBox || !endpointBox) return Number.POSITIVE_INFINITY;
+    return Math.hypot(
+      aircraftBox.x + aircraftBox.width / 2 - endpointBox.x - endpointBox.width / 2,
+      aircraftBox.y + aircraftBox.height / 2 - endpointBox.y - endpointBox.height / 2,
+    );
+  }, { timeout: 2_000 }).toBeLessThan(3);
+});
+
 test("keeps airport results populated from the live map snapshot when history is unavailable", async ({ page }) => {
   await page.unroute("**/api/**");
   await mockApi(page, { historyUnavailable: true });

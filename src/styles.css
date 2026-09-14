@@ -117,9 +117,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .altitude-legend-item i { display: block; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.2); }
 .map-altitude-legend { position: absolute; z-index: 510; left: 338px; bottom: 58px; max-width: min(600px, calc(100% - 780px)); padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: rgba(8,22,36,.9); pointer-events: none; }
 
+.route-endpoint-icon-wrap { display: grid; place-items: center; border: 0; background: transparent; }
+.route-endpoint-marker { display: grid; place-items: center; width: 25px; height: 25px; color: var(--endpoint-color); filter: drop-shadow(0 1px 4px rgba(0,0,0,.9)); }
+.route-endpoint-marker svg { width: 21px; height: 21px; }
+.route-endpoint-end { filter: drop-shadow(0 0 5px rgba(183,243,74,.62)); }
+
 .aircraft-marker-wrap { background: transparent; border: 0; }
-.aircraft-marker { display: grid; place-items: center; width: 28px; height: 28px; color: var(--cyan); transform: rotate(var(--heading)); filter: drop-shadow(0 1px 4px rgba(0,0,0,.88)); transition: transform .55s ease, color .18s ease, background .18s ease; }
+.leaflet-zoom-anim .aircraft-marker-selected { transition: none !important; }
+.aircraft-marker { display: grid; place-items: center; width: 28px; height: 28px; color: var(--cyan); transform: rotate(calc(var(--heading) - 90deg)); filter: drop-shadow(0 1px 4px rgba(0,0,0,.88)); transition: transform .55s ease, color .18s ease, background .18s ease; }
 .aircraft-marker svg { width: 20px; height: 20px; fill: currentColor; }
+.aircraft-marker .aircraft-svg-stroke { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .aircraft-marker.kind-helicopter svg { width: 22px; height: 22px; }
 .aircraft-marker.kind-glider svg { width: 23px; height: 23px; }
 .aircraft-marker.kind-balloon svg { width: 20px; height: 20px; }
