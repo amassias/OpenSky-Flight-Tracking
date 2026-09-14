@@ -10,6 +10,38 @@ export const ALTITUDE_COLOR_BANDS = [
   { maxMeters: Number.POSITIVE_INFINITY, label: "36k+ ft", color: "#fb7185" },
 ] as const;
 
+export type AircraftIconKind = "helicopter" | "glider" | "balloon" | "small" | "airliner" | "heavy" | "unknown";
+
+type AircraftIconSource = Pick<Flight, "category" | "aircraft_category" | "aircraft_type" | "aircraft_description">;
+
+/**
+ * Resolve a lightweight map silhouette from the ADS-B emitter category and
+ * the aircraft profile when it is available. ADS-B categories are numeric in
+ * OpenSky and commonly encoded as A1…A7 by public fallback feeds.
+ */
+export function aircraftIconKind(aircraft: AircraftIconSource): AircraftIconKind {
+  const category = aircraft.aircraft_category ?? aircraft.category;
+  const categoryText = String(category ?? "").trim().toUpperCase();
+  const categoryMatch = categoryText.match(/(?:^|[A-Z])([0-9]{1,2})$/);
+  const categoryNumber = categoryMatch ? Number(categoryMatch[1]) : Number(categoryText);
+
+  if (categoryNumber === 7) return "helicopter";
+  if (categoryNumber === 8) return "glider";
+  if (categoryNumber === 9) return "balloon";
+  if ([1, 2, 11, 13, 14].includes(categoryNumber)) return "small";
+  if (categoryNumber === 5) return "heavy";
+  if ([3, 4, 6].includes(categoryNumber)) return "airliner";
+
+  const profile = `${aircraft.aircraft_type ?? ""} ${aircraft.aircraft_description ?? ""}`.toLowerCase();
+  if (/helicopter|rotorcraft|gyrocopter|autogyro/.test(profile)) return "helicopter";
+  if (/glider|sailplane/.test(profile)) return "glider";
+  if (/balloon|airship|blimp|dirigible/.test(profile)) return "balloon";
+  if (/^\s*(a[2345]\d|a380|b3\d|b7\d|e1(7|8|9)|e29|e95|crj|at4|at7|dh8)/.test(profile)) return "airliner";
+  if (/airbus|boeing|embraer|bombardier|atr |dash 8/.test(profile)) return "airliner";
+  if (/cessna|piper|cirrus|diamond|beech|king air|pilatus|tbm|pc-?12|pc-?24|ultralight|uav|drone/.test(profile)) return "small";
+  return "unknown";
+}
+
 export function altitudeColor(value?: number | null): string {
   if (value == null || !Number.isFinite(value)) return ALTITUDE_UNKNOWN_COLOR;
   return ALTITUDE_COLOR_BANDS.find((band) => value <= band.maxMeters)?.color ?? ALTITUDE_UNKNOWN_COLOR;

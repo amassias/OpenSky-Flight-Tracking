@@ -215,6 +215,24 @@ def test_live_viewport_grid_covers_wide_view_and_reuses_a_recent_response(monkey
     assert client.session.get.call_count == 6
 
 
+def test_live_viewport_stops_fanning_out_when_both_providers_are_down(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    monkeypatch.setenv("SKYTRACE_LIVE_FAILURE_BREAK_COUNT", "2")
+    client = OpenSkyClient()
+    response = _json_response({}, status_code=503)
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+
+    with pytest.raises(OpenSkyAPIError) as error:
+        client.get_states(bbox=(20.0, -30.0, 60.0, 30.0))
+
+    assert error.value.status_code == 503
+    # A wide viewport may produce many safe cells, but two consecutive
+    # upstream failures are enough to move on to the alternate provider.
+    assert client.session.get.call_count == 4
+
+
 def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.delenv("VERCEL_URL", raising=False)

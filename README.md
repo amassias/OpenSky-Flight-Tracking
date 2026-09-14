@@ -2,6 +2,8 @@
 
 SkyTrace is a map-first flight intelligence interface powered by the OpenSky Network API. It combines live viewport traffic, airport arrival and departure history, aircraft tracks, and altitude profiles in a responsive React application.
 
+Public demo: [opensky-flight-tracking.vercel.app](https://opensky-flight-tracking.vercel.app/)
+
 ## Features
 
 - Live aircraft polling in the visible map area
@@ -17,6 +19,22 @@ SkyTrace is a map-first flight intelligence interface powered by the OpenSky Net
 - Optional browser geolocation marker with an accuracy radius
 - Desktop, tablet, and mobile layouts with keyboard support
 - Explicit loading, empty, rate-limit, credential, and network states
+
+## Screenshots
+
+These representative captures were generated locally with deterministic API fixtures. They contain no credentials or private account data.
+
+### Desktop overview
+
+![SkyTrace desktop overview](docs/screenshots/skytrace-desktop-overview.png)
+
+### Desktop selected flight
+
+![SkyTrace selected flight details](docs/screenshots/skytrace-desktop-selected-flight.png)
+
+### Mobile search sheet
+
+![SkyTrace mobile search sheet](docs/screenshots/skytrace-mobile-search.png)
 
 ## Architecture
 
@@ -114,6 +132,12 @@ Origin and destination for historical records come from OpenSky. For a live airc
 FlightAware data is fetched server-side with `FLIGHTAWARE_AEROAPI_KEY`; the key is never sent to the browser. A selected aircraft triggers at most one operational lookup per cache window, with failed lookups held for the retry window. The details drawer shows status, scheduled/estimated/actual times, delays, progress, gates, terminals, and filed route when the provider publishes them.
 
 Live viewport requests use a short in-process cache, a small client request spacing, and a provider-aware refresh cadence. OpenSky state queries cost 1–4 credits based on bounding-box area; the default `SKYTRACE_OPENSKY_DAILY_BUDGET=3000` targets 3,000 of the standard 4,000 daily credits and yields roughly 30/60/90/120-second polling for increasingly wide boxes. If the configured credentials are rejected, the private proxy can serve current boxes anonymously at a slower cadence sized for the 400-credit anonymous bucket; set `OPEN_SKY_PROXY_ANONYMOUS_FALLBACK=0` to disable that path. The public ADS-B fallback respects the 250 NM point-endpoint limit by merging a bounded grid for wider viewports (`SKYTRACE_LIVE_MAX_TILES`, default 36), pacing cells 1.3 seconds apart by default, and lengthening its polling interval as the grid grows.
+
+## Provider choices
+
+The production stack keeps OpenSky for recorded airport history and complete live bounding boxes when the private proxy is available, then uses ADSB.lol and Airplanes.live for resilient live coverage. A third public feed is not queried on every refresh: adding one would increase latency and could violate its fair-use rules. [ADSB.fi](https://github.com/adsbfi/opendata) is a useful optional source for a future controlled fallback, but its public endpoints are limited to one request per second and personal, non-commercial use.
+
+For a materially faster and quota-free local setup, the most reliable option is a nearby ADS-B receiver running `readsb`/`tar1090`; the server can consume that local feed and use OpenSky only for history and enrichment. Check each provider's current terms before enabling commercial or high-frequency use: [OpenSky REST API](https://github.com/openskynetwork/opensky-api/blob/master/docs/free/rest.rst), [OpenSky terms](https://opensky-network.org/about/terms-of-use), [ADSB.lol open data](https://www.adsb.lol/docs/open-data/api/), and [ADSB.fi limits](https://github.com/adsbfi/opendata#limits).
 
 ## License
 

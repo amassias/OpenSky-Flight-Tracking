@@ -42,7 +42,7 @@ export function AirportSearch({
 
   const search = useQuery({
     queryKey: ["airport-search", debouncedQuery],
-    queryFn: () => api.searchAirports(debouncedQuery),
+    queryFn: ({ signal }) => api.searchAirports(debouncedQuery, signal),
     enabled: open && debouncedQuery.length >= 2,
   });
 

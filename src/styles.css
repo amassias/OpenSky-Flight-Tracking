@@ -118,8 +118,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .map-altitude-legend { position: absolute; z-index: 510; left: 338px; bottom: 58px; max-width: min(600px, calc(100% - 780px)); padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: rgba(8,22,36,.9); pointer-events: none; }
 
 .aircraft-marker-wrap { background: transparent; border: 0; }
-.aircraft-marker { display: grid; place-items: center; width: 28px; height: 28px; color: var(--cyan); transform: rotate(var(--heading)); filter: drop-shadow(0 1px 4px rgba(0,0,0,.88)); transition: transform .55s ease; }
-.aircraft-marker svg { width: 20px; fill: currentColor; }
+.aircraft-marker { display: grid; place-items: center; width: 28px; height: 28px; color: var(--cyan); transform: rotate(var(--heading)); filter: drop-shadow(0 1px 4px rgba(0,0,0,.88)); transition: transform .55s ease, color .18s ease, background .18s ease; }
+.aircraft-marker svg { width: 20px; height: 20px; fill: currentColor; }
+.aircraft-marker.kind-helicopter svg { width: 22px; height: 22px; }
+.aircraft-marker.kind-glider svg { width: 23px; height: 23px; }
+.aircraft-marker.kind-balloon svg { width: 20px; height: 20px; }
+.aircraft-marker.kind-small svg { width: 17px; height: 17px; }
+.aircraft-marker.kind-heavy svg { width: 23px; height: 23px; }
+.aircraft-marker.kind-unknown { color: var(--quiet); }
 .aircraft-marker.active { color: #07121f; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(183,243,74,.15), 0 0 20px rgba(183,243,74,.55); }
 .aircraft-marker.ground { color: var(--amber); }
 
@@ -259,7 +265,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .data-notice-inline { margin: 0 18px 10px; padding: 8px 9px; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; background: var(--accent-soft); font-size: 9px; line-height: 1.45; }
 .flight-card { content-visibility: auto; contain-intrinsic-size: auto 72px; }
 
-.details-drawer { position: absolute; z-index: 650; left: 338px; bottom: 16px; width: min(500px, calc(100vw - 760px)); min-width: 0; max-height: calc(100% - 32px); padding: 17px; overflow-y: auto; border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(9,24,39,.98); box-shadow: var(--shadow); animation: drawer-in .2s ease-out; }
+.details-drawer { position: absolute; z-index: 650; left: 338px; bottom: 16px; width: min(500px, calc(100vw - 760px)); min-width: 0; max-height: min(calc(100% - 32px), 62vh); padding: 17px; overflow-y: auto; border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(9,24,39,.98); box-shadow: var(--shadow); animation: drawer-in .2s ease-out; }
 @keyframes drawer-in { from { opacity: 0; transform: translateY(14px); } }
 .drawer-handle { display: none; }
 .details-heading { display: flex; justify-content: space-between; gap: 18px; }

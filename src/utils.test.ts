@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, altitudeColor, boundsEqual, expandBounds, extent, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, expandBounds, extent, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -13,6 +13,20 @@ describe("altitude colour scale", () => {
   it("keeps unknown altitude visually distinct", () => {
     expect(altitudeColor(null)).toBe(ALTITUDE_UNKNOWN_COLOR);
     expect(altitudeColor(Number.NaN)).toBe(ALTITUDE_UNKNOWN_COLOR);
+  });
+});
+
+describe("aircraft map silhouettes", () => {
+  it("uses ADS-B emitter categories when available", () => {
+    expect(aircraftIconKind({ category: 7 })).toBe("helicopter");
+    expect(aircraftIconKind({ aircraft_category: "A5" })).toBe("heavy");
+    expect(aircraftIconKind({ category: 8 })).toBe("glider");
+  });
+
+  it("falls back to a known type code or description", () => {
+    expect(aircraftIconKind({ aircraft_type: "B738" })).toBe("airliner");
+    expect(aircraftIconKind({ aircraft_description: "Cessna 172 Skyhawk" })).toBe("small");
+    expect(aircraftIconKind({ aircraft_description: "Airbus H125 helicopter" })).toBe("helicopter");
   });
 });
 

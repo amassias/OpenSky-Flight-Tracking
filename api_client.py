@@ -534,13 +534,17 @@ class OpenSkyClient:
         def fetch_endpoint(provider: str, endpoint: str):
             response_status = None
             try:
+                try:
+                    request_timeout = max(2.0, min(12.0, float(os.getenv("SKYTRACE_LIVE_REQUEST_TIMEOUT_SECONDS", "5"))))
+                except (TypeError, ValueError):
+                    request_timeout = 5.0
                 response = self.session.get(
                     f"https://api.{provider}/v2/{endpoint}",
                     headers={
                         "Accept-Encoding": "gzip",
                         "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; contact: massias.arthur@gmail.com)",
                     },
-                    timeout=8,
+                    timeout=request_timeout,
                 )
                 response_status = getattr(response, "status_code", None)
                 if isinstance(response_status, int) and response_status >= 400:
@@ -576,15 +580,33 @@ class OpenSkyClient:
         rate_limit_payload: Dict[str, Any] = {}
         payloads = []
         provider = None
+        try:
+            failure_break_count = max(1, min(4, int(float(os.getenv("SKYTRACE_LIVE_FAILURE_BREAK_COUNT", "2")))))
+        except (TypeError, ValueError):
+            failure_break_count = 2
         for candidate in ("adsb.lol", "airplanes.live"):
             tile_results = []
+            consecutive_failures = 0
             for endpoint in endpoints:
                 tile_result = request_tile(candidate, endpoint)
                 tile_results.append(tile_result)
+                if tile_result[0] is None and (
+                    tile_result[1] is None
+                    or tile_result[1] >= 500
+                    or tile_result[1] in (401, 403)
+                ):
+                    consecutive_failures += 1
+                else:
+                    consecutive_failures = 0
                 # ADSB.lol uses 420 ("Enhance Your Calm") as another form of
                 # rate limiting. Stop the grid immediately and let the stale
                 # snapshot/circuit-breaker path handle the remaining cells.
                 if tile_result[1] in (420, 429):
+                    break
+                # A provider outage on a wide viewport should not multiply a
+                # five-second timeout by every grid cell. Try the alternate
+                # public provider after a couple of consecutive failures.
+                if consecutive_failures >= failure_break_count:
                     break
             candidate_payloads = [item[0] for item in tile_results if item[0] is not None]
             if candidate_payloads:
@@ -666,13 +688,27 @@ class OpenSkyClient:
         self._live_cache[cache_key] = {"fetched_at": now, "result": result}
         return result
 
+    @staticmethod
+    def _history_request_timeout() -> float:
+        """Bound airport-history waits so the live snapshot can take over."""
+        try:
+            return max(2.0, min(15.0, float(os.getenv("SKYTRACE_HISTORY_TIMEOUT_SECONDS", "6"))))
+        except (TypeError, ValueError):
+            return 6.0
+
     def get_departures(self, airport_icao: str, begin_timestamp: int, end_timestamp: int):
         params = {
             "airport": airport_icao,
             "begin": int(begin_timestamp),
             "end": int(end_timestamp),
         }
-        return self._make_request("GET", "/flights/departure", params=params, not_found_value=[])
+        return self._make_request(
+            "GET",
+            "/flights/departure",
+            params=params,
+            not_found_value=[],
+            timeout_sec=self._history_request_timeout(),
+        )
 
     def get_callsign_route(self, callsign: str) -> Optional[Dict[str, Any]]:
         """Resolve a live callsign to its current scheduled origin/destination.
@@ -1076,7 +1112,13 @@ class OpenSkyClient:
             "begin": int(begin_timestamp),
             "end": int(end_timestamp),
         }
-        return self._make_request("GET", "/flights/arrival", params=params, not_found_value=[])
+        return self._make_request(
+            "GET",
+            "/flights/arrival",
+            params=params,
+            not_found_value=[],
+            timeout_sec=self._history_request_timeout(),
+        )
 
     def get_states(
         self,

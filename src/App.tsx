@@ -57,16 +57,26 @@ export function App() {
     setLiveFallbackSnapshot({ data, airportIcao });
   }, []);
 
-  const health = useQuery({ queryKey: ["health"], queryFn: api.health, retry: false });
-  const liveAvailable = health.data?.live_available ?? health.data?.credentials_configured ?? false;
-  const popular = useQuery({ queryKey: ["popular-airports"], queryFn: api.popularAirports });
+  const health = useQuery({ queryKey: ["health"], queryFn: ({ signal }) => api.health(signal), retry: false });
   const initialCode = initialParams.get("airport");
   const initialAirport = useQuery({
     queryKey: ["initial-airport", initialCode],
-    queryFn: () => api.searchAirports(initialCode!),
+    queryFn: ({ signal }) => api.searchAirports(initialCode!, signal),
     enabled: Boolean(initialCode),
     staleTime: Infinity,
   });
+  // An URL deep-link already has a precise airport request in flight. Defer
+  // the optional popular-airports payload until that first screen is resolved
+  // so a cold Vercel function is not asked to load the same CSV twice at once.
+  const popular = useQuery({
+    queryKey: ["popular-airports"],
+    queryFn: ({ signal }) => api.popularAirports(signal),
+    enabled: !initialCode || !initialAirport.isPending,
+  });
+  // Start the map feed while the health probe is still in flight. Production
+  // can serve a live fallback even when the probe itself is cold; if the
+  // probe later confirms that live data is disabled, the map effect aborts.
+  const liveAvailable = health.data?.live_available ?? health.data?.credentials_configured ?? health.isPending;
 
   useEffect(() => {
     if (restoredAirport.current) return;
@@ -91,7 +101,7 @@ export function App() {
 
   const flights = useQuery({
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
-    queryFn: () => api.flights(request!.airport.icao, request!.date, request!.mode),
+    queryFn: ({ signal }) => api.flights(request!.airport.icao, request!.date, request!.mode, signal),
     enabled: Boolean(request),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
@@ -166,7 +176,7 @@ export function App() {
 
   const track = useQuery({
     queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0],
-    queryFn: () => api.track(detailsFlight!.icao24, detailsFlight!.primary_time ?? detailsFlight!.first_seen ?? 0),
+    queryFn: ({ signal }) => api.track(detailsFlight!.icao24, detailsFlight!.primary_time ?? detailsFlight!.first_seen ?? 0, signal),
     enabled: Boolean(detailsFlight),
     retry: false,
   });
@@ -326,6 +336,7 @@ export function App() {
           theme={theme}
           liveEnabled={liveEnabled && liveAvailable}
           liveAvailable={liveAvailable}
+          liveProbePending={health.isPending}
           expanded={mapExpanded}
           onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}

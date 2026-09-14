@@ -78,11 +78,11 @@ async function reserveLiveRequestSlot(signal?: AbortSignal): Promise<void> {
 }
 
 export const api = {
-  health: () => request<HealthResponse>("/api/health"),
-  popularAirports: () => request<Airport[]>("/api/airports"),
-  searchAirports: (query: string) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }),
-  flights: (airport: string, date: string, mode: FlightMode) =>
-    request<FlightsResponse>("/api/flights", { airport, date, mode }),
+  health: (signal?: AbortSignal) => request<HealthResponse>("/api/health", undefined, signal),
+  popularAirports: (signal?: AbortSignal) => request<Airport[]>("/api/airports", undefined, signal),
+  searchAirports: (query: string, signal?: AbortSignal) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal),
+  flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
+    request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
   liveFlights: async (bounds: Bounds, signal?: AbortSignal, fallbackOnly = false) => {
     // Zoom and pan can emit several different boxes in quick succession. A
     // small client-side spacing keeps those changes responsive while avoiding
@@ -92,7 +92,7 @@ export const api = {
     return request<LiveFlightsResponse>("/api/live-flights", { ...bounds, fallback: fallbackOnly ? 1 : undefined }, signal);
   },
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
-  track: (icao24: string, time = 0) => request<TrackResponse>("/api/track", { icao24, time }),
+  track: (icao24: string, time = 0, signal?: AbortSignal) => request<TrackResponse>("/api/track", { icao24, time }, signal),
 };
 
 export function readableApiError(error: unknown): string {
