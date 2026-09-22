@@ -405,10 +405,14 @@ function MapController({ airport, flight, track, locateRequest, onLocationFound,
     const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (track?.track.path?.length) {
       const bounds = L.latLngBounds(track.track.path.map((point) => [point[1], point[2]]));
-      map.fitBounds(bounds.pad(0.24), {
+      // A route can expand from a local airport view to a continent-wide
+      // journey. Leaflet's flyToBounds preserves that spatial story with an
+      // eased zoom-out arc instead of the abrupt linear fit animation.
+      map.stop();
+      map.flyToBounds(bounds.pad(0.24), {
         animate,
-        duration: 0.55,
-        easeLinearity: 0.2,
+        duration: 1.05,
+        easeLinearity: 0.16,
         maxZoom: 9,
         ...getRouteFitPadding(map),
       });
@@ -873,7 +877,7 @@ export function FlightMap({
 
       <div className="map-label">
         <strong>{airport ? `${airport.name} airspace` : "European airspace"}</strong>
-        <span className="map-label-meta"><span className={`system-dot ${liveAvailable ? "online" : "warning"}`} /> {displayedLiveData ? `${displayedLiveData.count} aircraft tracked` : "Awaiting traffic feed"}</span>
+        <span className="map-label-meta"><span className={`system-dot ${liveAvailable ? "online" : "warning"}`} /> {displayedLiveData ? `${displayedLiveData.count} aircraft` : "Awaiting traffic feed"}</span>
       </div>
       <div className="map-footer" aria-label="Map data sources">
         <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
