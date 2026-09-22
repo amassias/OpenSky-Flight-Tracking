@@ -221,26 +221,34 @@ export function App() {
   );
   const livePreviewDuringLoad = Boolean(flights.isFetching && matchingLiveSnapshot);
   const clientLiveFallback = Boolean(flights.data?.source === "unavailable" && matchingLiveSnapshot);
-  const displayedFlights = clientLiveFallback || livePreviewDuringLoad
+  // Before any airport search the board mirrors the aircraft already drawn on
+  // the map, so the panel never claims to be empty while the sky is not.
+  const liveBoard = !request && Boolean(liveFallbackSnapshot?.data.states.length);
+  const useLiveSnapshot = clientLiveFallback || livePreviewDuringLoad || liveBoard;
+  const displayedFlights = useMemo(() => useLiveSnapshot
     ? (liveFallbackSnapshot?.data.states ?? []).map((flight) => ({ ...flight, data_source: "live-nearby" as const }))
-    : flights.data?.flights ?? [];
-  const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback;
-  const summary = clientLiveFallback || livePreviewDuringLoad
+    : flights.data?.flights ?? [], [flights.data, liveFallbackSnapshot, useLiveSnapshot]);
+  const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback || liveBoard;
+  const summary = useLiveSnapshot
     ? liveSnapshotSummary(displayedFlights)
     : flights.data?.summary;
-  const displayNotice = livePreviewDuringLoad
+  const displayNotice = liveBoard
+    ? undefined
+    : livePreviewDuringLoad
     ? `Loading recorded ${request?.mode}s · showing current live traffic around ${request?.airport.icao} meanwhile.`
     : clientLiveFallback
     ? `OpenSky history is unavailable for ${request?.date}. Showing the live map snapshot around ${request?.airport.icao}; these are not recorded ${request?.mode}s.`
     : flights.data?.notice;
-  const requestTitle = request
+  const requestTitle = liveBoard
+    ? "Live in view"
+    : request
     ? showingLiveFallback
       ? `Live traffic around ${request.airport.iata || request.airport.icao}`
       : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${request.airport.iata || request.airport.icao}`
     : "Flight movements";
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
   const activeAirport = request?.airport ?? selectedAirport;
-  const sourceLabel = showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
+  const sourceLabel = liveBoard ? "Live" : showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
 
   async function handleCommandSubmit() {
     const query = commandQuery.trim();
@@ -417,7 +425,11 @@ export function App() {
           <header className="results-heading">
             <div className="results-heading-copy">
               <h2>{requestTitle}</h2>
-              <p>{request ? `${request.date} · UTC · ${request.airport.display_name}` : "Traffic board · select an airport to begin"}</p>
+              <p>{request
+                ? `${request.date} · UTC · ${request.airport.display_name}`
+                : liveBoard
+                ? "Aircraft in the visible map · search an airport for recorded movements"
+                : "Traffic board · select an airport to begin"}</p>
             </div>
             <div className="results-heading-actions">
               <span className={`source-pill ${showingLiveFallback ? "live" : request ? "history" : "ready"}`} role="status">
@@ -438,7 +450,9 @@ export function App() {
           <div className="stats-row">
             <div><strong className="mono">{summary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Total flights"}</span></div>
             <div><strong className="mono accent">{summary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
-            <div><strong className="mono">{summary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>
+            {liveBoard
+              ? <div><strong className="mono">{summary?.live_on_ground ?? 0}</strong><span>On ground</span></div>
+              : <div><strong className="mono">{summary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>}
           </div>
           <FlightList
             flights={displayedFlights}
@@ -446,7 +460,7 @@ export function App() {
             loading={flights.isFetching}
             errorMessage={flights.error ? readableApiError(flights.error) : undefined}
             notice={displayNotice}
-            hasSearched={Boolean(request)}
+            hasSearched={Boolean(request) || liveBoard}
             onSelect={(flight) => { setPreviewFlight(null); setSelectedFlight(flight); }}
             onPreview={setPreviewFlight}
             onRetry={() => flights.refetch()}

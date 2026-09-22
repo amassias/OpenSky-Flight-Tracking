@@ -102,7 +102,7 @@ export function flightId(flight: Flight): string {
 }
 
 export function routeLabel(flight: Flight): string {
-  if (flight.data_source === "live-nearby") return "Live near airport";
+  if (flight.data_source === "live-nearby") return "Live position";
   return `${flight.departure_airport || "---"} → ${flight.arrival_airport || "---"}`;
 }
 

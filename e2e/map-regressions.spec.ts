@@ -66,7 +66,7 @@ test('uses the canvas layer for a dense live viewport', async ({page, isMobile})
   await page.locator('.leaflet-map').hover();
   await page.mouse.wheel(0, 280);
   await expect(page.locator('.leaflet-overlay-pane canvas')).toHaveCount(1);
-  await expect(page.locator('.map-label-meta')).toContainText('900 aircraft tracked');
+  await expect(page.locator('.map-label-meta')).toContainText('900 aircraft');
   await expect(page.locator('.aircraft-marker')).toHaveCount(0);
 });
 

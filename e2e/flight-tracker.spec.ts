@@ -28,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 
 test("searches an airport and opens a shareable flight detail", async ({ page, isMobile }) => {
   if (isMobile) {
-    await page.getByRole("button", { name: "Open flight search" }).click();
+    await page.getByRole("button", { name: "Search airports and flights" }).click();
   } else {
     await expect(page.getByText("Find a flight.")).toBeVisible();
   }
@@ -47,7 +47,7 @@ test("searches an airport and opens a shareable flight detail", async ({ page, i
 
 test("supports the mobile search sheet", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile-only interaction");
-  await page.getByRole("button", { name: "Open flight search" }).click();
+  await page.getByRole("button", { name: "Search airports and flights" }).click();
   await expect(page.getByRole("complementary", { name: "Flight search controls" })).toBeVisible();
   await page.getByRole("complementary", { name: "Flight search controls" }).getByRole("button", { name: "Close search" }).click();
 });
@@ -62,7 +62,7 @@ test("closing a shared flight keeps it closed", async ({ page }) => {
 });
 
 test("airport suggestions dismiss when leaving the field", async ({page, isMobile}) => {
-  if (isMobile) await page.getByRole('button', {name: 'Open flight search'}).click();
+  if (isMobile) await page.getByRole('button', {name: 'Search airports and flights'}).click();
   await page.getByRole('combobox', {name: 'Airport'}).click();
   await expect(page.getByRole('listbox')).toBeVisible();
   await page.getByRole('complementary', {name: 'Flight search controls'}).click({position: {x: 10, y: 10}});
@@ -103,7 +103,7 @@ test("keeps airport results populated from the live map snapshot when history is
   await mockApi(page, { historyUnavailable: true });
   await page.goto("/?airport=LFPG&date=2026-07-10&mode=departure");
   await expect(page.getByRole("heading", { name: "Live traffic around CDG" })).toBeVisible();
-  await expect(page.getByText("Live near airport").first()).toBeVisible();
+  await expect(page.getByText("Live position").first()).toBeVisible();
 });
 
 test("shows a location marker after the user grants geolocation", async ({ page, context }) => {

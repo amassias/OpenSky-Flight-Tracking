@@ -27,6 +27,7 @@ interface FlightCardProps {
 
 const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview }: FlightCardProps) {
   const status = statusLabel(flight.status, flight.on_ground);
+  const time = flight.primary_time ?? flight.first_seen ?? flight.last_seen;
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
     <button
@@ -51,8 +52,10 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
         <span className="route mono">{routeLabel(flight)}</span>
         <span className="flight-meta">
           <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>
-          <span>·</span>
-          <span>{formatTime(flight.primary_time ?? flight.first_seen ?? flight.last_seen)} UTC</span>
+          {time != null && <>
+            <span>·</span>
+            <span>{formatTime(time)} UTC</span>
+          </>}
           <span className="flight-meta-divider" aria-hidden="true" />
           <span>{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</span>
           <span>·</span>
@@ -101,6 +104,12 @@ export function FlightList({
     });
   }, [flights, query, sort, status]);
 
+  const filtersActive = query.trim() !== "" || status !== "all";
+  function clearFilters() {
+    setQuery("");
+    setStatus("all");
+  }
+
   return (
     <section className="flight-list-section" aria-label="Flight results">
       <div className="list-toolbar">
@@ -131,6 +140,12 @@ export function FlightList({
       </div>
 
       {notice && <div className="data-notice-inline" role="status">{notice}</div>}
+      {filtersActive && flights.length > 0 && (
+        <div className="list-filter-count" role="status">
+          <span className="mono">{visibleFlights.length} of {flights.length} shown</span>
+          <button type="button" onClick={clearFilters}>Clear</button>
+        </div>
+      )}
 
       <div className="flight-list" aria-live="polite" aria-busy={loading}>
         {loading && flights.length === 0 && <div className="movement-loading" role="status">
@@ -155,7 +170,11 @@ export function FlightList({
           </div>
         )}
         {!loading && !errorMessage && flights.length > 0 && visibleFlights.length === 0 && (
-          <div className="message-state compact"><h3>No matching flights</h3><p>Clear or adjust the active filters.</p></div>
+          <div className="message-state compact">
+            <h3>No matching flights</h3>
+            <p>Nothing in this list matches the current filter.</p>
+            <button type="button" className="secondary-button" onClick={clearFilters}>Clear filters</button>
+          </div>
         )}
         {!loading && !errorMessage && !hasSearched && (
           <div className="message-state">

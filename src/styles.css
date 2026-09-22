@@ -58,7 +58,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .command-search:focus-within { border-color: rgba(103,216,255,.7); box-shadow: 0 0 0 3px rgba(103,216,255,.1); }
 .command-search input { width: 100%; min-width: 0; padding: 0; color: var(--text); border: 0; outline: 0; background: transparent; font: 500 10px/1 var(--body); }
 .command-search input::placeholder { color: var(--quiet); }
-.command-shortcut { flex: 0 0 auto; color: var(--quiet); font-size: 8px; }
+.command-shortcut { flex: 0 0 auto; padding: 2px 5px; color: var(--quiet); border: 1px solid var(--line); border-radius: 3px; font-size: 9px; line-height: 1.2; }
+.list-filter-count { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 18px 8px; color: var(--muted); font-size: 11px; }
+.list-filter-count button { padding: 3px 6px; color: var(--accent); border: 0; border-radius: 3px; background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
+.list-filter-count button:hover { background: var(--accent-soft); }
+.list-filter-count button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .topbar-status { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 7px; background: rgba(14,35,54,.62); font: 500 9px/1 var(--mono); letter-spacing: .03em; white-space: nowrap; }
 .topbar-channel { color: var(--cyan); font-weight: 600; letter-spacing: .1em; }
 .system-dot, .status-dot { display: inline-block; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--quiet); }
@@ -211,12 +215,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .stats-row strong.accent { color: var(--accent); }
 .stats-row span { color: var(--quiet); font: 600 7px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .flight-list-section { display: flex; flex: 1; flex-direction: column; min-height: 0; }
-.list-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; padding: 0 18px 11px; }
+.list-toolbar { display: grid; grid-template-columns: minmax(118px, 1fr) auto auto; gap: 5px; padding: 0 18px 11px; }
 .compact-search, .select-control { display: flex; align-items: center; min-width: 0; gap: 6px; height: 32px; padding: 0 8px; color: var(--quiet); border: 1px solid var(--line); border-radius: 5px; background: rgba(4,13,23,.48); }
 .compact-search:focus-within, .select-control:focus-within { color: var(--accent); border-color: rgba(183,243,74,.48); }
-.compact-search input { min-width: 0; width: 100%; color: var(--text); border: 0; outline: 0; background: transparent; font-size: 9px; }
+.compact-search input { min-width: 0; width: 100%; color: var(--text); border: 0; outline: 0; background: transparent; font-size: 11px; }
 .compact-search input::placeholder { color: var(--quiet); }
-.select-control select { max-width: 78px; color: var(--muted); border: 0; outline: 0; background: transparent; font-size: 8px; cursor: pointer; }
+.select-control select { max-width: 84px; color: var(--muted); border: 0; outline: 0; background: transparent; font-size: 11px; cursor: pointer; }
 .select-control option { color: var(--text); background: var(--panel-solid); }
 .flight-list { flex: 1; min-height: 0; padding: 0 10px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(183,243,74,.28) transparent; }
 .flight-list::-webkit-scrollbar { width: 5px; }
@@ -421,11 +425,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   .query-panel .query-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; margin-top: 9px; }
   .query-panel .primary-button { position: absolute; right: 14px; bottom: 12px; width: 142px; min-height: 36px; margin: 0; }
   .query-panel .query-grid > div:last-child { padding-right: 150px; }
-  .map-label { left: 14px; top: 154px; }
+  .map-label { left: 14px; top: 184px; }
   .map-label strong { max-width: min(380px, calc(100vw - 420px)); font-size: 20px; }
   .map-footer, .map-altitude-legend { left: 14px; }
   .results-panel { right: 12px; width: 342px; }
   .live-badge, .map-controls { right: 366px; }
+  .live-badge { top: 184px; }
+  .map-controls { top: 232px; }
   .details-drawer { left: 14px; width: min(520px, calc(100vw - 410px)); }
 }
 
@@ -480,8 +486,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 @media (max-width: 520px) {
   .brand small { display: none; }
   .brand strong { font-size: 14px; }
-  .map-label strong { max-width: 185px; font-size: 17px; line-height: 1; }
-  .map-label-meta { max-width: 180px; overflow: hidden; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+  .map-label { max-width: calc(100vw - 214px); }
+  .map-label strong { display: block; max-width: 100%; overflow: hidden; font-size: 16px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+  .map-label-meta { max-width: 100%; overflow: hidden; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
   .live-badge { font-size: 8px; }
   .live-badge-copy { max-width: 116px; }
   .select-control { padding-inline: 7px; }
