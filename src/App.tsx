@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "motion/react";
 import { Activity, CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "./components/icons";
 import { api, readableApiError } from "./api";
 import { AirportSearch } from "./components/AirportSearch";
@@ -45,7 +47,12 @@ export function App() {
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
   const [mobileResultsExpanded, setMobileResultsExpanded] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  // Each notice gets its own id so repeating a message replays it and restarts
+  // the dismiss timer instead of being swallowed as an identical state update.
+  const [toast, setToastState] = useState<{ id: number; message: string } | null>(null);
+  const setToast = useCallback((message: string | null) => {
+    setToastState(message ? { id: Date.now(), message } : null);
+  }, []);
   const [commandQuery, setCommandQuery] = useState("");
   const [commandPending, setCommandPending] = useState(false);
   const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
@@ -201,7 +208,7 @@ export function App() {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(timer);
-  }, [toast]);
+  }, [setToast, toast]);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -304,6 +311,25 @@ export function App() {
     setMobileControlsOpen(false);
   }
 
+  // A circular reveal from the theme button, using the View Transitions API
+  // where the browser has it; elsewhere the theme simply swaps.
+  function toggleTheme(origin?: { x: number; y: number }) {
+    const next = theme === "dark" ? "light" : "dark";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!document.startViewTransition || reduced || !origin) {
+      setTheme(next);
+      return;
+    }
+    const radius = Math.hypot(Math.max(origin.x, window.innerWidth - origin.x), Math.max(origin.y, window.innerHeight - origin.y));
+    const transition = document.startViewTransition(() => flushSync(() => setTheme(next)));
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        { clipPath: [`circle(0px at ${origin.x}px ${origin.y}px)`, `circle(${radius}px at ${origin.x}px ${origin.y}px)`] },
+        { duration: 560, easing: "cubic-bezier(0.22, 1, 0.36, 1)", pseudoElement: "::view-transition-new(root)" },
+      );
+    }).catch(() => undefined);
+  }
+
   function toggleFavorite(airport: Airport) {
     setFavorites(favoriteCodes.has(airport.icao)
       ? favorites.filter((item) => item.icao !== airport.icao)
@@ -326,7 +352,7 @@ export function App() {
         health={health.data}
         healthPending={health.isPending}
         theme={theme}
-        onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onToggleTheme={toggleTheme}
         onToggleControls={() => setMobileControlsOpen(true)}
         commandValue={commandQuery}
         commandPending={commandPending}
@@ -358,12 +384,6 @@ export function App() {
             <div><strong>Flight search</strong></div>
             <button className="icon-button" type="button" onClick={() => setMobileControlsOpen(false)} aria-label="Close search"><X size={19} /></button>
           </div>
-          <div className="panel-rail-head">
-            <div className="panel-rail-mark"><Activity size={18} aria-hidden="true" /></div>
-            <div>
-              <strong>Scan a region</strong>
-            </div>
-          </div>
           <div className="panel-intro">
             <h1>Find a flight.<br /><em>Follow its story.</em></h1>
             <p>Search a field, open the live airspace, then follow every movement with its source and altitude.</p>
@@ -374,12 +394,7 @@ export function App() {
               <strong>{activeAirport ? `${activeAirport.iata || activeAirport.icao} airspace` : "European airspace"}</strong>
               <small>{liveAvailable ? "ADS-B network connected" : "Historical search available"}</small>
             </span>
-            <span className={`panel-context-state ${liveAvailable ? "online" : "offline"}`}>{liveAvailable ? "LIVE" : "OFFLINE"}</span>
-          </div>
-          <div className="panel-signal-row" aria-label="Current data sources">
-            <span><i className="signal-bar signal-bar-live" />ADS-B</span>
-            <span><i className="signal-bar signal-bar-history" />History</span>
-            <span><i className="signal-bar signal-bar-route" />Routes</span>
+            <span className={`panel-context-state ${liveAvailable ? "online" : "offline"}`}>{liveAvailable ? "Live" : "Offline"}</span>
           </div>
           <AirportSearch
             selected={selectedAirport}
@@ -398,8 +413,13 @@ export function App() {
             <div>
               <span className="field-label">Movement</span>
               <div className="mode-switch" role="group" aria-label="Movement type">
-                <button type="button" className={mode === "departure" ? "active" : ""} aria-pressed={mode === "departure"} onClick={() => setMode("departure")}><PlaneTakeoff size={15} /> Departures</button>
-                <button type="button" className={mode === "arrival" ? "active" : ""} aria-pressed={mode === "arrival"} onClick={() => setMode("arrival")}><PlaneLanding size={15} /> Arrivals</button>
+                {(["departure", "arrival"] as const).map((option) => (
+                  <button key={option} type="button" className={mode === option ? "active" : ""} aria-pressed={mode === option} onClick={() => setMode(option)}>
+                    {mode === option && <motion.span layoutId="mode-switch-thumb" className="mode-switch-thumb" transition={{ type: "spring", stiffness: 520, damping: 40 }} />}
+                    {option === "departure" ? <PlaneTakeoff size={15} /> : <PlaneLanding size={15} />}
+                    <span>{option === "departure" ? "Departures" : "Arrivals"}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -416,7 +436,6 @@ export function App() {
           <div className="data-note">
             <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
             <span>{liveAvailable ? "Live ADS-B enabled · select an aircraft" : "OpenSky credentials required for live data"}</span>
-            <span className="data-note-code mono">ST-01</span>
           </div>
         </aside>
 
@@ -467,8 +486,10 @@ export function App() {
           />
         </section>
 
-        {detailsFlight && (
+        <AnimatePresence>
+        {detailsFlight && !mapExpanded && (
           <FlightDetails
+            key="flight-details"
             flight={detailsFlight}
             track={track.data}
             trackLoading={track.isFetching}
@@ -480,9 +501,24 @@ export function App() {
             onShare={shareFlight}
           />
         )}
+        </AnimatePresence>
       </main>
 
-      {toast && <div className="toast" role="status">{toast}</div>}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            className="toast"
+            role="status"
+            initial={{ opacity: 0, y: 12, x: "-50%", scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }}
+            exit={{ opacity: 0, y: 8, x: "-50%", scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+          >
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

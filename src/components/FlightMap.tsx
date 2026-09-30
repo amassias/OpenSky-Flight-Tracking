@@ -10,16 +10,30 @@ import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 
+// Leaflet paths and canvas dots cannot read CSS custom properties, so the
+// theme tokens they need are mirrored here (see --aircraft / --accent).
+const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: string; halo: string }> = {
+  dark: { aircraft: "#f5f5f7", ground: "#8e8e93", accent: "#2997ff", halo: "#0b0b0c" },
+  light: { aircraft: "#1d1d1f", ground: "#86868b", accent: "#0066cc", halo: "#ffffff" },
+};
+
 // Tabler Icons (MIT): https://github.com/tabler/tabler-icons
 // The source SVGs and license notice live in src/assets/aircraft/.
 const TABLER_PLANE_PATH = "M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2 -7h-4l-2 2h-3l2 -4l-2 -4h3l2 2h4l-2 -7h3l4 7";
-// Font Awesome Free (CC BY 4.0): https://fontawesome.com/icons/classic/solid/helicopter
-const FONT_AWESOME_HELICOPTER_PATH = "M176 32c-13.3 0-24 10.7-24 24s10.7 24 24 24l152 0 0 48-220.8 0-32.8-39.4C69.9 83.2 63.1 80 56 80L24 80C15.7 80 8 84.3 3.6 91.4s-4.8 15.9-1.1 23.4l48 96C54.6 218.9 62.9 224 72 224l107.8 0 104 143.1c15.1 20.7 39.1 32.9 64.7 32.9l75.5 0c75.1 0 136-60.9 136-136S499.1 128 424 128l-48 0 0-48 152 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L176 32zM376 192l48 0c39.8 0 72 32.2 72 72s-32.2 72-72 72l-48 0 0-144zM552 416c-13.3 0-24 10.7-24 24 0 4.4-3.6 8-8 8l-272 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l272 0c30.9 0 56-25.1 56-56 0-13.3-10.7-24-24-24z";
+// Top-down rotorcraft, drawn nose-east like the plane glyph so the shared
+// heading rotation points it where it is flying: main rotor blades, cabin,
+// tail boom and tail rotor.
+const HELICOPTER_SVG = [
+  '<path class="aircraft-svg-rotor" d="M6.2 5.2 19.8 18.8M6.2 18.8 19.8 5.2"/>',
+  '<ellipse class="aircraft-svg-fill" cx="13.4" cy="12" rx="4.6" ry="3.1"/>',
+  '<path class="aircraft-svg-fill" d="M2.6 11.2h7v1.6h-7z"/>',
+  '<path class="aircraft-svg-fill" d="M2 8.8h1.5v6.4H2z"/>',
+].join("");
 
 function aircraftIconSvg(kind: AircraftIconKind): string {
   switch (kind) {
     case "helicopter":
-      return `<path class="aircraft-svg-fill" d="${FONT_AWESOME_HELICOPTER_PATH}"/>`;
+      return HELICOPTER_SVG;
     case "glider":
       return '<path d="M2 11.2h20v1.6H2zM11.2 12.8h1.6l1.9 8.2h-1.9l-.8-3.2-.8 3.2H9.3z"/>';
     case "balloon":
@@ -36,10 +50,9 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
 }
 
 function planeIcon(heading = 0, active = false, onGround = false, icao24?: string, kind: AircraftIconKind = "airliner") {
-  const viewBox = kind === "helicopter" ? "0 0 576 512" : "0 0 24 24";
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
-    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="${viewBox}" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
+    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -120,9 +133,9 @@ function userLocationIcon() {
   });
 }
 
-function routeEndpointIcon(kind: "start" | "end") {
+function routeEndpointIcon(kind: "start" | "end", theme: MapTheme) {
   const start = kind === "start";
-  const color = start ? "#67d8ff" : "#b7f34a";
+  const color = start ? MAP_COLORS[theme].ground : MAP_COLORS[theme].accent;
   const path = start
     ? '<path d="M6 21V3m0 0h12l-3 4 3 4H6" />'
     : '<path d="M5 21V3m0 0h13l-3 4 3 4H5m0 0h13v6H5" />';
@@ -142,6 +155,7 @@ interface AircraftMarkerProps {
   onSelect: (flight: Flight) => void;
   positionOverride?: MarkerPosition;
   headingOverride?: number | null;
+  theme?: MapTheme;
 }
 
 function areMarkersEqual(
@@ -150,7 +164,7 @@ function areMarkersEqual(
 ) {
   if (previous.active !== next.active || previous.onSelect !== next.onSelect) return false;
   if (previous.positionOverride?.[0] !== next.positionOverride?.[0] || previous.positionOverride?.[1] !== next.positionOverride?.[1]) return false;
-  if (previous.headingOverride !== next.headingOverride) return false;
+  if (previous.headingOverride !== next.headingOverride || previous.theme !== next.theme) return false;
   const a = previous.aircraft;
   const b = next.aircraft;
   // Every poll returns fresh objects, so compare the fields the marker draws
@@ -224,9 +238,10 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
   </Marker>;
 }, areMarkersEqual);
 
-const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, positionOverride }: AircraftMarkerProps) {
+const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, positionOverride, theme = "dark" }: AircraftMarkerProps) {
   const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
-  const color = altitudeColor(aircraft.baro_altitude ?? aircraft.geo_altitude);
+  // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
+  const color = active ? MAP_COLORS[theme].accent : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
   const pathOptions = useMemo(() => ({
     color,
     fillColor: color,
@@ -772,8 +787,8 @@ export function FlightMap({
       ? [selectedFlight.latitude, selectedFlight.longitude] as MarkerPosition
       : null
   );
-  const routeStartIcon = useMemo(() => routeEndpointIcon("start"), []);
-  const routeEndIcon = useMemo(() => routeEndpointIcon("end"), []);
+  const routeStartIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
+  const routeEndIcon = useMemo(() => routeEndpointIcon("end", theme), [theme]);
   const locationIcon = useMemo(() => userLocationIcon(), []);
   const handleLocationFound = useCallback((location: UserLocation) => {
     setUserLocation(location);
@@ -792,7 +807,7 @@ export function FlightMap({
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          className={theme === "dark" ? "map-tiles-dark" : ""}
+          className={theme === "dark" ? "map-tiles-dark" : "map-tiles-light"}
           key={theme}
           maxZoom={19}
         />
@@ -809,7 +824,7 @@ export function FlightMap({
         {trackPositions.length > 1 && <Polyline
           positions={trackPositions}
           pathOptions={{
-            color: theme === "dark" ? "#020b16" : "#f4fbff",
+            color: MAP_COLORS[theme].halo,
             weight: 9,
             opacity: 0.72,
             lineCap: "round",
@@ -844,6 +859,7 @@ export function FlightMap({
             active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
             onSelect={onSelectFlight}
             positionOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.position : undefined}
+            theme={theme}
           />
         ) : (
           <AircraftMarker
@@ -863,7 +879,7 @@ export function FlightMap({
             <Circle
               center={[userLocation.latitude, userLocation.longitude]}
               radius={Math.max(userLocation.accuracy, 20)}
-              pathOptions={{ color: "#38bdf8", weight: 1, opacity: 0.55, fillColor: "#38bdf8", fillOpacity: 0.1 }}
+              pathOptions={{ color: MAP_COLORS[theme].accent, weight: 1, opacity: 0.5, fillColor: MAP_COLORS[theme].accent, fillOpacity: 0.08 }}
             />
             <Marker position={[userLocation.latitude, userLocation.longitude]} icon={locationIcon}>
               <Popup>
@@ -887,7 +903,7 @@ export function FlightMap({
       </div>
       <div className={`live-badge ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
-        <span className="live-badge-label">{!liveAvailable ? "OFFLINE" : !liveEnabled ? "PAUSED" : "LIVE"}</span>
+        <span className="live-badge-label">{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</span>
         <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
         {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}
         {liveEnabled && (liveState.error || liveState.failedTiles > 0) && <button type="button" className="live-retry" onClick={() => setLiveRefresh((value) => value + 1)}>Retry</button>}

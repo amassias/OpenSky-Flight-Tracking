@@ -1,294 +1,179 @@
 ---
 name: SkyTrace
-description: A map-first flight intelligence console for live airspace and recorded airport movements.
+description: A sober, map-first flight instrument. Graphite or paper chrome recedes around a grayscale map; one blue marks every action and the selected aircraft.
 colors:
-  bg: "#07121f"
-  bg-deep: "#050d17"
-  panel: "rgba(9, 24, 39, 0.97)"
-  panel-solid: "#0b1b2c"
-  panel-raised: "#10263b"
-  line: "rgba(144, 183, 210, 0.18)"
-  line-strong: "rgba(144, 183, 210, 0.34)"
-  text: "#f2f7fb"
-  muted: "#9cb1c1"
-  quiet: "#6f8799"
-  accent: "#b7f34a"
-  accent-strong: "#8dc82f"
-  accent-soft: "rgba(183, 243, 74, 0.12)"
-  cyan: "#67d8ff"
-  cyan-soft: "rgba(103, 216, 255, 0.12)"
-  amber: "#ffbf69"
-  danger: "#ff786f"
-  violet: "#b9a4ff"
-  command-surface: "rgba(14, 35, 54, 0.72)"
-  overlay-surface: "rgba(8, 22, 36, 0.94)"
-  card-surface: "rgba(255, 255, 255, 0.025)"
-  details-surface: "rgba(9, 24, 39, 0.98)"
-  legend-surface: "rgba(8, 22, 36, 0.9)"
-  altitude-low: "#38bdf8"
-  altitude-climb: "#2dd4bf"
-  altitude-cruise: "#a3e635"
-  altitude-high: "#fbbf24"
-  altitude-extreme: "#fb7185"
-  altitude-unknown: "#94a3b8"
+  bg: "#0b0b0c"
+  panel: "rgba(28, 28, 30, 0.78)"
+  panel-solid: "#1c1c1e"
+  panel-raised: "#2c2c2e"
+  fill: "rgba(255, 255, 255, 0.06)"
+  fill-strong: "rgba(255, 255, 255, 0.1)"
+  line: "rgba(255, 255, 255, 0.08)"
+  line-strong: "rgba(255, 255, 255, 0.16)"
+  text: "#f5f5f7"
+  muted: "#a1a1a6"
+  quiet: "#8e8e93"
+  accent: "#2997ff"
+  accent-press: "#0a84ff"
+  accent-soft: "rgba(41, 151, 255, 0.16)"
+  ok: "#30d158"
+  warn: "#ffd60a"
+  danger: "#ff453a"
+  aircraft: "#f5f5f7"
+  aircraft-ground: "#8e8e93"
+  light-bg: "#f5f5f7"
+  light-panel: "rgba(255, 255, 255, 0.8)"
+  light-panel-solid: "#ffffff"
+  light-text: "#1d1d1f"
+  light-muted: "#515154"
+  light-quiet: "#6e6e73"
+  light-accent: "#0066cc"
+  light-ok: "#248a3d"
+  light-aircraft: "#1d1d1f"
+  altitude-low: "#64d2ff"
+  altitude-climb: "#0a84ff"
+  altitude-cruise: "#5e5ce6"
+  altitude-high: "#bf5af2"
+  altitude-extreme: "#ff375f"
+  altitude-unknown: "#8e8e93"
 typography:
   display:
-    fontFamily: "Barlow Semi Condensed, Arial Narrow, sans-serif"
-    fontSize: "34px"
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "28px"
     fontWeight: 600
-    lineHeight: 0.92
-    letterSpacing: "-0.015em"
+    lineHeight: 1.08
+    letterSpacing: "-0.03em"
   headline:
-    fontFamily: "Barlow Semi Condensed, Arial Narrow, sans-serif"
-    fontSize: "24px"
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "22px"
     fontWeight: 600
-    lineHeight: 1
-    letterSpacing: "0.01em"
+    lineHeight: 1.1
+    letterSpacing: "-0.025em"
   title:
-    fontFamily: "Barlow Semi Condensed, Arial Narrow, sans-serif"
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, Inter, Segoe UI, system-ui, sans-serif"
     fontSize: "17px"
     fontWeight: 600
-    lineHeight: 1
-    letterSpacing: "0.02em"
-  body:
-    fontFamily: "DM Sans, system-ui, sans-serif"
-    fontSize: "11px"
-    fontWeight: 400
-    lineHeight: 1.55
-    letterSpacing: "normal"
-  label:
-    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
-    fontSize: "8px"
+    lineHeight: 1.15
+    letterSpacing: "-0.02em"
+  body-strong:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "15px"
     fontWeight: 600
-    lineHeight: 1
-    letterSpacing: "0.12em"
-  mono:
-    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
-    fontSize: "9px"
-    fontWeight: 500
     lineHeight: 1.3
-    letterSpacing: "0.03em"
+    letterSpacing: "-0.01em"
+  body:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.45
+    letterSpacing: "-0.01em"
+  caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.35
+    letterSpacing: "0"
 rounded:
-  xs: "3px"
-  sm: "5px"
-  card: "6px"
-  pill: "4px"
-  md: "7px"
-  lg: "10px"
-  xl: "12px"
-  sheet: "16px"
+  sm: "8px"
+  md: "12px"
+  lg: "18px"
+  pill: "980px"
 spacing:
-  xs: "3px"
-  sm: "5px"
-  md: "7px"
-  lg: "9px"
-  xl: "12px"
-  2xl: "14px"
-  3xl: "18px"
-  4xl: "20px"
-  5xl: "30px"
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "20px"
+  2xl: "24px"
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
-    textColor: "{colors.bg}"
+    textColor: "#ffffff"
     typography: "{typography.body}"
-    rounded: "{rounded.card}"
-    padding: "0 16px"
-    height: "42px"
-    width: "100%"
-  command-search:
-    backgroundColor: "{colors.command-surface}"
-    textColor: "{colors.text}"
-    typography: "{typography.body}"
-    rounded: "{rounded.md}"
-    padding: "0 10px"
-    height: "34px"
-    width: "min(500px, 100%)"
-  panel:
+    rounded: "{rounded.pill}"
+    height: "44px"
+  button-secondary:
+    backgroundColor: "transparent"
+    textColor: "{colors.accent}"
+    rounded: "{rounded.pill}"
+    padding: "7px 16px"
+  icon-button:
+    backgroundColor: "transparent"
+    textColor: "{colors.muted}"
+    rounded: "{rounded.pill}"
+    size: "34px"
+  floating-panel:
     backgroundColor: "{colors.panel}"
     textColor: "{colors.text}"
-    typography: "{typography.body}"
-    rounded: "{rounded.xl}"
-    padding: "18px"
-  traffic-card:
-    backgroundColor: "{colors.card-surface}"
-    textColor: "{colors.text}"
-    typography: "{typography.body}"
-    rounded: "{rounded.card}"
-    padding: "9px 10px 9px 14px"
-    height: "72px"
-  source-pill:
-    backgroundColor: "{colors.card-surface}"
-    textColor: "{colors.quiet}"
-    typography: "{typography.label}"
-    rounded: "{rounded.pill}"
-    padding: "0 7px"
-    height: "22px"
-  selected-flight-panel:
-    backgroundColor: "{colors.details-surface}"
-    textColor: "{colors.text}"
-    typography: "{typography.body}"
     rounded: "{rounded.lg}"
-    padding: "17px"
-    width: "min(500px, calc(100vw - 760px))"
-  altitude-legend:
-    backgroundColor: "{colors.legend-surface}"
-    textColor: "{colors.quiet}"
-    typography: "{typography.mono}"
-    rounded: "{rounded.card}"
-    padding: "7px 9px"
+    padding: "20px"
+  command-search:
+    backgroundColor: "{colors.fill}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.pill}"
+    height: "34px"
+  segmented-control:
+    backgroundColor: "{colors.fill-strong}"
+    textColor: "{colors.muted}"
+    rounded: "{rounded.pill}"
+    height: "36px"
+  flight-row:
+    backgroundColor: "transparent"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    height: "68px"
+  inset-card:
+    backgroundColor: "{colors.fill}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: "14px"
+  status-pill:
+    backgroundColor: "{colors.fill-strong}"
+    textColor: "{colors.muted}"
+    rounded: "{rounded.pill}"
+    height: "24px"
 ---
-
-# Design System: SkyTrace
 
 ## Overview
 
-**Creative North Star: "Airspace Weather Scope"**
-
-SkyTrace is a live operations surface that reads like an aviation weather radar console: a dark geographic field, bright altitude and status signals, a compact command bar, and information that slides in from the edges without hiding the traffic. The map is the instrument; every panel explains what the instrument is showing.
-
-The interface borrows the useful interaction model of modern flight trackers—search above the map, floating map controls, a traffic list, and a selected-flight sheet—while using SkyTrace's own visual grammar, labels, data states, and route enrichment.
-
-**Key Characteristics:**
-
-- A map-first console that keeps live traffic visible while panels provide context.
-- Sparse radar lime for live and selected states, with cyan, violet, amber, and coral carrying distinct data meanings.
-- Tall display type for headings, a quiet sans-serif reading voice, and mono numerals for measurements and identifiers.
-- Opaque or lightly translucent navy surfaces, fine cool borders, and one ambient shadow vocabulary.
-- Compact edge panels that become reachable bottom sheets on smaller screens.
+SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks an aircraft and reads its story without losing the map. The visual world is deliberately quiet, in the manner of a well-made system app. Chrome is graphite (dark) or paper (light), built from frosted materials and hairlines. The map is rendered in grayscale so the only colour on it is data: neutral aircraft glyphs, the selected aircraft in blue, and an altitude-graded track.
 
 ## Colors
 
-The palette treats the map as a midnight instrument and the signals as measured events. Lime is reserved for live or actionable focus, cyan for measured geography and routes, violet for estimated enrichment, amber for degraded or ground states, and coral for errors or extreme altitude.
-
-### Primary
-
-- **Radar lime:** live status, selected aircraft, active controls, and primary actions.
-- **Flight cyan:** route lines, location feedback, map labels, and measured context.
-
-### Secondary
-
-- **Signal amber:** grounded aircraft, warnings, and degraded provider states.
-
-### Tertiary
-
-- **Route violet:** estimated or enriched route provenance.
-- **Altitude bands:** low, climb, cruise, high, extreme, and unknown values use a cyan-to-coral sequence with a slate fallback.
-
-### Neutral
-
-- **Midnight ground:** the full-viewport map and the dark application canvas.
-- **Panel navy:** the solid and translucent surfaces used by rails, drawers, sheets, and controls.
-- **Cool text:** primary, muted, and quiet text levels keep dense operational information legible.
-- **Cool borders:** fine low-contrast and strong focus borders separate the instrument layers.
-
-### Named Rules
-
-**The Signal Clarity Rule.** Reserve radar lime for live state, selection, focus, and actions; let the other signal colors keep their own meanings.
-
-**The Provenance Color Rule.** Keep measured, estimated, degraded, error, and unknown states visually distinct wherever source status is shown.
+- **One accent.** `accent` (#2997ff on dark, #0066cc on light) marks every action: primary button, focus ring, links, the selected aircraft and the route end. There is no second brand colour.
+- **Status is semantic, not decorative.** `ok` means airborne or live. `warn` is reserved for a degraded feed (paused, offline, signal alert) and `danger` for errors. Aircraft on the ground are grey, never orange.
+- **Aircraft ink.** Every marker uses `aircraft` ink (white on dark, near-black on light), including the dense canvas dots, so zooming never changes an aircraft's colour.
+- **Altitude ramp.** A cool, ordered ramp (cyan to blue, indigo, purple, pink) colours the selected track and its legend only.
+- Leaflet paths and canvas dots cannot read CSS variables, so `MAP_COLORS` in `FlightMap.tsx` mirrors the tokens per theme.
 
 ## Typography
 
-**Display Font:** Barlow Semi Condensed (with Arial Narrow and sans-serif fallbacks)
-
-**Body Font:** DM Sans (with system sans fallback)
-
-**Label/Mono Font:** IBM Plex Mono (with ui-monospace fallback)
-
-**Character:** The display face is compact and tall, giving the console its aviation-instrument read. DM Sans carries explanatory copy while IBM Plex Mono makes UTC times, callsigns, airport codes, and measurements easy to scan.
-
-### Hierarchy
-
-- **Display** (600, 34px, 0.92 line-height): the left rail's invitation and other highest-level statements.
-- **Headline** (600, 24px, 1 line-height): drawer titles and selected-flight callsigns.
-- **Title** (600, 17px, 1 line-height): panel identities, route endpoints, and supporting headings.
-- **Body** (400, 11px, 1.55 line-height): explanatory copy, operator names, and route descriptions.
-- **Label** (600, 8px, 0.12em tracking, uppercase mono): compact field captions, source labels, and data groups.
-- **Measurement mono** (500, 9px, 1.3 line-height): UTC clocks, codes, statuses, and operational values.
-
-### Named Rules
-
-**The Measurement Voice Rule.** Use IBM Plex Mono for values that must be compared quickly, and keep display headings in sentence case with tight tracking.
+System type first: `-apple-system`/SF on Apple platforms, Inter (loaded from Google Fonts in `index.html`) elsewhere. The weight ladder is 400 / 500 / 600, with headlines at 600 and tight negative tracking. Numbers use `font-variant-numeric: tabular-nums` instead of a monospace face, and uppercase tracked labels are not used. The UI floor is 12px.
 
 ## Layout
 
-The desktop workspace is a full-viewport map below a fixed 58px command bar. A 306px left query rail and a right traffic drawer capped at 372px sit 16px from the map edges; a selected-flight sheet anchors to the lower map area without removing the map from view. Map labels, live status, controls, the altitude legend, and the footer occupy clear overlay zones between those panels.
-
-At the 1180px breakpoint, the rail compresses into a shallow search surface and the traffic drawer narrows. At 900px, the map owns the upper stage while search becomes a bottom sheet and traffic becomes a compact bottom panel that can expand. At 520px, labels and secondary source copy collapse before the core headings, metrics, and controls lose readable size. The layout uses small repeated gaps and compact panel padding to sustain an operational density.
+The map fills the workspace. On desktop, a search panel sits on the left, the traffic board on the right and the flight drawer at the bottom-centre, all floating with 16px insets. Between 901 and 1180px the search panel collapses to a compact bar. At 900px and below, search and flight details become bottom sheets and the board docks above the map's bottom edge.
 
 ## Elevation & Depth
 
-SkyTrace uses tonal layering with a restrained ambient shadow. Dark navy surfaces separate from the map through opacity and cool borders, while drawers and popovers use the shared deep shadow. Signal glows belong to active markers and status dots; they are part of the instrument language rather than a general decoration.
-
-### Shadow Vocabulary
-
-- **Console elevation:** the shared deep shadow used by rails, drawers, and selected-flight details.
-- **Map overlay:** a shorter shadow for the live badge and map controls.
-- **Result popover:** a deeper local shadow for airport suggestions above the rail.
-- **Toast elevation:** a broad shadow that keeps transient feedback readable over the map.
-
-### Named Rules
-
-**The Layered Console Rule.** Let opaque or lightly translucent navy surfaces, fine borders, and a single ambient shadow establish depth; reserve stronger glow for live signals and selected aircraft.
+Depth comes from material, not shadow. Floating chrome uses `panel` with `backdrop-filter: saturate(180%) blur(20px)` and a 1px hairline. The one shadow (`0 8px 30px`, soft) belongs to overlays that sit above other chrome: the flight drawer, popovers and the toast.
 
 ## Shapes
 
-The form language is compact and gently rounded. Rails and drawers use larger corners, cards and fields use mid-size corners, source pills stay tighter, and bottom sheets gain a broad top silhouette on mobile. Borders are usually one pixel, with the stronger cool line reserved for focus and selected details. The selected aircraft uses a circular lime halo, while route geometry uses a thin dashed connector and altitude-colored segments.
+Four radii: `sm` 8px for small tiles, `md` 12px for rows and inset cards, `lg` 18px for panels and sheets, and `pill` for every action, search field, segmented control and status chip.
 
-## Components
+## Motion
 
-### Primary lime button
+Motion is quiet, eased with `cubic-bezier(0.22, 1, 0.36, 1)`, and always respects `prefers-reduced-motion` (CSS media query plus Motion's `MotionConfig reducedMotion="user"`).
 
-The primary action is a full-width lime control with a compact label, a small inline icon, and a short lift on hover. It becomes slightly translucent and waits with reduced opacity while loading.
-
-### Command search input
-
-The top command field is a centered compact search surface with a cyan search mark, an understated keyboard hint, and a cyan focus ring. It accepts airport, flight, and callsign queries without changing the map workflow.
-
-### Panel and traffic card
-
-Panels establish the navy console layer with a fine border and shared ambient depth. Traffic cards are shorter, quieter surfaces in the same drawer; a one-pixel status line, status dot, and mono route mark airspace state while hover and selection keep the card anchored to the map.
-
-### Source pill
-
-The source pill is a small uppercase mono badge. Its live, history, and ready states use the corresponding signal treatment so recorded history and live snapshots never look interchangeable.
-
-### Selected flight panel
-
-The selected-flight panel is a lower map sheet with the callsign and state at the top, origin and destination on a compact route timeline, four measured cards, and an altitude profile with hover readout. Route provenance is shown in violet when enrichment is estimated.
-
-### Altitude legend
-
-The legend is a compact, non-interactive mono key shared by the map and altitude chart. Small rounded swatches explain the five altitude bands and the slate unknown state without competing with the route itself.
+- **Motion (motion.dev)** springs the flight drawer and toast in and out (`AnimatePresence`) and slides the segmented-control thumb (`layoutId`).
+- **View Transitions API:** switching theme reveals the new theme as a circle expanding from the toggle button.
+- CSS handles the small things: a subtle list cascade on first render, the live-dot ping, button press `scale(0.95)`, and marker heading rotation.
 
 ## Do's and Don'ts
 
-### Do:
-
-- **Do** keep the live map visible in the first viewport and preserve spatial context as panels open.
-- **Do** use the signal colors consistently for live, measured, estimated, warning, error, and altitude states.
-- **Do** keep UTC times, airport codes, callsigns, and measurements in IBM Plex Mono.
-- **Do** retain labelled controls, visible focus rings, keyboard dismissal, and reduced-motion behavior at every breakpoint.
-- **Do** make live snapshot, recorded history, unavailable data, and unknown route provenance explicit in both copy and styling.
-
-### Don't:
-
-- **Don't** cover the map with a generic opaque dashboard layout or hide the traffic instrument behind a modal by default.
-- **Don't** spend radar lime on decorative surfaces where it would compete with live state and selection.
-- **Don't** merge recorded, live fallback, estimated, degraded, and unavailable states into one neutral badge.
-- **Don't** remove the map controls, focus ring, or source labels when the viewport becomes compact.
-
-## Direction contract
-
-THESIS: Make the live airspace the instrument itself. The map stays visible while every control explains freshness, provenance, and altitude.
-
-OWN-WORLD: Midnight navy map chrome, radar lime live signals, cyan measured context, violet estimated routes, and altitude bands rendered through Barlow Semi Condensed, DM Sans, and IBM Plex Mono.
-
-STORY: A visitor scans an airport or callsign, sees what is flying now, opens a recorded movement when available, and follows one aircraft from origin to destination with an altitude path.
-
-FIRST VIEWPORT: A thin command bar spans the top. The map fills the workspace. A left airspace rail holds search and UTC movement controls, a right traffic drawer holds live and recorded results, and a selected aircraft opens a bottom detail sheet without losing the map.
-
-FORM: Airspace weather scope, assigned direction five from seed key bd911b43; a radar console with edge panels, deliberate signal colors, and a single refresh sweep.
-
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+- Do keep one blue for actions and selection; add emphasis with weight and size, not new hues.
+- Do keep the map grayscale; colour on the map must mean data.
+- Don't use glows, gradients, coloured left borders or uppercase monospace labels.
+- Don't use orange for normal states; `warn` is for degraded feeds only.
+- Don't animate on a loop except the single live-status ping.

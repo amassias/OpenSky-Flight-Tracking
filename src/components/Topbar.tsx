@@ -6,7 +6,7 @@ interface TopbarProps {
   health?: HealthResponse;
   healthPending: boolean;
   theme: MapTheme;
-  onToggleTheme: () => void;
+  onToggleTheme: (origin?: { x: number; y: number }) => void;
   onToggleControls: () => void;
   commandValue: string;
   commandPending?: boolean;
@@ -35,8 +35,8 @@ export function Topbar({
   onCommandSubmit,
 }: TopbarProps) {
   const liveAvailable = health?.live_available ?? health?.credentials_configured;
-  const apiState = healthPending ? "Connecting" : liveAvailable ? "ADS-B enabled" : "Setup required";
-  const channel = healthPending ? "AIRSPACE / LINKING" : liveAvailable ? "AIRSPACE / LIVE" : "AIRSPACE / HISTORY";
+  const apiState = healthPending ? "Checking feeds" : liveAvailable ? "ADS-B" : "Setup required";
+  const channel = healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
   const inputRef = useRef<HTMLInputElement>(null);
   const [shortcut] = useState(() => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘K" : "Ctrl K");
 
@@ -72,8 +72,8 @@ export function Topbar({
       <div className="brand" aria-label="SkyTrace home">
         <span className="brand-mark"><Radio size={18} aria-hidden="true" /></span>
         <span>
-          <strong>SKYTRACE</strong>
-          <small>Airspace intelligence</small>
+          <strong>SkyTrace</strong>
+          <small>Flight intelligence</small>
         </span>
       </div>
 
@@ -101,7 +101,10 @@ export function Topbar({
           <Clock3 size={14} aria-hidden="true" />
           <UtcClock />
         </div>
-        <button className="icon-button" type="button" onClick={onToggleTheme} aria-label={`Use ${theme === "dark" ? "light" : "dark"} map`}>
+        <button className="icon-button" type="button" onClick={(event) => {
+          const box = event.currentTarget.getBoundingClientRect();
+          onToggleTheme({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+        }} aria-label={`Use ${theme === "dark" ? "light" : "dark"} map`}>
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
         <button className="icon-button mobile-only" type="button" onClick={onToggleControls} aria-label="Search airports and flights">

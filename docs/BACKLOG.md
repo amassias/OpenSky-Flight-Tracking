@@ -26,3 +26,11 @@ Status: `[x]` shipped · `[ ]` open.
 - [ ] B13: Add a light-theme visual regression capture to the e2e suite.
 - [x] **B14: Unified the icon set on Font Awesome Free (solid)**, replacing lucide. Icons are generated from the local FA download by `scripts/build-icons.mjs`.
 - [x] **B15: At 1280 px the map title ran under the LIVE badge, and the mobile search sheet let the map show through.**
+
+## Sober redesign (2026-09-30)
+
+- [x] **B16: Replaced the neon console look with a sober instrument look**, following the reference DESIGN-apple.md: graphite and paper frosted chrome, a single blue accent, system SF/Inter type, tabular numbers, a grayscale map, and pill actions. DESIGN.md has been rewritten to match.
+- [x] **B17: Added a new top-down helicopter marker** (rotor, cabin, tail boom, tail rotor) that rotates with its heading and uses neutral ink. Aircraft on the ground are now grey instead of orange.
+- [x] **B18: Added Motion (motion.dev) animations**: spring entrance and exit for the flight drawer and toast, and a sliding thumb on the Departures/Arrivals control. Switching theme now plays a circular View Transitions reveal. All motion respects reduced-motion settings.
+- [x] **B19: Fixed the whole-repo code review findings.** The segmented-control thumb was invisible. Dense canvas dots used a different colour scheme. Full map now hides the flight drawer cleanly. Map colours now follow the theme. API 500 responses no longer leak exception text. Inter no longer blocks render through a CSS @import. Repeated toasts now replay. Dead markup was removed.
+- [ ] B20: Four Python tests in `tests/test_server.py` were already failing before this work (live-fallback and 401 status handling). They need a separate fix.

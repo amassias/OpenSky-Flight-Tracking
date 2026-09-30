@@ -1,5 +1,6 @@
 """Vercel ASGI entry point for the existing OpenSky service layer."""
 
+import logging
 from typing import Callable, TypeVar
 
 from fastapi import FastAPI, Query
@@ -31,8 +32,10 @@ def execute(operation: Callable[[], T]):
         if exc.payload:
             payload["details"] = exc.payload
         return JSONResponse(status_code=status, content=payload)
-    except Exception as exc:
-        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+    except Exception:
+        # Keep internals (paths, upstream URLs) in the function logs, not the response.
+        logging.exception("Unhandled SkyTrace API error")
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error."})
 
 
 @app.get("/health")

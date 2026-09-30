@@ -40,7 +40,6 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
       onBlur={() => onPreview?.(null)}
       aria-pressed={selected}
     >
-      <span className={`flight-status-line status-${statusKey}`} />
       <span className="flight-card-main">
         <span className="flight-identity">
           <span className="callsign-row">

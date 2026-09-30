@@ -3,11 +3,11 @@ import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, e
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
-    expect(altitudeColor(0)).toBe("#38bdf8");
-    expect(altitudeColor(3_000)).toBe("#2dd4bf");
-    expect(altitudeColor(7_000)).toBe("#a3e635");
-    expect(altitudeColor(10_000)).toBe("#fbbf24");
-    expect(altitudeColor(12_000)).toBe("#fb7185");
+    expect(altitudeColor(0)).toBe("#64d2ff");
+    expect(altitudeColor(3_000)).toBe("#0a84ff");
+    expect(altitudeColor(7_000)).toBe("#5e5ce6");
+    expect(altitudeColor(10_000)).toBe("#bf5af2");
+    expect(altitudeColor(12_000)).toBe("#ff375f");
   });
 
   it("keeps unknown altitude visually distinct", () => {

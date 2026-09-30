@@ -1,4 +1,5 @@
 import { Activity, Copy, Database, Gauge, Navigation, Plane, PlaneLanding, PlaneTakeoff, Radio, Share2, ShieldAlert, X } from "./icons";
+import { motion } from "motion/react";
 import type { Flight, TrackResponse } from "../types";
 import { formatAltitude, formatSpeed, formatTime, statusLabel } from "../utils";
 import { AltitudeChart } from "./AltitudeChart";
@@ -56,7 +57,14 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
   const hasProfile = Boolean(flight.registration || flight.aircraft_type || flight.aircraft_description || flight.aircraft_owner || flight.aircraft_year);
   const operations = flight.flightaware;
   return (
-    <aside className="details-drawer" aria-label="Selected flight details">
+    <motion.aside
+      className="details-drawer"
+      aria-label="Selected flight details"
+      initial={{ opacity: 0, y: 24, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 16, scale: 0.98, transition: { duration: 0.18 } }}
+      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+    >
       <div className="drawer-handle" aria-hidden="true" />
       <header className="details-heading">
         <div>
@@ -164,6 +172,6 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
         <div className="profile-title"><span>Altitude profile</span><small className="mono">{trackLoading ? "Loading full trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"}</small></div>
         {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
       </section>
-    </aside>
+    </motion.aside>
   );
 }

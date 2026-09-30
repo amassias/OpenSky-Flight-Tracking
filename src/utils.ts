@@ -1,13 +1,13 @@
 import type { Bounds, Flight, FlightStatus } from "./types";
 
-export const ALTITUDE_UNKNOWN_COLOR = "#94a3b8";
+export const ALTITUDE_UNKNOWN_COLOR = "#8e8e93";
 
 export const ALTITUDE_COLOR_BANDS = [
-  { maxMeters: 1_500, label: "<5k ft", color: "#38bdf8" },
-  { maxMeters: 4_500, label: "5–15k ft", color: "#2dd4bf" },
-  { maxMeters: 8_000, label: "15–26k ft", color: "#a3e635" },
-  { maxMeters: 11_000, label: "26–36k ft", color: "#fbbf24" },
-  { maxMeters: Number.POSITIVE_INFINITY, label: "36k+ ft", color: "#fb7185" },
+  { maxMeters: 1_500, label: "<5k ft", color: "#64d2ff" },
+  { maxMeters: 4_500, label: "5–15k ft", color: "#0a84ff" },
+  { maxMeters: 8_000, label: "15–26k ft", color: "#5e5ce6" },
+  { maxMeters: 11_000, label: "26–36k ft", color: "#bf5af2" },
+  { maxMeters: Number.POSITIVE_INFINITY, label: "36k+ ft", color: "#ff375f" },
 ] as const;
 
 export type AircraftIconKind = "helicopter" | "glider" | "balloon" | "small" | "airliner" | "heavy" | "unknown";

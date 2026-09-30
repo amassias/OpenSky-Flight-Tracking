@@ -29,6 +29,6 @@ describe("Topbar", () => {
 
   it("names the channel after the real feed state", () => {
     renderTopbar();
-    expect(screen.getByText("AIRSPACE / LIVE")).toBeInTheDocument();
+    expect(screen.getByText("Live")).toBeInTheDocument();
   });
 });
