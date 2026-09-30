@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Clock3, Moon, Radio, Search, Sun } from "lucide-react";
+import { Clock3, Moon, Radio, Search, Sun } from "./icons";
 import type { HealthResponse, MapTheme } from "../types";
 
 interface TopbarProps {

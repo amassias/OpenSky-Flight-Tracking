@@ -147,3 +147,5 @@ For a materially faster and quota-free local setup, the most reliable option is 
 ## License
 
 MIT
+
+Interface icons are from [Font Awesome Free](https://fontawesome.com) (solid set) by Fonticons, Inc., licensed under [CC BY 4.0](https://fontawesome.com/license/free). Regenerate them with `node scripts/build-icons.mjs <fontawesome-free-web-folder>`.

@@ -24,3 +24,5 @@ Status: `[x]` shipped · `[ ]` open.
 - [ ] B11: Sort the live board by distance to the map centre.
 - [ ] B12: Remember the last filter and sort in local preferences.
 - [ ] B13: Add a light-theme visual regression capture to the e2e suite.
+- [x] **B14: Unified the icon set on Font Awesome Free (solid)**, replacing lucide. Icons are generated from the local FA download by `scripts/build-icons.mjs`.
+- [x] **B15: At 1280 px the map title ran under the LIVE badge, and the mobile search sheet let the map show through.**

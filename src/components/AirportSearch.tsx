@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Heart, MapPin, Search, X } from "lucide-react";
+import { Heart, MapPin, Search, X } from "./icons";
 import { api } from "../api";
 import type { Airport } from "../types";
 

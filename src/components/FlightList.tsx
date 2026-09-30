@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import { ArrowDownUp, Filter, Plane, Search } from "lucide-react";
+import { ArrowDownUp, Filter, Plane, Search } from "./icons";
 import type { Flight } from "../types";
 import { flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel } from "../utils";
 

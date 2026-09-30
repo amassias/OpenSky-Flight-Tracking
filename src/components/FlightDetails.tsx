@@ -1,4 +1,4 @@
-import { Activity, Copy, Database, Gauge, Navigation, Plane, PlaneLanding, PlaneTakeoff, Radio, Share2, ShieldAlert, X } from "lucide-react";
+import { Activity, Copy, Database, Gauge, Navigation, Plane, PlaneLanding, PlaneTakeoff, Radio, Share2, ShieldAlert, X } from "./icons";
 import type { Flight, TrackResponse } from "../types";
 import { formatAltitude, formatSpeed, formatTime, statusLabel } from "../utils";
 import { AltitudeChart } from "./AltitudeChart";
