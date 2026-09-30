@@ -6,10 +6,10 @@ from typing import Any, Dict, Iterable, Optional
 from urllib.parse import quote
 
 import requests
-from dotenv import load_dotenv
+from local_env import load_local_env
 
 # Load environment variables
-load_dotenv()
+load_local_env()
 
 
 class OpenSkyAPIError(Exception):

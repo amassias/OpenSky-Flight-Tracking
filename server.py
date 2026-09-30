@@ -16,12 +16,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
-from dotenv import load_dotenv
+from local_env import load_local_env
 
 from api_client import OpenSkyAPIError, OpenSkyClient
 from data_loader import get_airline_name, load_airports, search_airports
 
-load_dotenv()
+load_local_env()
 
 BASE_DIR = os.path.dirname(__file__)
 FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "dist")

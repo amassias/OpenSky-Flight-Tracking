@@ -1,9 +1,9 @@
 import os
 import time
 from api_client import OpenSkyClient
-from dotenv import load_dotenv
+from local_env import load_local_env
 
-load_dotenv()
+load_local_env()
 
 def verify_track():
     client = OpenSkyClient()
