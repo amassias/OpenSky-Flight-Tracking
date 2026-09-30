@@ -478,7 +478,7 @@ input { caret-color: var(--accent); }
   .data-note { margin-top: 20px; }
   .mobile-scrim { position: absolute; z-index: 595; inset: 0; border: 0; background: var(--scrim); animation: fade-in .3s var(--ease-out); }
   @keyframes fade-in { from { opacity: 0; } }
-  .results-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 216px; border-radius: var(--r-lg); transition: height .45s var(--ease-out); }
+  .results-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 216px; border-radius: var(--r-lg); }
   .results-panel.mobile-expanded { height: min(70vh, 620px); }
   .results-heading { padding: 10px 14px 10px; }
   .results-heading h2 { font-size: 19px; }
