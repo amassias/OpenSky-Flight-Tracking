@@ -106,6 +106,7 @@ export interface Flight {
   route_source?: RouteSource;
   route_provider?: string | null;
   registration?: string | null;
+  registration_source?: "adsb" | "schedule" | null;
   aircraft_type?: string | null;
   aircraft_description?: string | null;
   aircraft_owner?: string | null;
@@ -201,6 +202,7 @@ export interface FlightInfoResponse {
   last_contact?: number | null;
   time_position?: number | null;
   registration?: string | null;
+  registration_source?: "adsb" | "schedule" | null;
   aircraft_type?: string | null;
   aircraft_description?: string | null;
   aircraft_owner?: string | null;

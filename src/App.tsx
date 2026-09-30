@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { Activity, CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "./components/icons";
-import { api, readableApiError } from "./api";
+import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportSearch } from "./components/AirportSearch";
 import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
@@ -152,6 +152,7 @@ export function App() {
       route_source: info.route_source ?? selectedFlight.route_source,
       route_provider: info.route_provider ?? selectedFlight.route_provider,
       registration: info.registration ?? selectedFlight.registration,
+      registration_source: info.registration ? info.registration_source : selectedFlight.registration_source,
       aircraft_type: info.aircraft_type ?? selectedFlight.aircraft_type,
       aircraft_description: info.aircraft_description ?? selectedFlight.aircraft_description,
       aircraft_owner: info.aircraft_owner ?? selectedFlight.aircraft_owner,
@@ -186,6 +187,22 @@ export function App() {
     queryFn: ({ signal }) => api.track(detailsFlight!.icao24, detailsFlight!.primary_time ?? detailsFlight!.first_seen ?? 0, signal),
     enabled: Boolean(detailsFlight),
     retry: false,
+  });
+
+  // Only the selected aircraft is looked up, never every marker, to keep the
+  // photo provider's traffic reasonable. The registration usually arrives a
+  // moment later from flight-info; keep showing the hex result meanwhile.
+  // A scheduled tail may belong to another airframe; only the transponder's
+  // registration can fall back to a registration photo lookup.
+  const airframeRegistration = detailsFlight?.registration_source === "schedule" ? null : detailsFlight?.registration ?? null;
+  const photo = useQuery({
+    queryKey: ["aircraft-photo", detailsFlight?.icao24, airframeRegistration],
+    queryFn: ({ signal }) => aircraftPhoto(detailsFlight!.icao24, airframeRegistration, signal),
+    enabled: Boolean(detailsFlight),
+    staleTime: 24 * 60 * 60_000,
+    gcTime: 60 * 60_000,
+    retry: false,
+    placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === detailsFlight?.icao24 ? previous : undefined,
   });
 
   useEffect(() => {
@@ -496,6 +513,9 @@ export function App() {
             trackError={track.error ? readableApiError(track.error) : undefined}
             routeLoading={flightInfo.isFetching && !flightInfo.data}
             routeError={flightInfo.error ? readableApiError(flightInfo.error) : undefined}
+            photo={photo.data}
+            photoLoading={photo.isPending && photo.fetchStatus !== "idle"}
+            photoError={photo.isError}
             onRetryTrack={() => track.refetch()}
             onClose={() => setSelectedFlight(null)}
             onShare={shareFlight}

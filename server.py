@@ -1020,6 +1020,15 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
         resolved_aircraft_type = (current_state or {}).get("aircraft_type") or (flightaware or {}).get("aircraft_type")
         resolved_registration = (current_state or {}).get("registration") or (flightaware or {}).get("registration")
+        # The transponder's registration identifies the physical airframe.
+        # FlightAware's tail is the aircraft *scheduled* for this flight number,
+        # which differs after an aircraft swap, so the client must not treat it
+        # as the airframe's identity (label a photo with it, or look one up).
+        registration_source = (
+            "adsb" if (current_state or {}).get("registration")
+            else "schedule" if resolved_registration
+            else None
+        )
         resolved_aircraft_description = (current_state or {}).get("aircraft_description") or _describe_aircraft_type(resolved_aircraft_type)
 
         payload = {
@@ -1041,6 +1050,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "live_state": current_state,
             "flightaware": flightaware,
             "registration": resolved_registration,
+            "registration_source": registration_source,
             "aircraft_type": resolved_aircraft_type,
             "aircraft_description": resolved_aircraft_description,
         }

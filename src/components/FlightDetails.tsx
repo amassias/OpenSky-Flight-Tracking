@@ -1,5 +1,6 @@
 import { Activity, Copy, Database, Gauge, Navigation, Plane, PlaneLanding, PlaneTakeoff, Radio, Share2, ShieldAlert, X } from "./icons";
 import { motion } from "motion/react";
+import type { AircraftPhoto } from "../api";
 import type { Flight, TrackResponse } from "../types";
 import { formatAltitude, formatSpeed, formatTime, statusLabel } from "../utils";
 import { AltitudeChart } from "./AltitudeChart";
@@ -11,12 +12,15 @@ interface FlightDetailsProps {
   trackError?: string;
   routeLoading?: boolean;
   routeError?: string;
+  photo?: AircraftPhoto | null;
+  photoLoading?: boolean;
+  photoError?: boolean;
   onRetryTrack: () => void;
   onClose: () => void;
   onShare: () => void;
 }
 
-export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   const path = track?.track.path ?? [];
   const routeSourceLabel = flight.route_source === "callsign"
     ? "Estimated from callsign"
@@ -78,6 +82,8 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
         </div>
       </header>
 
+      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
+
       <div className="route-timeline">
         <div className="route-stop">
           <PlaneTakeoff size={17} aria-hidden="true" />
@@ -130,7 +136,7 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
           <small className="mono">{profileValue(flight.source || flight.data_source, "ADS-B")}</small>
         </header>
         <div className="aircraft-profile-grid">
-          <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}</strong></div>
+          <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
           <div><span>Type code</span><strong className="mono">{profileValue(flight.aircraft_type)}</strong></div>
           <div className="aircraft-profile-wide"><span>Aircraft</span><strong>{profileValue(flight.aircraft_description, "Type not published")}</strong></div>
           <div className="aircraft-profile-wide"><span>Operator / owner</span><strong>{profileValue(flight.aircraft_owner, "Not published")}</strong></div>
@@ -173,5 +179,47 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
         {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
       </section>
     </motion.aside>
+  );
+}
+
+interface AircraftPhotoFigureProps {
+  flight: Flight;
+  photo?: AircraftPhoto | null;
+  loading: boolean;
+  error: boolean;
+}
+
+function AircraftPhotoFigure({ flight, photo, loading, error }: AircraftPhotoFigureProps) {
+  const airframe = flight.registration_source === "schedule" ? null : flight.registration;
+  const identity = [airframe, flight.aircraft_type].filter(Boolean).join(" · ");
+  if (loading && !photo) return <div className="aircraft-photo aircraft-photo-loading" role="status" aria-label="Loading aircraft photo" />;
+  if (!photo) {
+    return (
+      <div className="aircraft-photo aircraft-photo-empty">
+        <Plane size={22} aria-hidden="true" />
+        <span>{error ? "Photo service unavailable" : `No photo of ${airframe || "this aircraft"} yet`}</span>
+      </div>
+    );
+  }
+  return (
+    <figure className="aircraft-photo">
+      {/* Planespotters terms: a plain, followable link to the photo page. */}
+      <a href={photo.link} target="_blank" rel="noopener" className="aircraft-photo-link">
+        <img
+          key={photo.src}
+          src={photo.src}
+          width={photo.width}
+          height={photo.height}
+          alt={`${identity || flight.callsign || flight.icao24.toUpperCase()}, photo by ${photo.photographer}`}
+          decoding="async"
+          onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
+        />
+        {identity && <span className="aircraft-photo-identity mono">{identity}</span>}
+      </a>
+      <figcaption>
+        <span>© {photo.photographer}</span>
+        <a href={photo.link} target="_blank" rel="noopener">Planespotters.net</a>
+      </figcaption>
+    </figure>
   );
 }

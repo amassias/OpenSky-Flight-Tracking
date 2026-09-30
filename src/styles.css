@@ -351,6 +351,20 @@ input { caret-color: var(--accent); }
 .details-status .status-dot { width: 7px; height: 7px; }
 .details-status.status-airborne { color: var(--ok); background: var(--fill-strong); }
 .details-status.status-on_ground { color: var(--muted); background: var(--fill-strong); }
+/* Aircraft photo (Planespotters.net): credit and link-back stay visible. */
+.aircraft-photo { position: relative; margin: 16px 0 0; }
+.aircraft-photo + .route-timeline { margin-top: 10px; }
+.aircraft-photo-link { position: relative; display: block; overflow: hidden; aspect-ratio: 3 / 2; max-height: 240px; width: 100%; border-radius: var(--r-md); background: var(--fill); }
+.aircraft-photo-link img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.02); transition: opacity .5s var(--ease-out), transform .8s var(--ease-out); }
+.aircraft-photo-link img.is-loaded { opacity: 1; transform: none; }
+.aircraft-photo-link:hover img.is-loaded { transform: scale(1.015); }
+.aircraft-photo-identity { position: absolute; left: 10px; bottom: 10px; padding: 4px 10px; color: #fff; border-radius: var(--r-pill); background: rgba(0, 0, 0, .55); font-size: 12px; font-weight: 600; -webkit-backdrop-filter: var(--material); backdrop-filter: var(--material); }
+.aircraft-photo figcaption { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; color: var(--quiet); font-size: 12px; }
+.aircraft-photo figcaption span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aircraft-photo figcaption a { flex: 0 0 auto; color: var(--accent); text-decoration: none; }
+.aircraft-photo figcaption a:hover { text-decoration: underline; }
+.aircraft-photo-loading { aspect-ratio: 3 / 2; max-height: 240px; border-radius: var(--r-md); background: linear-gradient(100deg, var(--fill) 30%, var(--fill-strong) 45%, var(--fill) 60%); background-size: 300% 100%; animation: shimmer 1.5s infinite; }
+.aircraft-photo-empty { display: flex; align-items: center; gap: 10px; padding: 14px; color: var(--quiet); border-radius: var(--r-md); background: var(--fill); font-size: 13px; }
 .route-timeline { margin: 18px 0 10px; padding: 14px; border-radius: var(--r-md); background: var(--fill); }
 .route-stop { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; }
 .route-stop > svg { color: var(--muted); }

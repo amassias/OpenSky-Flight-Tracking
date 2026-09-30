@@ -221,11 +221,15 @@ def test_flight_info_uses_flightaware_route_and_operations_when_other_routes_are
         "progress_percent": 58,
         "scheduled_out": "2026-09-12T08:00:00Z",
         "estimated_in": "2026-09-12T10:00:00Z",
+        "registration": "F-HTYA",
     }
 
     with patch.object(server, "api_client", fake_client):
         payload = handler().handle_flight_info("39abcd", "AFR123")
 
+    # Without a transponder profile the tail is only the scheduled aircraft.
+    assert payload["registration"] == "F-HTYA"
+    assert payload["registration_source"] == "schedule"
     assert payload["route_source"] == "flightaware"
     assert payload["route_provider"] == "FlightAware"
     assert payload["departure_airport"] == "LFPG"

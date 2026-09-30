@@ -5,7 +5,15 @@ const airport = {
   country: "FR", region: "Île-de-France", latitude: 49.0097, longitude: 2.5479,
 };
 
+// A 1×1 PNG stands in for the Planespotters thumbnail so e2e never calls out.
+const PIXEL_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+
 async function mockApi(page: Page, options: { historyUnavailable?: boolean } = {}) {
+  await page.route("https://api.planespotters.net/**", (route) => route.fulfill({
+    headers: { "access-control-allow-origin": "*" },
+    json: { photos: [{ id: "1", thumbnail_large: { src: "https://t.plnspttrs.net/1/1_280.jpg", size: { width: 420, height: 280 } }, link: "https://www.planespotters.net/photo/1/f-habc", photographer: "Test Photographer" }] },
+  }));
+  await page.route("https://t.plnspttrs.net/**", (route) => route.fulfill({ contentType: "image/png", body: PIXEL_PNG }));
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown;
@@ -38,6 +46,9 @@ test("searches an airport and opens a shareable flight detail", async ({ page, i
   await page.getByRole("button", { name: /AFR123/i }).click();
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page).toHaveURL(/airport=LFPG.*icao24=39abcd/);
+  const photoLink = page.locator(".aircraft-photo-link");
+  await expect(photoLink).toHaveAttribute("href", "https://www.planespotters.net/photo/1/f-habc");
+  await expect(page.getByText("© Test Photographer")).toBeVisible();
   await expect(page.getByText("Altitude profile")).toBeVisible();
   await expect(page.locator(".altitude-legend")).toHaveCount(2);
   await page.locator(".altitude-hover-target").hover({ position: { x: 24, y: 12 } });
@@ -77,7 +88,8 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByText("Estimated from callsign")).toBeVisible();
   await expect(page.getByText("Incheon International Airport")).toBeVisible();
   await expect(page.getByText("Aircraft profile")).toBeVisible();
-  await expect(page.getByText("F-HABC")).toBeVisible();
+  await expect(page.getByText("F-HABC", { exact: true })).toBeVisible();
+  await expect(page.getByText("F-HABC · A359")).toBeVisible();
   await expect(page.getByText("AIRBUS A-350-941")).toBeVisible();
   await expect(page.getByText("Operations")).toBeVisible();
   await expect(page.getByText("FlightAware", { exact: true })).toBeVisible();

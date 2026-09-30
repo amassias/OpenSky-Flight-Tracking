@@ -95,6 +95,74 @@ export const api = {
   track: (icao24: string, time = 0, signal?: AbortSignal) => request<TrackResponse>("/api/track", { icao24, time }, signal),
 };
 
+export interface AircraftPhoto {
+  src: string;
+  width: number;
+  height: number;
+  link: string;
+  photographer: string;
+}
+
+// Planespotters.net public photo API. Its terms require the browser to call it
+// directly (no proxy or re-exposure through our API), JSON cached for at most
+// 24 hours, image URLs used unchanged, and a visible photographer credit plus
+// a plain link back to the photo page wherever the image is shown.
+const PHOTO_API = "https://api.planespotters.net/pub/photos";
+const PHOTO_CACHE_MS = 24 * 60 * 60 * 1000;
+const photoCache = new Map<string, { expiresAt: number; photo: AircraftPhoto | null }>();
+
+interface PlanespottersResponse {
+  photos?: Array<{
+    thumbnail?: { src?: string; size?: { width?: number; height?: number } };
+    thumbnail_large?: { src?: string; size?: { width?: number; height?: number } };
+    link?: string;
+    photographer?: string;
+  }>;
+  error?: string;
+}
+
+function isHttpsUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+async function fetchAircraftPhoto(kind: "hex" | "reg", id: string, signal?: AbortSignal): Promise<AircraftPhoto | null> {
+  const key = `${kind}:${id}`;
+  const cached = photoCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.photo;
+
+  const response = await fetch(`${PHOTO_API}/${kind}/${encodeURIComponent(id)}`, { signal, headers: { Accept: "application/json" } });
+  const payload = await response.json().catch(() => ({})) as PlanespottersResponse;
+  if (!response.ok || payload.error) throw new ApiError(payload.error || `Photo lookup failed (${response.status})`, response.status);
+
+  const first = payload.photos?.[0];
+  const image = first?.thumbnail_large ?? first?.thumbnail;
+  // Only accept real https links: the image and its link are rendered as-is.
+  const photo = first && image && isHttpsUrl(image.src) && isHttpsUrl(first.link)
+    ? {
+      src: image.src,
+      width: image.size?.width ?? 420,
+      height: image.size?.height ?? 280,
+      link: first.link,
+      photographer: first.photographer?.trim() || "Unknown photographer",
+    }
+    : null;
+  photoCache.set(key, { expiresAt: Date.now() + PHOTO_CACHE_MS, photo });
+  return photo;
+}
+
+/** Latest photo of this airframe: by Mode S hex first, then by registration. */
+export async function aircraftPhoto(icao24: string, registration?: string | null, signal?: AbortSignal): Promise<AircraftPhoto | null> {
+  const byHex = await fetchAircraftPhoto("hex", icao24.trim().toLowerCase(), signal);
+  const reg = registration?.trim().toUpperCase();
+  if (byHex || !reg) return byHex;
+  return fetchAircraftPhoto("reg", reg, signal);
+}
+
 export function readableApiError(error: unknown): string {
   if (!(error instanceof ApiError)) return "The service could not be reached. Check that the Python server is running.";
   if (error.status === 401) return "OpenSky credentials are missing or invalid. Add them to your local .env file.";
