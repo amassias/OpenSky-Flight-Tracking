@@ -16,6 +16,7 @@ const icons = {
   Plane: "plane", PlaneLanding: "plane-arrival", PlaneTakeoff: "plane-departure", Play: "play",
   Radio: "tower-broadcast", Search: "magnifying-glass", Share2: "share-nodes",
   ShieldAlert: "shield-halved", Sun: "sun", X: "xmark",
+  TrendUp: "arrow-trend-up", TrendDown: "arrow-trend-down", TriangleAlert: "triangle-exclamation",
 };
 
 const entries = Object.entries(icons).map(([name, file]) => {

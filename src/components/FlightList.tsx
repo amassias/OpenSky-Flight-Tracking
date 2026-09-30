@@ -1,10 +1,11 @@
-import { memo, useMemo, useState } from "react";
-import { ArrowDownUp, Filter, Plane, Search } from "./icons";
+import { memo, useMemo, useState, type KeyboardEvent } from "react";
+import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert } from "./icons";
+import { usePersistentState } from "../hooks/usePersistentState";
 import type { Flight } from "../types";
-import { flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel } from "../utils";
+import { distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
 
 type StatusFilter = "all" | "airborne" | "on_ground" | "completed";
-type SortOrder = "time_desc" | "time_asc" | "airline_asc";
+type SortOrder = "time_desc" | "time_asc" | "airline_asc" | "distance_asc";
 
 interface FlightListProps {
   flights: Flight[];
@@ -16,6 +17,8 @@ interface FlightListProps {
   onSelect: (flight: Flight) => void;
   onPreview?: (flight: Flight | null) => void;
   onRetry: () => void;
+  /** Map centre for the "Nearest" sort; live positions are measured from it. */
+  referencePoint?: [number, number] | null;
 }
 
 interface FlightCardProps {
@@ -28,11 +31,15 @@ interface FlightCardProps {
 const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview }: FlightCardProps) {
   const status = statusLabel(flight.status, flight.on_ground);
   const time = flight.primary_time ?? flight.first_seen ?? flight.last_seen;
+  const emergency = emergencyInfo(flight);
+  const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
+  const airframe = [flight.registration_source === "schedule" ? null : flight.registration, flight.aircraft_type].filter(Boolean).join(" · ");
+  const operator = flight.airline_name || airframe || "Unidentified operator";
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
     <button
       type="button"
-      className={`flight-card ${selected ? "selected" : ""}`}
+      className={`flight-card ${selected ? "selected" : ""} ${emergency ? "is-emergency" : ""}`}
       onClick={() => onSelect(flight)}
       onMouseEnter={() => onPreview?.(flight)}
       onMouseLeave={() => onPreview?.(null)}
@@ -46,17 +53,23 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
             <span className={`status-dot status-${statusKey}`} aria-hidden="true" />
             <span className="callsign mono">{flight.callsign || flight.icao24.toUpperCase()}</span>
           </span>
-          <span className="airline">{flight.airline_name || "Unidentified operator"}</span>
+          <span className="airline">{operator}{flight.airline_name && airframe ? <span className="airframe"> · {airframe}</span> : null}</span>
         </span>
         <span className="route mono">{routeLabel(flight)}</span>
         <span className="flight-meta">
-          <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>
+          {emergency
+            ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
+            : <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>}
           {time != null && <>
             <span>·</span>
             <span>{formatTime(time)} UTC</span>
           </>}
           <span className="flight-meta-divider" aria-hidden="true" />
-          <span>{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</span>
+          <span className="flight-altitude">
+            {formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}
+            {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-label="Climbing" />}
+            {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-label="Descending" />}
+          </span>
           <span>·</span>
           <span>{formatSpeed(flight.velocity)}</span>
         </span>
@@ -76,10 +89,11 @@ export function FlightList({
   onSelect,
   onPreview,
   onRetry,
+  referencePoint = null,
 }: FlightListProps) {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [sort, setSort] = useState<SortOrder>("time_desc");
+  const [status, setStatus] = usePersistentState<StatusFilter>("skytrace-list-status", "all");
+  const [sort, setSort] = usePersistentState<SortOrder>("skytrace-list-sort", "time_desc");
 
   const visibleFlights = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -95,15 +109,35 @@ export function FlightList({
       return matchesText && (status === "all" || actualStatus === status);
     });
 
+    const distance = (flight: Flight) => referencePoint && flight.latitude != null && flight.longitude != null
+      ? distanceKm(referencePoint, [flight.latitude, flight.longitude])
+      : Number.POSITIVE_INFINITY;
     return [...filtered].sort((a, b) => {
+      // An aircraft declaring an emergency always leads the board.
+      const urgency = Number(Boolean(emergencyInfo(b))) - Number(Boolean(emergencyInfo(a)));
+      if (urgency) return urgency;
+      if (sort === "distance_asc") return distance(a) - distance(b);
       if (sort === "airline_asc") return (a.airline_name || "").localeCompare(b.airline_name || "");
       const aTime = a.primary_time ?? a.first_seen ?? a.last_seen ?? 0;
       const bTime = b.primary_time ?? b.first_seen ?? b.last_seen ?? 0;
       return sort === "time_asc" ? aTime - bTime : bTime - aTime;
     });
-  }, [flights, query, sort, status]);
+  }, [flights, query, referencePoint, sort, status]);
 
   const filtersActive = query.trim() !== "" || status !== "all";
+
+  // ↑/↓ (and Home/End) move between flight cards, like a native list.
+  function moveFocus(event: KeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const cards = [...event.currentTarget.querySelectorAll<HTMLButtonElement>(".flight-card")];
+    const index = cards.indexOf(document.activeElement as HTMLButtonElement);
+    if (index < 0 || !cards.length) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0
+      : event.key === "End" ? cards.length - 1
+      : Math.min(cards.length - 1, Math.max(0, index + (event.key === "ArrowDown" ? 1 : -1)));
+    cards[next].focus();
+  }
   function clearFilters() {
     setQuery("");
     setStatus("all");
@@ -134,6 +168,7 @@ export function FlightList({
             <option value="time_desc">Latest</option>
             <option value="time_asc">Earliest</option>
             <option value="airline_asc">Airline A–Z</option>
+            <option value="distance_asc">Nearest</option>
           </select>
         </label>
       </div>
@@ -146,7 +181,7 @@ export function FlightList({
         </div>
       )}
 
-      <div className="flight-list" aria-live="polite" aria-busy={loading}>
+      <div className="flight-list" aria-live="polite" aria-busy={loading} onKeyDown={moveFocus}>
         {loading && flights.length === 0 && <div className="movement-loading" role="status">
           <span className="movement-loading-radar" aria-hidden="true"><span /></span>
           <div><strong>Loading airport movements</strong><span>Checking recorded flights and the latest available traffic…</span></div>

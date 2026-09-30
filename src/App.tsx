@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { Activity, CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "./components/icons";
+import { Activity, CalendarDays, TriangleAlert, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "./components/icons";
 import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportSearch } from "./components/AirportSearch";
 import { FlightDetails } from "./components/FlightDetails";
@@ -11,7 +11,7 @@ import { FlightMap } from "./components/FlightMap";
 import { Topbar } from "./components/Topbar";
 import { usePersistentState } from "./hooks/usePersistentState";
 import type { Airport, Flight, FlightMode, LiveFlightsResponse, MapTheme } from "./types";
-import { todayUtc } from "./utils";
+import { emergencyInfo, todayUtc } from "./utils";
 
 interface FlightRequest {
   airport: Airport;
@@ -57,6 +57,7 @@ export function App() {
   const [commandPending, setCommandPending] = useState(false);
   const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
   const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
 
@@ -270,6 +271,15 @@ export function App() {
       ? `Live traffic around ${request.airport.iata || request.airport.icao}`
       : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${request.airport.iata || request.airport.icao}`
     : "Flight movements";
+  // Emergencies in the visible airspace are surfaced above the board whatever
+  // list is showing, the way FR24 flags 7500/7600/7700 squawks.
+  const emergencies = useMemo(
+    () => (liveFallbackSnapshot?.data.states ?? []).flatMap((aircraft) => {
+      const info = emergencyInfo(aircraft);
+      return info ? [{ aircraft, info }] : [];
+    }),
+    [liveFallbackSnapshot],
+  );
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
   const activeAirport = request?.airport ?? selectedAirport;
   const sourceLabel = liveBoard ? "Live" : showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
@@ -281,9 +291,11 @@ export function App() {
       return;
     }
     const normalized = query.toLowerCase();
-    const flightMatch = displayedFlights.find((flight) => [
+    const searchable = [...displayedFlights, ...(liveFallbackSnapshot?.data.states ?? [])];
+    const flightMatch = searchable.find((flight) => [
       flight.callsign,
       flight.icao24,
+      flight.registration,
     ].some((value) => value?.toLowerCase().includes(normalized)));
     if (flightMatch) {
       setPreviewFlight(null);
@@ -393,6 +405,7 @@ export function App() {
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}
           onSelectFlight={setSelectedFlight}
           onLiveSnapshot={handleLiveSnapshot}
+          onViewportCenter={setMapCenter}
         />
 
         <aside className={`query-panel glass-panel ${mobileControlsOpen ? "mobile-open" : ""}`} aria-label="Flight search controls">
@@ -483,6 +496,17 @@ export function App() {
               </button>
             </div>
           </header>
+          {emergencies.length > 0 && (
+            <div className="emergency-banner" role="alert">
+              {emergencies.slice(0, 3).map(({ aircraft, info }) => (
+                <button key={aircraft.icao24} type="button" onClick={() => { setPreviewFlight(null); setSelectedFlight({ ...aircraft, status: aircraft.on_ground ? "on_ground" : "airborne", primary_time: 0 }); }}>
+                  <TriangleAlert size={14} aria-hidden="true" />
+                  <strong>{/^[0-9]+$/.test(info.code) ? `Squawk ${info.code}` : "Emergency"}</strong>
+                  <span>{aircraft.callsign || aircraft.icao24.toUpperCase()} · {info.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="stats-row">
             <div><strong className="mono">{summary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Total flights"}</span></div>
             <div><strong className="mono accent">{summary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
@@ -500,6 +524,7 @@ export function App() {
             onSelect={(flight) => { setPreviewFlight(null); setSelectedFlight(flight); }}
             onPreview={setPreviewFlight}
             onRetry={() => flights.refetch()}
+            referencePoint={mapCenter}
           />
         </section>
 

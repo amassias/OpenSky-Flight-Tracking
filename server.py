@@ -10,6 +10,7 @@ import http.server
 import json
 import mimetypes
 import os
+import re
 import socketserver
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -19,9 +20,11 @@ from urllib.parse import parse_qs, urlparse
 from local_env import load_local_env
 
 from api_client import OpenSkyAPIError, OpenSkyClient
-from data_loader import get_airline_name, load_airports, search_airports
+from data_loader import get_airline_name, load_airlines, load_airports, search_airports
 
 load_local_env()
+
+LIVE_AIRLINE_CALLSIGN = re.compile(r"^([A-Z]{3})[0-9]")
 
 BASE_DIR = os.path.dirname(__file__)
 FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "dist")
@@ -347,7 +350,9 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "airports_loaded": len(ALL_AIRPORTS),
             "credentials_configured": api_client.credentials_available(),
             "flightaware_configured": bool(os.getenv("FLIGHTAWARE_AEROAPI_KEY")),
-            "live_available": bool(os.getenv("VERCEL")) or api_client.credentials_available(),
+            # The map's live tiles come from public ADS-B feeds (fallback=1),
+            # which need no OpenSky account; credentials only add history.
+            "live_available": True,
             "server_time_utc": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -418,12 +423,30 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             state.update(profile)
         return state
 
+    @staticmethod
+    def _live_airline(callsign):
+        """Airline from an airline-style callsign (three letters then a digit).
+
+        Registration-style callsigns (FHABC, N123AB) are general aviation and
+        must not be matched against airline ICAO codes.
+        """
+        match = LIVE_AIRLINE_CALLSIGN.match(str(callsign or "").strip().upper())
+        if not match:
+            return None, None
+        code = match.group(1)
+        name = load_airlines().get(code)
+        return (code, name) if name else (None, None)
+
     def _parse_states(self, states_list):
         parsed = []
         for state in states_list or []:
             if len(state) > 6 and state[5] is not None and state[6] is not None:
                 parsed_state = self._state_row_to_object(state)
                 parsed_state["data_source"] = "live-nearby"
+                airline_code, airline_name = self._live_airline(parsed_state.get("callsign"))
+                if airline_name:
+                    parsed_state["airline_code"] = airline_code
+                    parsed_state["airline_name"] = airline_name
                 parsed.append(parsed_state)
         return parsed
 

@@ -125,3 +125,38 @@ test("shows a location marker after the user grants geolocation", async ({ page,
   await expect(page.locator(".user-location-marker")).toHaveCount(1);
   await expect(page.locator(".leaflet-marker-icon").filter({ has: page.locator(".user-location-marker") })).toHaveCount(1);
 });
+
+test("follows the selected aircraft until the map is dragged", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Dragging the map is covered on desktop pointers.");
+  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  const follow = page.getByRole("button", { name: "Follow selected aircraft" });
+  await follow.click();
+  await expect(page.getByRole("button", { name: "Stop following aircraft" })).toHaveAttribute("aria-pressed", "true");
+  // Let the follow fly-in settle; Leaflet ignores drags during a zoom animation.
+  await expect(page.locator(".leaflet-zoom-anim")).toHaveCount(0);
+  await page.waitForTimeout(1_000);
+  const map = page.locator(".leaflet-container");
+  const box = (await map.boundingBox())!;
+  // Grab open map away from the centred aircraft, clear of the panels.
+  const start = { x: box.x + box.width / 2 + 100, y: box.y + 110 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 120, start.y + 60, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.getByRole("button", { name: "Follow selected aircraft" })).toHaveAttribute("aria-pressed", "false");
+});
+
+test("flags an emergency squawk above the board and on the map", async ({ page }) => {
+  await page.unroute("**/api/**");
+  await mockApi(page);
+  await page.route("**/api/live-flights**", (route) => route.fulfill({ json: {
+    success: true, time: 1_752_000_000, count: 1,
+    states: [{ icao24: "3c1234", callsign: "DLH7AB", latitude: 49.05, longitude: 2.6, baro_altitude: 3000, velocity: 150, true_track: 120, on_ground: false, squawk: "7700", data_source: "live-nearby" }],
+  } }));
+  await page.reload();
+  const alert = page.getByRole("alert").filter({ hasText: "Squawk 7700" });
+  await expect(alert).toContainText("DLH7AB · General emergency");
+  await expect(page.locator(".aircraft-marker.emergency")).toHaveCount(1);
+  await alert.getByRole("button").click();
+  await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
+});

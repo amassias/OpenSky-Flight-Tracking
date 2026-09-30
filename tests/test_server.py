@@ -330,3 +330,24 @@ def test_track_returns_immediately_on_vercel(monkeypatch):
     assert payload["path_count"] == 0
     assert "serverless" in payload["message"]
     fake_client.get_track.assert_not_called()
+
+
+def test_live_states_name_the_airline_from_airline_style_callsigns():
+    rows = [
+        ["4caf2b", "RYR70GE ", "Ireland", 1, 1, 2.5, 49.0, 11000, False, 230, 90, 0, None, 11100, "1000", False, 0, 3],
+        ["39abcd", "FHABC", "France", 1, 1, 2.6, 49.1, 900, False, 60, 90, 0, None, 950, "7000", False, 0, 2],
+    ]
+    parsed = handler()._parse_states(rows)
+    assert parsed[0]["airline_code"] == "RYR"
+    assert parsed[0]["airline_name"]
+    assert "airline_name" not in parsed[1]
+
+
+def test_health_reports_live_map_without_opensky_credentials(monkeypatch):
+    monkeypatch.delenv("VERCEL", raising=False)
+    fake_client = Mock()
+    fake_client.credentials_available.return_value = False
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_health()
+    assert payload["live_available"] is True
+    assert payload["credentials_configured"] is False

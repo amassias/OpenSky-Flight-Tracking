@@ -531,3 +531,25 @@ input { caret-color: var(--accent); }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .aircraft-marker { transition: none; }
 }
+
+/* Emergencies (7500/7600/7700 or ADS-B emergency state): the one red on the map. */
+.aircraft-marker.emergency:not(.active) { color: var(--danger); filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+.aircraft-marker.emergency::after { content: ""; position: absolute; inset: -4px; border: 1.5px solid var(--danger); border-radius: 50%; animation: emergency-ring 1.8s var(--ease-out) infinite; pointer-events: none; }
+.aircraft-marker.emergency { position: relative; }
+@keyframes emergency-ring { 0% { opacity: .9; transform: scale(.8); } 100% { opacity: 0; transform: scale(1.6); } }
+.emergency-banner { display: grid; gap: 4px; margin: 0 18px 12px; }
+.emergency-banner button { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; color: var(--danger); text-align: left; border: 0; border-radius: var(--r-md); background: color-mix(in srgb, var(--danger) 12%, transparent); font-size: 13px; cursor: pointer; transition: background .2s var(--ease-out), transform .15s var(--ease-out); }
+.emergency-banner button:hover { background: color-mix(in srgb, var(--danger) 18%, transparent); }
+.emergency-banner button:active { transform: scale(.98); }
+.emergency-banner strong { font-weight: 600; white-space: nowrap; }
+.emergency-banner span { overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+.flight-card.is-emergency { background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.flight-emergency { display: inline-flex; align-items: center; gap: 4px; color: var(--danger); font-weight: 600; }
+.airline .airframe { color: var(--quiet); }
+.flight-altitude { display: inline-flex; align-items: center; gap: 3px; }
+.trend { flex: 0 0 auto; }
+.trend-up { color: var(--ok); }
+.trend-down { color: var(--accent); }
+.map-controls button.follow-active { color: #fff; background: var(--accent); }
+.map-controls button.follow-active:hover:not(:disabled) { color: #fff; background: var(--accent-press); }
+@media (max-width: 900px) { .emergency-banner { margin: 0 12px 8px; } }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, expandBounds, extent, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -87,5 +87,26 @@ describe("progressive live viewport", () => {
     expect(tiles[0].lamax).toBeGreaterThan(47);
     expect(tiles.every((tile) => tile.lamax - tile.lamin <= 5.1)).toBe(true);
     expect(viewportTileCount({ lamin: 40, lamax: 55, lomin: -5, lomax: 10 })).toBe(tiles.length);
+  });
+});
+
+describe("live flight helpers", () => {
+  it("recognises emergency squawks and ADS-B emergency states", () => {
+    expect(emergencyInfo({ squawk: "7700" })).toEqual({ code: "7700", label: "General emergency" });
+    expect(emergencyInfo({ squawk: "7600" })?.label).toBe("Radio failure");
+    expect(emergencyInfo({ squawk: "1000", emergency: "minfuel" })).toEqual({ code: "MINFUEL", label: "Minimum fuel" });
+    expect(emergencyInfo({ squawk: "7000", emergency: "none" })).toBeNull();
+    expect(emergencyInfo({})).toBeNull();
+  });
+
+  it("classifies the vertical trend with a level band", () => {
+    expect(verticalTrend(6)).toBe("climbing");
+    expect(verticalTrend(-4)).toBe("descending");
+    expect(verticalTrend(0.4)).toBe("level");
+    expect(verticalTrend(null)).toBeNull();
+  });
+
+  it("measures great-circle distance", () => {
+    expect(distanceKm([49.0097, 2.5479], [51.47, -0.4543])).toBeCloseTo(348, -1);
   });
 });

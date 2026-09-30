@@ -3,18 +3,19 @@ import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "./icons";
 import { api } from "../api";
-import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackResponse } from "../types";
+import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackPoint, TrackResponse } from "../types";
 import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
-import { aircraftIconKind, altitudeColor, boundsEqual, expandBounds, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
+import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
+const NO_AIRCRAFT: LiveAircraft[] = [];
 
 // Leaflet paths and canvas dots cannot read CSS custom properties, so the
 // theme tokens they need are mirrored here (see --aircraft / --accent).
-const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: string; halo: string }> = {
-  dark: { aircraft: "#f5f5f7", ground: "#8e8e93", accent: "#2997ff", halo: "#0b0b0c" },
-  light: { aircraft: "#1d1d1f", ground: "#86868b", accent: "#0066cc", halo: "#ffffff" },
+const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: string; halo: string; danger: string }> = {
+  dark: { aircraft: "#f5f5f7", ground: "#8e8e93", accent: "#2997ff", halo: "#0b0b0c", danger: "#ff453a" },
+  light: { aircraft: "#1d1d1f", ground: "#86868b", accent: "#0066cc", halo: "#ffffff", danger: "#d70015" },
 };
 
 // Tabler Icons (MIT): https://github.com/tabler/tabler-icons
@@ -49,10 +50,10 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
   }
 }
 
-function planeIcon(heading = 0, active = false, onGround = false, icao24?: string, kind: AircraftIconKind = "airliner") {
+function planeIcon(heading = 0, active = false, onGround = false, icao24?: string, kind: AircraftIconKind = "airliner", emergency = false) {
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
-    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
+    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -63,7 +64,7 @@ function liveAircraftToFlight(aircraft: LiveAircraft): Flight {
     ...aircraft,
     status: aircraft.on_ground ? "on_ground" : "airborne",
     primary_time: 0,
-    airline_name: "Live traffic",
+    airline_name: aircraft.airline_name || "",
   };
 }
 
@@ -180,13 +181,16 @@ function areMarkersEqual(
     && a.category === b.category
     && a.aircraft_category === b.aircraft_category
     && a.aircraft_type === b.aircraft_type
-    && a.aircraft_description === b.aircraft_description;
+    && a.aircraft_description === b.aircraft_description
+    && a.squawk === b.squawk
+    && a.emergency === b.emergency;
 }
 
 const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect, positionOverride, headingOverride }: AircraftMarkerProps) {
   const iconKind = aircraftIconKind(aircraft);
   const heading = headingOverride ?? aircraft.true_track ?? 0;
-  const icon = useMemo(() => planeIcon(heading, active, aircraft.on_ground === true, aircraft.icao24, iconKind), [aircraft.icao24, aircraft.on_ground, active, iconKind, heading]);
+  const emergency = emergencyInfo(aircraft) !== null;
+  const icon = useMemo(() => planeIcon(heading, active, aircraft.on_ground === true, aircraft.icao24, iconKind, emergency), [aircraft.icao24, aircraft.on_ground, active, iconKind, heading, emergency]);
   const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
   // Read through a ref so the handler identity never changes, which keeps
   // Leaflet from detaching and re-attaching listeners on every refresh.
@@ -241,7 +245,7 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
 const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, positionOverride, theme = "dark" }: AircraftMarkerProps) {
   const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
   // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
-  const color = active ? MAP_COLORS[theme].accent : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
+  const color = active ? MAP_COLORS[theme].accent : emergencyInfo(aircraft) ? MAP_COLORS[theme].danger : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
   const pathOptions = useMemo(() => ({
     color,
     fillColor: color,
@@ -258,7 +262,7 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, posi
         ...current,
         status: current.on_ground ? "on_ground" : "airborne",
         primary_time: 0,
-        airline_name: "Live traffic",
+        airline_name: current.airline_name || "",
       });
     },
   }), [onSelect]);
@@ -470,6 +474,42 @@ function MapController({ airport, flight, track, locateRequest, onLocationFound,
   return null;
 }
 
+interface FollowControllerProps {
+  active: boolean;
+  position: MarkerPosition | null;
+  onRelease: () => void;
+}
+
+function FollowController({ active, position, onRelease }: FollowControllerProps) {
+  const map = useMap();
+  const latitude = position?.[0];
+  const longitude = position?.[1];
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (!active) {
+      started.current = false;
+      return;
+    }
+    map.on("dragstart", onRelease);
+    return () => { map.off("dragstart", onRelease); };
+  }, [active, map, onRelease]);
+
+  useEffect(() => {
+    if (!active || latitude == null || longitude == null) return;
+    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!started.current) {
+      // First frame: close in on the aircraft, then only pan with it.
+      started.current = true;
+      map.stop();
+      map.flyTo([latitude, longitude], Math.max(map.getZoom(), 9), { animate, duration: 0.8 });
+      return;
+    }
+    map.panTo([latitude, longitude], { animate, duration: 1, easeLinearity: 0.25 });
+  }, [active, latitude, longitude, map]);
+  return null;
+}
+
 interface FlightMapProps {
   airport: Airport | null;
   selectedFlight: Flight | null;
@@ -484,6 +524,7 @@ interface FlightMapProps {
   onToggleExpanded: () => void;
   onSelectFlight: (flight: Flight) => void;
   onLiveSnapshot?: (data: LiveFlightsResponse, airportIcao: string | null) => void;
+  onViewportCenter?: (center: [number, number]) => void;
 }
 
 interface ProgressiveLiveState {
@@ -509,12 +550,22 @@ export function FlightMap({
   onToggleExpanded,
   onSelectFlight,
   onLiveSnapshot,
+  onViewportCenter,
 }: FlightMapProps) {
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const handleBounds = useCallback((next: Bounds) => {
     setBounds((current) => (boundsEqual(current, next) ? current : next));
   }, []);
+  useEffect(() => {
+    if (bounds) onViewportCenter?.([(bounds.lamin + bounds.lamax) / 2, (bounds.lomin + bounds.lomax) / 2]);
+  }, [bounds, onViewportCenter]);
   const [locateRequest, setLocateRequest] = useState(0);
+  // Follow keeps the selected aircraft centred as it moves, like FR24's
+  // follow mode. It ends when the user drags the map or picks another aircraft.
+  const [following, setFollowing] = useState(false);
+  const releaseFollow = useCallback(() => setFollowing(false), []);
+  const followedIcao24 = selectedFlight?.icao24;
+  useEffect(() => setFollowing(false), [followedIcao24]);
   const aircraftCacheRef = useRef(new Map<string, LiveAircraft>());
   const aircraftCacheSeenAtRef = useRef(new Map<string, number>());
   const viewportCacheRef = useRef(new Map<string, ViewportCacheEntry>());
@@ -729,7 +780,7 @@ export function FlightMap({
 
   const displayedLiveData = liveState.data;
   const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
-  const displayedLiveStates = displayedLiveData?.states ?? [];
+  const displayedLiveStates = displayedLiveData?.states ?? NO_AIRCRAFT;
   // A broad viewport can contain thousands of aircraft. Keep the detailed
   // plane icons for normal views, then switch to a lightweight canvas layer so
   // zooming out does not turn every aircraft into a DOM subtree.
@@ -745,10 +796,30 @@ export function FlightMap({
         : `${displayedLiveData?.count ?? 0} aircraft in view`;
 
   const selectedIcao24 = selectedFlight ? selectedFlight.icao24.toLowerCase() : null;
+  const selectedLive = useMemo(
+    () => selectedIcao24 ? displayedLiveStates.find((aircraft) => aircraft.icao24.toLowerCase() === selectedIcao24) ?? null : null,
+    [displayedLiveStates, selectedIcao24],
+  );
+  // The trace is fetched once per selection, while the live feed keeps
+  // updating. When the feed has a newer fix, extend the trace with it so the
+  // selected aircraft (and the route behind it) keeps moving.
   const trackPoints = useMemo(() => {
     if (selectedIcao24 && track?.track.icao24 && track.track.icao24.toLowerCase() !== selectedIcao24) return [];
-    return (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
-  }, [selectedIcao24, track]);
+    const points = (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
+    const last = points[points.length - 1];
+    const liveTime = selectedLive?.time_position ?? selectedLive?.last_contact;
+    if (last && selectedLive?.latitude != null && selectedLive.longitude != null && liveTime != null && liveTime > last[0] + 1) {
+      return [...points, [
+        liveTime,
+        selectedLive.latitude,
+        selectedLive.longitude,
+        selectedLive.baro_altitude ?? last[3],
+        selectedLive.true_track ?? last[4],
+        selectedLive.on_ground ?? last[5],
+      ] as TrackPoint];
+    }
+    return points;
+  }, [selectedIcao24, selectedLive, track]);
   const trackPositions = useMemo(
     () => trackPoints.map((point) => [point[1], point[2]] as MarkerPosition),
     [trackPoints],
@@ -783,6 +854,10 @@ export function FlightMap({
     [selectedFlight?.icao24, selectedFlight?.on_ground, selectedFlight?.true_track, selectedIconKind, trackLatest?.heading],
   );
   const selectedMapPosition = trackLatest?.position ?? (
+    selectedLive?.latitude != null && selectedLive.longitude != null
+      ? [selectedLive.latitude, selectedLive.longitude] as MarkerPosition
+      : null
+  ) ?? (
     selectedFlight?.latitude != null && selectedFlight.longitude != null
       ? [selectedFlight.latitude, selectedFlight.longitude] as MarkerPosition
       : null
@@ -821,6 +896,7 @@ export function FlightMap({
           onLocationError={handleLocationError}
         />
         <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={onSelectFlight} />
+        <FollowController active={following && Boolean(selectedFlight)} position={selectedMapPosition} onRelease={releaseFollow} />
         {trackPositions.length > 1 && <Polyline
           positions={trackPositions}
           pathOptions={{
@@ -916,7 +992,18 @@ export function FlightMap({
         <button type="button" onClick={onToggleExpanded} aria-label={expanded ? "Exit full map" : "Open full map"} title={expanded ? "Exit full map" : "Full map"}>
           {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
         </button>
-        {trackPositions.length > 1 && <span title="Track loaded"><Crosshair size={16} /></span>}
+        {selectedFlight && (
+          <button
+            type="button"
+            className={following ? "follow-active" : ""}
+            onClick={() => setFollowing(!following)}
+            aria-pressed={following}
+            aria-label={following ? "Stop following aircraft" : "Follow selected aircraft"}
+            title={following ? "Stop following" : "Follow aircraft"}
+          >
+            <Crosshair size={17} />
+          </button>
+        )}
       </div>
       {locationError && <div className="location-status" role="status">{locationError}</div>}
       {trackSegments.length > 0 && <AltitudeLegend compact className="map-altitude-legend" />}

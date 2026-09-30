@@ -182,3 +182,49 @@ export function boundsEqual(a: Bounds | null, b: Bounds | null): boolean {
   if (!a || !b) return a === b;
   return a.lamin === b.lamin && a.lamax === b.lamax && a.lomin === b.lomin && a.lomax === b.lomax;
 }
+
+export interface EmergencyInfo {
+  code: string;
+  label: string;
+}
+
+const EMERGENCY_SQUAWKS: Record<string, string> = {
+  "7500": "Unlawful interference",
+  "7600": "Radio failure",
+  "7700": "General emergency",
+};
+
+const EMERGENCY_STATES: Record<string, string> = {
+  general: "General emergency",
+  lifeguard: "Medical priority",
+  minfuel: "Minimum fuel",
+  nordo: "Radio failure",
+  unlawful: "Unlawful interference",
+  downed: "Aircraft down",
+};
+
+/** Emergency declared by squawk (7500/7600/7700) or the ADS-B emergency field. */
+export function emergencyInfo(aircraft: { squawk?: string | null; emergency?: string | null }): EmergencyInfo | null {
+  const squawk = String(aircraft.squawk ?? "").trim();
+  if (EMERGENCY_SQUAWKS[squawk]) return { code: squawk, label: EMERGENCY_SQUAWKS[squawk] };
+  const state = String(aircraft.emergency ?? "").trim().toLowerCase();
+  if (EMERGENCY_STATES[state]) return { code: state.toUpperCase(), label: EMERGENCY_STATES[state] };
+  return null;
+}
+
+/** Climb / descent trend from the vertical rate in m/s; ±1 m/s (~200 ft/min) counts as level. */
+export function verticalTrend(verticalRate?: number | null): "climbing" | "descending" | "level" | null {
+  if (verticalRate == null || !Number.isFinite(verticalRate)) return null;
+  if (verticalRate > 1) return "climbing";
+  if (verticalRate < -1) return "descending";
+  return "level";
+}
+
+/** Great-circle distance in kilometres. */
+export function distanceKm(a: [number, number], b: [number, number]): number {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLon = toRad(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
