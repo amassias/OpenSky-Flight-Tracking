@@ -759,6 +759,25 @@ class OpenSkyClient:
         self._route_cache[normalized] = (now + ttl, result)
         return result
 
+    def _recent_live_row(self, code: str, max_age_seconds: float = 60.0) -> Optional[list]:
+        """Newest cached live row for this hex that carries a profile."""
+        now = time.time()
+        best = None
+        best_time = -1.0
+        for cached in list(self._live_cache.values()):
+            fetched_at = float(cached.get("fetched_at", 0))
+            if now - fetched_at > max_age_seconds or fetched_at <= best_time:
+                continue
+            result = cached.get("result")
+            for row in (result.get("states") if isinstance(result, dict) else None) or []:
+                if (
+                    isinstance(row, list) and row and str(row[0]).lower() == code
+                    and len(row) > 18 and isinstance(row[18], dict) and row[18].get("registration")
+                ):
+                    best, best_time = row, fetched_at
+                    break
+        return best
+
     def get_aircraft_profile(self, icao24: str) -> Optional[Dict[str, Any]]:
         """Fetch a rich, on-demand profile for one selected aircraft.
 
@@ -770,6 +789,14 @@ class OpenSkyClient:
         code = str(icao24 or "").strip().lower()
         if len(code) != 6:
             return None
+        # The aircraft was almost always just drawn on the map, so its row
+        # (with the transponder registration) is already in the live cache.
+        # Reusing it skips the provider gate shared with map tiles, which
+        # otherwise delays or refuses this lookup right after a map refresh.
+        cached_row = self._recent_live_row(code)
+        if cached_row is not None:
+            profile = cached_row[18] if len(cached_row) > 18 and isinstance(cached_row[18], dict) else {}
+            return {"state": cached_row, "profile": profile, "provider": "cache"}
         try:
             result = self._get_airplanes_live_states(icao24_list=[code])
         except (OpenSkyAPIError, ValueError, TypeError):

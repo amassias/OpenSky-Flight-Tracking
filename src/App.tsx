@@ -139,6 +139,12 @@ export function App() {
   const detailsFlight = useMemo(() => {
     if (!selectedFlight || !flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return selectedFlight;
     const info = flightInfo.data;
+    // Airframe identity, most to least reliable: the transponder profile from
+    // flight-info, then the transponder registration the live feed already
+    // gave us, and only then FlightAware's tail, which is the aircraft
+    // *scheduled* on this flight number and differs after an aircraft swap.
+    const scheduledOnly = info.registration_source === "schedule";
+    const liveAirframe = scheduledOnly && Boolean(selectedFlight.registration);
     return {
       ...selectedFlight,
       callsign: info.callsign || selectedFlight.callsign,
@@ -152,9 +158,9 @@ export function App() {
       last_seen: info.last_seen ?? selectedFlight.last_seen,
       route_source: info.route_source ?? selectedFlight.route_source,
       route_provider: info.route_provider ?? selectedFlight.route_provider,
-      registration: info.registration ?? selectedFlight.registration,
-      registration_source: info.registration ? info.registration_source : selectedFlight.registration_source,
-      aircraft_type: info.aircraft_type ?? selectedFlight.aircraft_type,
+      registration: liveAirframe ? selectedFlight.registration : info.registration ?? selectedFlight.registration,
+      registration_source: liveAirframe ? "adsb" : info.registration ? info.registration_source : selectedFlight.registration_source,
+      aircraft_type: (scheduledOnly ? selectedFlight.aircraft_type : null) ?? info.aircraft_type ?? selectedFlight.aircraft_type,
       aircraft_description: info.aircraft_description ?? selectedFlight.aircraft_description,
       aircraft_owner: info.aircraft_owner ?? selectedFlight.aircraft_owner,
       aircraft_year: info.aircraft_year ?? selectedFlight.aircraft_year,

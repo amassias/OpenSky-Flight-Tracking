@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -79,5 +79,27 @@ describe("App", () => {
 
     renderApp();
     expect(await screen.findByText("AFR123")).toBeInTheDocument();
+  });
+
+  it("keeps the transponder registration when flight-info only has the scheduled tail", async () => {
+    const live = { ...flight, icao24: "398604", callsign: "AFR28VV", registration: "F-HBQE", aircraft_type: "E190", status: "airborne" };
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.hostname === "api.planespotters.net") return json({ photos: [] });
+      if (url.pathname === "/api/health") return json({ success: true, airports_loaded: 7895, credentials_configured: true, server_time_utc: new Date().toISOString() });
+      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports") return json([airport]);
+      if (url.pathname === "/api/flights") return json({ success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 1, live_on_ground: 0, unique_airlines: 1 }, flights: [live], generated_at: new Date().toISOString() });
+      if (url.pathname === "/api/flight-info") return json({ success: true, icao24: "398604", callsign: "AFR28VV", registration: "F-HBQD", registration_source: "schedule", aircraft_type: "E190" });
+      if (url.pathname === "/api/track") return json({ success: true, track: { path: [] }, path_count: 0 });
+      throw new Error(`Unexpected request ${url.pathname}`);
+    }));
+
+    renderApp();
+    expect(await screen.findByDisplayValue(/LFPG/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /explore flights/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /AFR28VV/ }));
+    expect(await screen.findByText("No photo of F-HBQE yet")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("F-HBQE")).toBeInTheDocument());
+    expect(screen.queryByText(/F-HBQD/)).not.toBeInTheDocument();
   });
 });

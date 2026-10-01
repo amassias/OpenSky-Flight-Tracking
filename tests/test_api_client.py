@@ -415,3 +415,25 @@ def test_flightaware_missing_key_is_a_noop(monkeypatch):
 
     assert client.get_flightaware_details("AFR123") is None
     client.session.get.assert_not_called()
+
+
+def test_aircraft_profile_reuses_the_map_live_cache(monkeypatch):
+    import time as time_module
+
+    client = OpenSkyClient()
+    client.session.get = Mock(side_effect=AssertionError("provider must not be called"))
+    row = ["398604", "AFR28VV ", "France", 1, 1, 2.5, 49.0, 9000, False, 200, 90, 0, None, 9100, "1000", False, 0, 3,
+           {"registration": "F-HBQE", "aircraft_type": "E190"}]
+    client._live_cache["box"] = {"fetched_at": time_module.time(), "result": {"states": [row]}}
+
+    profile = client.get_aircraft_profile("398604")
+
+    assert profile["provider"] == "cache"
+    assert profile["profile"]["registration"] == "F-HBQE"
+
+
+def test_aircraft_profile_ignores_stale_cache():
+    client = OpenSkyClient()
+    row = ["398604", "AFR28VV", "France", 1, 1, 2.5, 49.0, 9000, False, 200, 90, 0, None, 9100, "1000", False, 0, 3, {"registration": "F-HBQE"}]
+    client._live_cache["old"] = {"fetched_at": 0, "result": {"states": [row]}}
+    assert client._recent_live_row("398604") is None
