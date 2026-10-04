@@ -420,9 +420,12 @@ function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): Track
 
 function MapController({ airport, flight, track, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
   const map = useMap();
+  const focusedFlight = useRef<string | null>(null);
+  const centeredAirport = useRef<string | null>(null);
   useEffect(() => {
     const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (track?.track.path?.length) {
+      focusedFlight.current = flight?.icao24 ?? null;
       const bounds = L.latLngBounds(track.track.path.map((point) => [point[1], point[2]]));
       // A route can expand from a local airport view to a continent-wide
       // journey. Leaflet's flyToBounds preserves that spatial story with an
@@ -437,14 +440,31 @@ function MapController({ airport, flight, track, locateRequest, onLocationFound,
       });
       return;
     }
-    if (flight?.latitude != null && flight.longitude != null) {
-      map.flyTo([flight.latitude, flight.longitude], Math.max(map.getZoom(), 8), { duration: 0.5, animate });
-      return;
+    if (flight) {
+      focusedFlight.current = flight.icao24;
+      if (flight.latitude == null || flight.longitude == null) return;
+      // Give the route request a brief chance to resolve. Flying to the
+      // current position and immediately flying back out to the full route
+      // creates two competing motions when a flight is selected.
+      const timer = window.setTimeout(() => {
+        map.stop();
+        map.flyTo([flight.latitude!, flight.longitude!], Math.max(map.getZoom(), 8), { duration: 0.55, animate });
+      }, animate ? 280 : 0);
+      return () => window.clearTimeout(timer);
     }
     if (airport?.latitude != null && airport.longitude != null) {
-      // Keep the live markers interactive while the initial airport viewport
-      // settles. Route and aircraft focus still use the animated path above.
-      map.flyTo([airport.latitude, airport.longitude], 8, { duration: 0, animate: false });
+      const returningFromFlight = focusedFlight.current !== null;
+      const previousAirport = centeredAirport.current;
+      focusedFlight.current = null;
+      centeredAirport.current = airport.icao;
+      if (!returningFromFlight && previousAirport === airport.icao) return;
+      map.stop();
+      // The first map position appears immediately. Subsequent airport
+      // changes and closing a route travel back through the same map space.
+      map.flyTo([airport.latitude, airport.longitude], 8, {
+        animate: animate && (returningFromFlight || previousAirport !== null),
+        duration: returningFromFlight ? 0.85 : 0.7,
+      });
     }
   }, [airport, flight, map, track]);
 

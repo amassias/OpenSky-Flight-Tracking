@@ -5,6 +5,7 @@ import { api } from "../api";
 import type { Airport } from "../types";
 
 interface AirportSearchProps {
+  focusRequest?: number;
   selected: Airport | null;
   popular: Airport[];
   recent: Airport[];
@@ -15,6 +16,7 @@ interface AirportSearchProps {
 }
 
 export function AirportSearch({
+  focusRequest = 0,
   selected,
   popular,
   recent,
@@ -24,12 +26,22 @@ export function AirportSearch({
   onToggleFavorite,
 }: AirportSearchProps) {
   const listboxId = useId();
+  const [shortcut] = useState(() => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘K" : "Ctrl K");
   const input = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(selected ? `${selected.icao} · ${selected.name}` : "");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const lastFocusRequest = useRef(focusRequest);
+
+  useEffect(() => {
+    if (lastFocusRequest.current === focusRequest) return;
+    lastFocusRequest.current = focusRequest;
+    input.current?.focus();
+    input.current?.select();
+    setOpen(true);
+  }, [focusRequest]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 220);
@@ -48,7 +60,7 @@ export function AirportSearch({
   });
 
   const searching = query.trim().length >= 2;
-  const pendingSearch = searching && (query.trim() !== debouncedQuery || search.isFetching);
+  const pendingSearch = searching && (query.trim() !== debouncedQuery || search.isPending || search.isFetching);
   const searchFailed = searching && query.trim() === debouncedQuery && search.isError && !search.isFetching;
   const options = searching ? (query.trim() === debouncedQuery ? search.data ?? [] : []) : (recent.length ? recent : popular.slice(0, 6));
 
@@ -99,12 +111,15 @@ export function AirportSearch({
       choose(options[activeIndex]);
       return;
     }
-    if (event.key === "Escape") setOpen(false);
+    if (event.key === "Escape" && open) {
+      event.stopPropagation();
+      setOpen(false);
+    }
   }
 
   return (
     <div className="airport-search" ref={container} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-      <label className="field-label" htmlFor="airport-search">Airport</label>
+      <label className="field-label airport-field-label" htmlFor="airport-search">Airport <kbd className="airport-shortcut mono" aria-hidden="true">{shortcut}</kbd></label>
       <div className="search-input-wrap">
         <Search size={17} aria-hidden="true" />
         <input
@@ -119,8 +134,9 @@ export function AirportSearch({
           placeholder="Search city, airport, IATA or ICAO"
           autoComplete="off"
           onFocus={() => setOpen(true)}
-          onChange={(event) => { setQuery(event.target.value); setOpen(true); setActiveIndex(0); }}
+          onChange={(event) => { setQuery(event.target.value); onClear?.(); setOpen(true); setActiveIndex(0); }}
           onKeyDown={handleKeyDown}
+          aria-keyshortcuts="Meta+K Control+K /"
         />
         {query && (
           <button type="button" className="clear-button" aria-label="Clear airport" onClick={() => { setQuery(""); onClear?.(); setActiveIndex(0); input.current?.focus(); setOpen(true); }}>

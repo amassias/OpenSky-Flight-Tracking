@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState } from "react";
 import { Clock3, Moon, Radio, Search, Sun } from "./icons";
 import type { HealthResponse, MapTheme } from "../types";
 
@@ -8,10 +8,6 @@ interface TopbarProps {
   theme: MapTheme;
   onToggleTheme: (origin?: { x: number; y: number }) => void;
   onToggleControls: () => void;
-  commandValue: string;
-  commandPending?: boolean;
-  onCommandChange: (value: string) => void;
-  onCommandSubmit: () => void;
 }
 
 function UtcClock() {
@@ -29,44 +25,10 @@ export function Topbar({
   theme,
   onToggleTheme,
   onToggleControls,
-  commandValue,
-  commandPending = false,
-  onCommandChange,
-  onCommandSubmit,
 }: TopbarProps) {
   const liveAvailable = health?.live_available ?? health?.credentials_configured;
   const apiState = healthPending ? "Checking feeds" : liveAvailable ? "ADS-B" : "Setup required";
   const channel = healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [shortcut] = useState(() => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘K" : "Ctrl K");
-
-  // The shortcut hint is a promise: ⌘K / Ctrl+K and "/" jump to the command
-  // search from anywhere except another text field.
-  useEffect(() => {
-    function handleShortcut(event: globalThis.KeyboardEvent) {
-      const typing = event.target instanceof Element
-        && event.target.closest("input, textarea, select, [contenteditable='true']");
-      const commandK = event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey);
-      if (!commandK && (event.key !== "/" || typing)) return;
-      event.preventDefault();
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-    window.addEventListener("keydown", handleShortcut);
-    return () => window.removeEventListener("keydown", handleShortcut);
-  }, []);
-
-  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== "Escape") return;
-    event.stopPropagation();
-    onCommandChange("");
-    event.currentTarget.blur();
-  }
-  function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    onCommandSubmit();
-  }
-
   return (
     <header className="topbar">
       <div className="brand" aria-label="SkyTrace home">
@@ -76,21 +38,6 @@ export function Topbar({
           <small>Flight intelligence</small>
         </span>
       </div>
-
-      <form className="command-search" onSubmit={handleCommandSubmit} role="search">
-        <Search size={15} aria-hidden="true" />
-        <input
-          value={commandValue}
-          onChange={(event) => onCommandChange(event.target.value)}
-          aria-label="Search airport, flight or callsign"
-          placeholder="Search airport, flight or callsign"
-          autoComplete="off"
-          ref={inputRef}
-          onKeyDown={handleInputKeyDown}
-          aria-keyshortcuts="Meta+K Control+K /"
-        />
-        <kbd className="command-shortcut mono">{commandPending ? "…" : shortcut}</kbd>
-      </form>
 
       <div className="topbar-actions">
         <div className="topbar-status">

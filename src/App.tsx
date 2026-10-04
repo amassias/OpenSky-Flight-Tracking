@@ -53,8 +53,7 @@ export function App() {
   const setToast = useCallback((message: string | null) => {
     setToastState(message ? { id: Date.now(), message } : null);
   }, []);
-  const [commandQuery, setCommandQuery] = useState("");
-  const [commandPending, setCommandPending] = useState(false);
+  const [airportFocusRequest, setAirportFocusRequest] = useState(0);
   const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
   const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -245,6 +244,20 @@ export function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [mapExpanded, mobileControlsOpen, selectedFlight]);
 
+  useEffect(() => {
+    function focusAirportSearch(event: KeyboardEvent) {
+      const typing = event.target instanceof Element
+        && event.target.closest("input, textarea, select, [contenteditable='true']");
+      const shortcut = event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey);
+      if (!shortcut && (event.key !== "/" || typing)) return;
+      event.preventDefault();
+      if (window.matchMedia("(max-width: 900px)").matches) setMobileControlsOpen(true);
+      setAirportFocusRequest((current) => current + 1);
+    }
+    window.addEventListener("keydown", focusAirportSearch);
+    return () => window.removeEventListener("keydown", focusAirportSearch);
+  }, []);
+
   const matchingLiveSnapshot = Boolean(
     request
       && liveFallbackSnapshot?.airportIcao === request.airport.icao
@@ -289,49 +302,6 @@ export function App() {
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
   const activeAirport = request?.airport ?? selectedAirport;
   const sourceLabel = liveBoard ? "Live" : showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
-
-  async function handleCommandSubmit() {
-    const query = commandQuery.trim();
-    if (!query) {
-      setMobileControlsOpen(true);
-      return;
-    }
-    const normalized = query.toLowerCase();
-    const searchable = [...displayedFlights, ...(liveFallbackSnapshot?.data.states ?? [])];
-    const flightMatch = searchable.find((flight) => [
-      flight.callsign,
-      flight.icao24,
-      flight.registration,
-    ].some((value) => value?.toLowerCase().includes(normalized)));
-    if (flightMatch) {
-      setPreviewFlight(null);
-      setSelectedFlight(flightMatch);
-      setCommandQuery("");
-      return;
-    }
-
-    setCommandPending(true);
-    try {
-      const matches = await api.searchAirports(query);
-      const airportMatch = matches[0];
-      if (!airportMatch) {
-        setToast("No airport, flight or callsign found.");
-        return;
-      }
-      setSelectedAirport(airportMatch);
-      setRequest({ airport: airportMatch, date, mode });
-      setSelectedFlight(null);
-      setPreviewFlight(null);
-      setLiveFallbackSnapshot(null);
-      setRecent([airportMatch, ...recent.filter((item) => item.icao !== airportMatch.icao)].slice(0, 6));
-      setCommandQuery("");
-      setMobileControlsOpen(false);
-    } catch (error) {
-      setToast(readableApiError(error));
-    } finally {
-      setCommandPending(false);
-    }
-  }
 
   function submitSearch() {
     if (!selectedAirport) {
@@ -389,10 +359,6 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onToggleControls={() => setMobileControlsOpen(true)}
-        commandValue={commandQuery}
-        commandPending={commandPending}
-        onCommandChange={setCommandQuery}
-        onCommandSubmit={handleCommandSubmit}
       />
 
       <main className="workspace">
@@ -421,8 +387,8 @@ export function App() {
             <button className="icon-button" type="button" onClick={() => setMobileControlsOpen(false)} aria-label="Close search"><X size={19} /></button>
           </div>
           <div className="panel-intro">
-            <h1>Find a flight.<br /><em>Follow its story.</em></h1>
-            <p>Search a field, open the live airspace, then follow every movement with its source and altitude.</p>
+            <h1>Choose an airport.<br /><em>Explore its flights.</em></h1>
+            <p>Find recorded movements here, or select an aircraft directly on the live map.</p>
           </div>
           <div className="panel-context" role="status">
             <span className="panel-context-icon"><Activity size={15} aria-hidden="true" /></span>
@@ -433,6 +399,7 @@ export function App() {
             <span className={`panel-context-state ${liveAvailable ? "online" : "offline"}`}>{liveAvailable ? "Live" : "Offline"}</span>
           </div>
           <AirportSearch
+            focusRequest={airportFocusRequest}
             selected={selectedAirport}
             popular={popular.data ?? []}
             recent={recent}
@@ -534,10 +501,10 @@ export function App() {
           />
         </section>
 
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
         {detailsFlight && !mapExpanded && (
           <FlightDetails
-            key="flight-details"
+            key={detailsFlight.icao24}
             flight={detailsFlight}
             track={track.data}
             trackLoading={track.isFetching}

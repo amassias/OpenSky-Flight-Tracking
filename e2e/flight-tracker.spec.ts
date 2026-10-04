@@ -38,7 +38,7 @@ test("searches an airport and opens a shareable flight detail", async ({ page, i
   if (isMobile) {
     await page.getByRole("button", { name: "Search airports and flights" }).click();
   } else {
-    await expect(page.getByText("Find a flight.")).toBeVisible();
+    await expect(page.getByText("Choose an airport.")).toBeVisible();
   }
   await expect(page.getByRole("combobox", { name: "Airport" })).toHaveValue(/LFPG/);
   await page.getByRole("button", { name: /explore flights/i }).click();
@@ -199,4 +199,38 @@ test("recovers from an airport search error without losing the query", async ({ 
   await page.getByRole("button", { name: /CDG Paris Charles/ }).click();
   await expect(input).toHaveValue(/LFPG/);
   await expect(page.getByRole("button", { name: "Explore flights" })).toBeEnabled();
+});
+
+test("uses one airport search and prevents a stale airport from being submitted", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Desktop search hierarchy is the focus of this change.");
+  await expect(page.getByRole("search")).toHaveCount(0);
+  const airportInput = page.getByRole("combobox", { name: "Airport" });
+  await expect(airportInput).toHaveValue(/LFPG/);
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(airportInput).toBeFocused();
+  await airportInput.fill("Unknown field");
+  await expect(page.getByRole("button", { name: "Explore flights" })).toBeDisabled();
+  await airportInput.fill("Paris");
+  await page.getByRole("button", { name: /CDG Paris Charles/ }).click();
+  await expect(page.getByRole("button", { name: "Explore flights" })).toBeEnabled();
+});
+
+test("replaces the flight drawer cleanly when another aircraft is selected", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Desktop flight transitions are the focus of this change.");
+  await page.route("**/api/live-flights**", (route) => route.fulfill({ json: {
+    success: true, time: 1_752_000_000, count: 2,
+    states: [
+      { icao24: "39abcd", callsign: "AFR123", latitude: 49.1, longitude: 2.7, baro_altitude: 8400, velocity: 220, on_ground: false },
+      { icao24: "39abce", callsign: "EZY456", latitude: 49.2, longitude: 2.8, baro_altitude: 10000, velocity: 240, on_ground: false },
+    ],
+  } }));
+  await page.reload();
+  const board = page.getByRole("region", { name: "Flight results", exact: true });
+  await board.getByRole("button", { name: /AFR123/ }).click();
+  const drawer = page.getByRole("complementary", { name: "Selected flight details" });
+  await expect(drawer.getByRole("heading", { name: "AFR123" })).toBeVisible();
+  await board.getByRole("button", { name: /EZY456/ }).click();
+  await expect(drawer).toHaveCount(1);
+  await expect(drawer.getByRole("heading", { name: "EZY456" })).toBeVisible();
+  await expect(page).toHaveURL(/icao24=39abce/);
 });

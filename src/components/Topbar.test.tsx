@@ -1,30 +1,16 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Topbar } from "./Topbar";
 
-function renderTopbar(onCommandChange = vi.fn()) {
+function renderTopbar() {
   render(<Topbar healthPending={false} health={{ success: true, credentials_configured: true } as never} theme="dark"
-    onToggleTheme={vi.fn()} onToggleControls={vi.fn()} commandValue="" onCommandChange={onCommandChange} onCommandSubmit={vi.fn()} />);
-  return screen.getByRole("textbox", { name: /search airport, flight or callsign/i });
+    onToggleTheme={vi.fn()} onToggleControls={vi.fn()} />);
 }
 
 describe("Topbar", () => {
-  it("focuses the command search with Ctrl+K and /", () => {
-    const input = renderTopbar();
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    expect(input).toHaveFocus();
-    input.blur();
-    fireEvent.keyDown(document.body, { key: "/" });
-    expect(input).toHaveFocus();
-  });
-
-  it("clears and leaves the command search on Escape", () => {
-    const onChange = vi.fn();
-    const input = renderTopbar(onChange);
-    input.focus();
-    fireEvent.keyDown(input, { key: "Escape" });
-    expect(onChange).toHaveBeenCalledWith("");
-    expect(input).not.toHaveFocus();
+  it("leaves airport search to the dedicated panel", () => {
+    renderTopbar();
+    expect(screen.queryByRole("search")).not.toBeInTheDocument();
   });
 
   it("names the channel after the real feed state", () => {
