@@ -1,8 +1,11 @@
-import { Activity, Copy, Database, Gauge, Navigation, Plane, PlaneLanding, PlaneTakeoff, Radio, Share2, ShieldAlert, X } from "./icons";
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
+import { ChevronDown, Copy, Database, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
-import type { Flight, TrackResponse } from "../types";
-import { formatAltitude, formatSpeed, formatTime, statusLabel } from "../utils";
+import type { Airport, Flight, TrackResponse } from "../types";
+import { compassPoint, emergencyInfo, formatAltitude, formatDuration, formatSpeed, formatTime, statusLabel, verticalTrend } from "../utils";
+import { useNowSeconds } from "../aircraftMotion";
+import { useUnits, verticalRateText } from "../units";
 import { AltitudeChart } from "./AltitudeChart";
 
 interface FlightDetailsProps {
@@ -15,126 +18,190 @@ interface FlightDetailsProps {
   photo?: AircraftPhoto | null;
   photoLoading?: boolean;
   photoError?: boolean;
+  /** Known airports by ICAO code, used to show IATA codes and city names. */
+  airports?: ReadonlyMap<string, Airport>;
   onRetryTrack: () => void;
   onClose: () => void;
   onShare: () => void;
 }
 
-export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+const profileValue = (value?: string | number | null, fallback = "—") => value == null || value === "" ? fallback : String(value);
+const formatAge = (value?: number | null) => value == null || !Number.isFinite(value) ? "—" : `${value < 10 ? value.toFixed(1) : Math.round(value)} s ago`;
+const formatFeet = (value?: number | null) => value == null || !Number.isFinite(value) ? "—" : `${Math.round(value).toLocaleString("en-US")} ft`;
+
+function formatOperationalTime(value?: string | null) {
+  if (!value) return "—";
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) return value;
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(timestamp) + "Z";
+}
+
+function formatDelay(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const minutes = Math.round(value / 60);
+  if (minutes === 0) return "On time";
+  return `${minutes > 0 ? "+" : "−"}${Math.abs(minutes)} min`;
+}
+
+/** Name an airport the way a board would: "Paris", not "Paris Charles de Gaulle Airport". */
+function shortAirportName(name?: string | null, fallback = "Unknown") {
+  if (!name) return fallback;
+  return name.replace(/\b(international|intl\.?|airport|aeroporto|aéroport|flughafen)\b/gi, "").replace(/\s{2,}/g, " ").trim() || name;
+}
+
+function RouteEndpoint({ role, icao, iata, name, time, align }: { role: string; icao?: string | null; iata?: string | null; name?: string | null; time?: string; align: "start" | "end" }) {
+  const code = iata || icao || "—";
+  const place = name;
+  return (
+    <div className={`route-point route-point-${align}`}>
+      <small>{role}</small>
+      <strong className="mono">{code}</strong>
+      <span title={name ?? undefined}>{shortAirportName(place)}</span>
+      {time && <time className="mono">{time}</time>}
+    </div>
+  );
+}
+
+function Section({ title, aside, open = false, children }: { title: string; aside?: ReactNode; open?: boolean; children: ReactNode }) {
+  return (
+    <details className="panel-section" open={open}>
+      <summary>
+        <span>{title}</span>
+        {aside && <small className="mono">{aside}</small>}
+        <ChevronDown size={14} className="panel-section-chevron" aria-hidden="true" />
+      </summary>
+      <div className="panel-section-body">{children}</div>
+    </details>
+  );
+}
+
+export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+  useUnits();
+  const now = useNowSeconds(true);
   const path = track?.track.path ?? [];
+  const operations = flight.flightaware;
+  const emergency = emergencyInfo(flight);
+  const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
+  const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
+  const origin = flight.departure_airport ? airports?.get(flight.departure_airport) : undefined;
+  const destination = flight.arrival_airport ? airports?.get(flight.arrival_airport) : undefined;
   const routeSourceLabel = flight.route_source === "callsign"
     ? "Estimated from callsign"
     : flight.route_source === "opensky"
       ? "OpenSky flight record"
       : flight.route_source === "flightaware"
         ? "FlightAware operational data"
-      : flight.route_source === "mixed"
-        ? "Combined flight data"
-        : routeError
-          ? "Route lookup unavailable"
-          : null;
-  const originName = routeLoading && !flight.departure_airport ? "Resolving origin…" : flight.departure_airport_name || "Unknown origin";
-  const destinationName = routeLoading && !flight.arrival_airport ? "Resolving destination…" : flight.arrival_airport_name || "Unknown destination";
-  const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
-  const profileValue = (value?: string | number | null, fallback = "—") => value == null || value === "" ? fallback : String(value);
-  const formatAge = (value?: number | null) => value == null || !Number.isFinite(value) ? "—" : `${value < 10 ? value.toFixed(1) : Math.round(value)} s ago`;
-  const formatFeet = (value?: number | null) => value == null || !Number.isFinite(value) ? "—" : `${Math.round(value).toLocaleString("en-US")} ft`;
-  const formatOperationalTime = (value?: string | null) => {
-    if (!value) return "—";
-    const timestamp = new Date(value);
-    if (Number.isNaN(timestamp.getTime())) return value;
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "UTC",
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(timestamp) + "Z";
-  };
-  const formatDelay = (value?: number | null) => {
-    if (value == null || !Number.isFinite(value)) return "—";
-    const minutes = Math.round(value / 60);
-    if (minutes === 0) return "On time";
-    return `${minutes > 0 ? "+" : "−"}${Math.abs(minutes)} min`;
-  };
+        : flight.route_source === "mixed"
+          ? "Combined flight data"
+          : routeError
+            ? "Route lookup unavailable"
+            : null;
+  const hasRoute = Boolean(flight.departure_airport || flight.arrival_airport);
+
+  // Progress: FlightAware's own figure when it has one, otherwise elapsed time
+  // between the first and last sighting of an airborne flight.
+  const startTime = flight.first_seen ?? null;
+  const endTime = flight.last_seen ?? null;
+  const flightawareProgress = operations?.progress_percent != null && operations.progress_percent >= 0 ? operations.progress_percent : null;
+  const timedProgress = statusKey === "airborne" && startTime && endTime && endTime > startTime
+    ? Math.max(0, Math.min(100, ((now - startTime) / (endTime - startTime)) * 100))
+    : null;
+  const progress = flightawareProgress ?? timedProgress;
+  const elapsed = startTime && statusKey === "airborne" ? formatDuration(now - startTime) : null;
+  const remaining = endTime && statusKey === "airborne" && endTime > now ? formatDuration(endTime - now) : null;
+
   const hasProfile = Boolean(flight.registration || flight.aircraft_type || flight.aircraft_description || flight.aircraft_owner || flight.aircraft_year);
-  const operations = flight.flightaware;
+  const heading = flight.true_track ?? flight.nav_heading ?? null;
+
   return (
     <motion.aside
-      className="details-drawer"
+      className="details-drawer dock-panel"
       aria-label="Selected flight details"
-      initial={{ opacity: 0, y: 24, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 16, scale: 0.98, transition: { duration: 0.18 } }}
-      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+      initial={{ opacity: 0, x: -28 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20, transition: { duration: 0.16, ease: "easeIn" } }}
+      transition={{ type: "spring", stiffness: 420, damping: 40, mass: 0.9 }}
     >
+      <div className="dock-content" key={flight.icao24}>
       <div className="drawer-handle" aria-hidden="true" />
       <header className="details-heading">
-        <div>
+        <div className="details-title">
           <h2 className="mono">{flight.callsign || flight.icao24.toUpperCase()}</h2>
-          <p>{flight.airline_name || "Unidentified operator"}</p>
+          <p>{flight.airline_name || [flight.aircraft_owner, flight.aircraft_type].filter(Boolean).join(" · ") || "Operator not published"}</p>
         </div>
         <div className="details-actions">
-          <span className={`details-status status-${statusKey}`}><span className={`status-dot status-${statusKey}`} />{statusLabel(flight.status, flight.on_ground)}</span>
-          <button type="button" className="icon-button" onClick={onShare} aria-label="Copy share link"><Share2 size={17} /></button>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close flight details"><X size={19} /></button>
+          <button type="button" className="icon-button" onClick={onShare} aria-label="Copy share link" title="Copy share link"><Share2 size={16} /></button>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close flight details" title="Close (Esc)"><X size={18} /></button>
         </div>
       </header>
 
-      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
-
-      <div className="route-timeline">
-        <div className="route-stop">
-          <PlaneTakeoff size={17} aria-hidden="true" />
-          <div><small className="route-role">Origin</small><strong className="mono">{flight.departure_airport || "---"}</strong><span>{originName}</span></div>
-          <time className="mono">{formatTime(flight.first_seen)}</time>
-        </div>
-        <div className="route-line"><span /></div>
-        <div className="route-stop">
-          <PlaneLanding size={17} aria-hidden="true" />
-          <div><small className="route-role">Destination</small><strong className="mono">{flight.arrival_airport || "---"}</strong><span>{destinationName}</span></div>
-          <time className="mono">{formatTime(flight.last_seen)}</time>
-        </div>
-        {routeSourceLabel && <small className="route-source">{routeSourceLabel}{flight.route_provider ? ` · ${flight.route_provider}` : ""}</small>}
+      <div className="details-chips">
+        <span className={`details-status status-${statusKey}`}><span className={`status-dot status-${statusKey}`} />{statusLabel(flight.status, flight.on_ground)}</span>
+        {emergency && <span className="details-emergency"><TriangleAlert size={12} aria-hidden="true" /> {/^[0-9]+$/.test(emergency.code) ? `Squawk ${emergency.code}` : "Emergency"} · {emergency.label}</span>}
+        {flight.aircraft_type && <span className="details-chip mono">{flight.aircraft_type}</span>}
+        {flight.registration && flight.registration_source !== "schedule" && <span className="details-chip mono">{flight.registration}</span>}
       </div>
 
-      {operations && <section className="operations-card" aria-label="FlightAware operations">
-        <header className="profile-section-heading">
-          <span><Activity size={15} aria-hidden="true" /> Operations</span>
-          <small className="mono">FlightAware</small>
-        </header>
-        <div className="operations-status-row">
-          <strong>{operations.status || "Status unavailable"}</strong>
-          <span className={operations.cancelled ? "operations-flag is-alert" : operations.diverted ? "operations-flag is-warning" : "operations-flag"}>
-            {operations.cancelled ? "Cancelled" : operations.diverted ? "Diverted" : operations.progress_percent != null && operations.progress_percent >= 0 ? `${Math.round(operations.progress_percent)}% complete` : "Operational"}
-          </span>
-        </div>
-        <div className="operations-grid">
-          <div><span>Scheduled departure</span><strong className="mono">{formatOperationalTime(operations.scheduled_out)}</strong></div>
-          <div><span>Estimated departure</span><strong className="mono">{formatOperationalTime(operations.estimated_out)}</strong></div>
-          <div><span>Actual off-block</span><strong className="mono">{formatOperationalTime(operations.actual_out)}</strong></div>
-          <div><span>Departure delay</span><strong className="mono">{formatDelay(operations.departure_delay)}</strong></div>
-          <div><span>Scheduled arrival</span><strong className="mono">{formatOperationalTime(operations.scheduled_in)}</strong></div>
-          <div><span>Estimated arrival</span><strong className="mono">{formatOperationalTime(operations.estimated_in)}</strong></div>
-          <div><span>Actual in-gate</span><strong className="mono">{formatOperationalTime(operations.actual_in)}</strong></div>
-          <div><span>Arrival delay</span><strong className="mono">{formatDelay(operations.arrival_delay)}</strong></div>
-          {(operations.gate_orig || operations.terminal_orig) && <div><span>Origin gate / terminal</span><strong className="mono">{[operations.gate_orig, operations.terminal_orig].filter(Boolean).join(" · ")}</strong></div>}
-          {(operations.gate_dest || operations.terminal_dest) && <div><span>Destination gate / terminal</span><strong className="mono">{[operations.gate_dest, operations.terminal_dest].filter(Boolean).join(" · ")}</strong></div>}
-        </div>
-        {operations.progress_percent != null && operations.progress_percent >= 0 && <div className="operations-progress" aria-label={`Flight progress ${Math.round(operations.progress_percent)} percent`}>
-          <div><span>Flight progress</span><strong className="mono">{Math.round(operations.progress_percent)}%</strong></div>
-          <div className="operations-progress-track"><span style={{ transform: `scaleX(${Math.max(0, Math.min(100, operations.progress_percent)) / 100})` }} /></div>
-        </div>}
-        {operations.route && <p className="operations-route"><span>Filed route</span><strong className="mono">{operations.route}</strong></p>}
-        <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Queried after selection and cached for 15 minutes.</p>
-      </section>}
+      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
 
-      <section className="aircraft-profile-card" aria-label="Aircraft profile">
-        <header className="profile-section-heading">
-          <span><Plane size={15} aria-hidden="true" /> Aircraft profile</span>
-          <small className="mono">{profileValue(flight.source || flight.data_source, "ADS-B")}</small>
-        </header>
+      <section className="route-hero" aria-label="Route">
+        <div className="route-hero-ends">
+          <RouteEndpoint
+            role="Origin"
+            icao={routeLoading && !flight.departure_airport ? "···" : flight.departure_airport}
+            iata={origin?.iata || operations?.origin?.code_iata}
+            name={routeLoading && !flight.departure_airport ? "Resolving origin…" : flight.departure_airport_name || (hasRoute ? "Unknown origin" : "Unknown")}
+            time={formatTime(startTime)}
+            align="start"
+          />
+          <RouteEndpoint
+            role="Destination"
+            icao={routeLoading && !flight.arrival_airport ? "···" : flight.arrival_airport}
+            iata={destination?.iata || operations?.destination?.code_iata}
+            name={routeLoading && !flight.arrival_airport ? "Resolving destination…" : flight.arrival_airport_name || (hasRoute ? "Unknown destination" : "Unknown")}
+            time={formatTime(endTime)}
+            align="end"
+          />
+        </div>
+        <div className="route-progress" role="img" aria-label={progress != null ? `Flight progress ${Math.round(progress)} percent` : "Flight progress unknown"}>
+          <span className="route-progress-track"><span className="route-progress-fill" style={{ transform: `scaleX(${(progress ?? 0) / 100})` }} /></span>
+          {progress != null && <span className="route-progress-plane" style={{ left: `${progress}%` }}><Plane size={14} /></span>}
+        </div>
+        <div className="route-hero-foot mono">
+          <span>{elapsed ? `${elapsed} flown` : progress != null ? `${Math.round(progress)}% flown` : "Progress unavailable"}</span>
+          <span>{remaining ? `${remaining} to go` : ""}</span>
+        </div>
+        {routeSourceLabel && <small className="route-source">{routeSourceLabel}{flight.route_provider ? ` · ${flight.route_provider}` : ""}</small>}
+      </section>
+
+      <div className="live-readouts" aria-label="Live readouts">
+        <div>
+          <span>Altitude</span>
+          <strong className="mono">{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</strong>
+          <small className="mono">
+            {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-hidden="true" />}
+            {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-hidden="true" />}
+            {flight.vertical_rate != null && !flight.on_ground ? verticalRateText(flight.vertical_rate) : "—"}
+          </small>
+        </div>
+        <div>
+          <span>Speed</span>
+          <strong className="mono">{formatSpeed(flight.velocity)}</strong>
+          <small className="mono">{flight.nav_altitude_mcp != null ? `Sel. ${formatFeet(flight.nav_altitude_mcp)}` : "—"}</small>
+        </div>
+        <div>
+          <span>Track</span>
+          <strong className="mono">{heading != null ? `${Math.round(heading)}°` : "—"}</strong>
+          <small className="mono">{heading != null ? compassPoint(heading) : "—"}</small>
+        </div>
+        <div>
+          <span>Squawk</span>
+          <strong className={`mono ${emergency ? "signal-alert-text" : ""}`}>{profileValue(flight.squawk)}</strong>
+          <small className="mono">{flight.icao24.toUpperCase()}</small>
+        </div>
+      </div>
+
+      <Section title="Aircraft" aside={flight.source || (flight.data_source === "live-nearby" ? "ADS-B live" : "OpenSky")} open>
         <div className="aircraft-profile-grid">
           <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
           <div><span>Type code</span><strong className="mono">{profileValue(flight.aircraft_type)}</strong></div>
@@ -143,41 +210,55 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
           <div><span>Build year</span><strong className="mono">{profileValue(flight.aircraft_year)}</strong></div>
           <div><span>Category</span><strong className="mono">{profileValue(flight.aircraft_category ?? flight.category)}</strong></div>
         </div>
-      </section>
+      </Section>
 
-      <div className="metrics-grid">
-        <div className="metric-card"><Navigation size={15} /><span>Altitude</span><strong className="mono">{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</strong></div>
-        <div className="metric-card"><Gauge size={15} /><span>Ground speed</span><strong className="mono">{formatSpeed(flight.velocity)}</strong></div>
-        <div className="metric-card"><Copy size={15} /><span>ICAO24</span><strong className="mono">{flight.icao24.toUpperCase()}</strong></div>
-        <div className="metric-card"><span className={`status-dot status-${flight.status || "unknown"}`} /><span>Status</span><strong>{statusLabel(flight.status, flight.on_ground)}</strong></div>
-      </div>
+      <Section title="Altitude profile" aside={trackLoading ? "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
+        {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
+      </Section>
 
-      <section className="signal-profile-card" aria-label="Aircraft signal data">
-        <header className="profile-section-heading">
-          <span><Radio size={15} aria-hidden="true" /> Signal and navigation</span>
-          {flight.emergency && flight.emergency !== "none" && <small className="signal-alert"><ShieldAlert size={12} /> {flight.emergency}</small>}
-        </header>
+      {operations && (
+        <Section title="Operations" aside="FlightAware" open>
+          <div className="operations-status-row">
+            <strong>{operations.status || "Status unavailable"}</strong>
+            <span className={operations.cancelled ? "operations-flag is-alert" : operations.diverted ? "operations-flag is-warning" : "operations-flag"}>
+              {operations.cancelled ? "Cancelled" : operations.diverted ? "Diverted" : flightawareProgress != null ? `${Math.round(flightawareProgress)}% complete` : "Operational"}
+            </span>
+          </div>
+          <div className="operations-grid">
+            <div><span>Scheduled departure</span><strong className="mono">{formatOperationalTime(operations.scheduled_out)}</strong></div>
+            <div><span>Estimated departure</span><strong className="mono">{formatOperationalTime(operations.estimated_out)}</strong></div>
+            <div><span>Actual off-block</span><strong className="mono">{formatOperationalTime(operations.actual_out)}</strong></div>
+            <div><span>Departure delay</span><strong className="mono">{formatDelay(operations.departure_delay)}</strong></div>
+            <div><span>Scheduled arrival</span><strong className="mono">{formatOperationalTime(operations.scheduled_in)}</strong></div>
+            <div><span>Estimated arrival</span><strong className="mono">{formatOperationalTime(operations.estimated_in)}</strong></div>
+            <div><span>Actual in-gate</span><strong className="mono">{formatOperationalTime(operations.actual_in)}</strong></div>
+            <div><span>Arrival delay</span><strong className="mono">{formatDelay(operations.arrival_delay)}</strong></div>
+            {(operations.gate_orig || operations.terminal_orig) && <div><span>Origin gate / terminal</span><strong className="mono">{[operations.gate_orig, operations.terminal_orig].filter(Boolean).join(" · ")}</strong></div>}
+            {(operations.gate_dest || operations.terminal_dest) && <div><span>Destination gate / terminal</span><strong className="mono">{[operations.gate_dest, operations.terminal_dest].filter(Boolean).join(" · ")}</strong></div>}
+          </div>
+          {operations.route && <p className="operations-route"><span>Filed route</span><strong className="mono">{operations.route}</strong></p>}
+          <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Queried after selection and cached for 15 minutes.</p>
+        </Section>
+      )}
+
+      <Section title="Signal and navigation" aside={emergency ? emergency.label : undefined}>
         <div className="signal-profile-grid">
           <div><span>Last position</span><strong className="mono">{formatAge(flight.seen_position_seconds)}</strong></div>
           <div><span>Last message</span><strong className="mono">{formatAge(flight.seen_seconds)}</strong></div>
-          <div><span>Squawk</span><strong className="mono">{profileValue(flight.squawk)}</strong></div>
           <div><span>Selected altitude</span><strong className="mono">{formatFeet(flight.nav_altitude_mcp)}</strong></div>
           <div><span>QNH</span><strong className="mono">{flight.nav_qnh == null ? "—" : `${flight.nav_qnh} hPa`}</strong></div>
-          <div><span>Heading</span><strong className="mono">{flight.nav_heading == null ? "—" : `${Math.round(flight.nav_heading)}°`}</strong></div>
+          <div><span>Selected heading</span><strong className="mono">{flight.nav_heading == null ? "—" : `${Math.round(flight.nav_heading)}°`}</strong></div>
           <div><span>Nav modes</span><strong className="mono">{flight.nav_modes?.length ? flight.nav_modes.join(" · ") : "—"}</strong></div>
           <div><span>Messages</span><strong className="mono">{flight.messages == null ? "—" : flight.messages.toLocaleString("en-US")}</strong></div>
           <div><span>Signal</span><strong className="mono">{flight.rssi == null ? "—" : `${flight.rssi.toFixed(1)} dBFS`}</strong></div>
           <div><span>Emergency</span><strong className={flight.emergency && flight.emergency !== "none" ? "signal-alert-text" : ""}>{profileValue(flight.emergency, "None reported")}</strong></div>
           <div><span>NIC / NACp</span><strong className="mono">{flight.nic == null && flight.nac_p == null ? "—" : `${profileValue(flight.nic)} / ${profileValue(flight.nac_p)}`}</strong></div>
           <div><span>Accuracy radius</span><strong className="mono">{flight.rc == null ? "—" : `${Math.round(flight.rc)} m`}</strong></div>
+          <div><span>ICAO24</span><strong className="mono"><Copy size={11} aria-hidden="true" /> {flight.icao24.toUpperCase()}</strong></div>
         </div>
-        <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Live enrichment is queried only after selection and cached briefly.</p>
-      </section>
-
-      <section className="profile-card">
-        <div className="profile-title"><span>Altitude profile</span><small className="mono">{trackLoading ? "Loading full trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"}</small></div>
-        {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
-      </section>
+        <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Queried after selection and cached briefly.</p>
+      </Section>
+      </div>
     </motion.aside>
   );
 }

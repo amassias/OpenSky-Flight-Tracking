@@ -1,15 +1,23 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import { Circle, CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
-import { Crosshair, LocateFixed, Maximize2, Minimize2, Pause, Play } from "./icons";
+import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { LocateFixed, Maximize2, Minimize2, Navigation, Pause, Play } from "./icons";
+import { Minus, Plus, Route } from "./customIcons";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackPoint, TrackResponse } from "../types";
 import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
-import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
+import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, formatSpeed, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
+import { filterAircraft, type MapFilters } from "../mapFilters";
+import { projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
+import { flightLevelText, speedText, useUnits } from "../units";
 import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
+/** Below this zoom the airport pins and aircraft labels would only add noise. */
+const LABEL_MIN_ZOOM = 7;
+const LABEL_DETAIL_ZOOM = 9;
+const AIRPORT_PIN_MIN_ZOOM = 6;
 
 // Leaflet paths and canvas dots cannot read CSS custom properties, so the
 // theme tokens they need are mirrored here (see --aircraft / --accent).
@@ -18,9 +26,10 @@ const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: s
   light: { aircraft: "#1d1d1f", ground: "#86868b", accent: "#0066cc", halo: "#ffffff", danger: "#d70015" },
 };
 
-// Tabler Icons (MIT): https://github.com/tabler/tabler-icons
-// The source SVGs and license notice live in src/assets/aircraft/.
-const TABLER_PLANE_PATH = "M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2 -7h-4l-2 2h-3l2 -4l-2 -4h3l2 2h4l-2 -7h3l4 7";
+// Solid top-down silhouettes, drawn nose-up and turned to the nose-east
+// convention the shared heading rotation expects.
+const AIRLINER_PATH = "M12 1.4c.9 0 1.5.9 1.5 2.3v5.3l8.5 5.1v2.2l-8.5-2.5v4.5l2.2 1.7v1.8L12 20.7l-3.7 1.1v-1.8l2.2-1.7v-4.5L2 16.3v-2.2L10.5 9V3.7c0-1.4.6-2.3 1.5-2.3z";
+const LIGHT_PLANE_PATH = "M12 2.2c.7 0 1.2.9 1.2 2.1v5.4l9 1.5v2.1l-9-.9v4.7l1.9 1.4v1.5L12 19.8l-3.1.9v-1.5l1.9-1.4v-4.7l-9 .9v-2.1l9-1.5V4.3c0-1.2.5-2.1 1.2-2.1z";
 // Top-down rotorcraft, drawn nose-east like the plane glyph so the shared
 // heading rotation points it where it is flying: main rotor blades, cabin,
 // tail boom and tail rotor.
@@ -40,32 +49,47 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
     case "balloon":
       return '<path d="M12 2a6.2 6.2 0 0 1 6.2 6.2c0 3.2-2 5.4-4.2 7.1l-.8.6h-2.4l-.8-.6c-2.2-1.7-4.2-3.9-4.2-7.1A6.2 6.2 0 0 1 12 2Zm-1.2 14h2.4v2.1h-2.4zM9.8 20h4.4v2H9.8z"/>';
     case "small":
-      return `<path class="aircraft-svg-stroke" transform="scale(.84) translate(2.3 2.3)" d="${TABLER_PLANE_PATH}"/>`;
+      return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${LIGHT_PLANE_PATH}"/>`;
     case "heavy":
-      return `<path class="aircraft-svg-stroke" transform="scale(1.08) translate(-.9 -.9)" d="${TABLER_PLANE_PATH}"/>`;
-    case "airliner":
-      return `<path class="aircraft-svg-stroke" d="${TABLER_PLANE_PATH}"/>`;
+      return `<path class="aircraft-svg-fill" transform="rotate(90 12 12) translate(-1.2 -1.2) scale(1.1)" d="${AIRLINER_PATH}"/>`;
     default:
-      return '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3m14 0h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"/>';
+      return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${AIRLINER_PATH}"/>`;
   }
 }
 
-function planeIcon(heading = 0, active = false, onGround = false, icao24?: string, kind: AircraftIconKind = "airliner", emergency = false) {
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+}
+
+interface PlaneIconOptions {
+  heading?: number;
+  active?: boolean;
+  onGround?: boolean;
+  icao24?: string;
+  kind?: AircraftIconKind;
+  emergency?: boolean;
+  label?: { primary: string; secondary: string };
+}
+
+function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", emergency = false, label }: PlaneIconOptions) {
+  const labelHtml = label
+    ? `<span class="aircraft-label"><b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
+    : "";
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
-    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>`,
+    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>${labelHtml}`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
 }
 
-function liveAircraftToFlight(aircraft: LiveAircraft): Flight {
-  return {
-    ...aircraft,
-    status: aircraft.on_ground ? "on_ground" : "airborne",
-    primary_time: 0,
-    airline_name: aircraft.airline_name || "",
-  };
+function airportPinIcon(airport: Airport, active: boolean) {
+  return L.divIcon({
+    className: "airport-pin-wrap",
+    html: `<span class="airport-pin${active ? " active" : ""}"><i></i><b>${escapeHtml(airport.iata || airport.icao)}</b></span>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  });
 }
 
 /**
@@ -148,14 +172,10 @@ function routeEndpointIcon(kind: "start" | "end", theme: MapTheme) {
   });
 }
 
-type MarkerPosition = [number, number];
-
 interface AircraftMarkerProps {
   aircraft: LiveAircraft;
   active: boolean;
   onSelect: (flight: Flight) => void;
-  positionOverride?: MarkerPosition;
-  headingOverride?: number | null;
   theme?: MapTheme;
 }
 
@@ -163,9 +183,7 @@ function areMarkersEqual(
   previous: AircraftMarkerProps,
   next: AircraftMarkerProps,
 ) {
-  if (previous.active !== next.active || previous.onSelect !== next.onSelect) return false;
-  if (previous.positionOverride?.[0] !== next.positionOverride?.[0] || previous.positionOverride?.[1] !== next.positionOverride?.[1]) return false;
-  if (previous.headingOverride !== next.headingOverride || previous.theme !== next.theme) return false;
+  if (previous.active !== next.active || previous.onSelect !== next.onSelect || previous.theme !== next.theme) return false;
   const a = previous.aircraft;
   const b = next.aircraft;
   // Every poll returns fresh objects, so compare the fields the marker draws
@@ -173,9 +191,11 @@ function areMarkersEqual(
   return a.icao24 === b.icao24
     && a.latitude === b.latitude
     && a.longitude === b.longitude
+    && a.time_position === b.time_position
     && a.true_track === b.true_track
     && a.on_ground === b.on_ground
     && a.callsign === b.callsign
+    && a.registration === b.registration
     && a.baro_altitude === b.baro_altitude
     && a.velocity === b.velocity
     && a.category === b.category
@@ -186,20 +206,44 @@ function areMarkersEqual(
     && a.emergency === b.emergency;
 }
 
-const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect, positionOverride, headingOverride }: AircraftMarkerProps) {
+function liveTooltip(aircraft: LiveAircraft) {
+  return (
+    <Tooltip direction="right" offset={[16, 0]} opacity={1} className="aircraft-tooltip">
+      <strong>{aircraft.callsign || aircraft.registration || aircraft.icao24.toUpperCase()}</strong>
+      <span>{[aircraft.aircraft_type, aircraft.airline_name].filter(Boolean).join(" · ") || "Aircraft"}</span>
+      <span className="mono">{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</span>
+    </Tooltip>
+  );
+}
+
+const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect }: AircraftMarkerProps) {
+  const units = useUnits();
   const iconKind = aircraftIconKind(aircraft);
-  const heading = headingOverride ?? aircraft.true_track ?? 0;
+  const heading = aircraft.true_track ?? 0;
   const emergency = emergencyInfo(aircraft) !== null;
-  const icon = useMemo(() => planeIcon(heading, active, aircraft.on_ground === true, aircraft.icao24, iconKind, emergency), [aircraft.icao24, aircraft.on_ground, active, iconKind, heading, emergency]);
-  const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
+  const labelPrimary = aircraft.callsign || aircraft.registration || aircraft.icao24.toUpperCase();
+  const labelSecondary = [
+    aircraft.baro_altitude != null && !aircraft.on_ground ? flightLevelText(aircraft.baro_altitude, units) : null,
+    aircraft.velocity != null && !aircraft.on_ground ? speedText(aircraft.velocity, units).replace(" ", "") : null,
+  ].filter(Boolean).join(" · ");
+  const icon = useMemo(
+    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, label: { primary: labelPrimary, secondary: labelSecondary } }),
+    [aircraft.icao24, aircraft.on_ground, active, iconKind, heading, emergency, labelPrimary, labelSecondary],
+  );
+  // A fresh fix is already some seconds old when it arrives, so start from
+  // where the aircraft is now rather than where it was reported.
+  const position = useMemo<[number, number]>(
+    () => projectPosition(aircraft, Date.now() / 1000) ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [aircraft.latitude, aircraft.longitude, aircraft.time_position],
+  );
   // Read through a ref so the handler identity never changes, which keeps
   // Leaflet from detaching and re-attaching listeners on every refresh.
   const aircraftRef = useRef(aircraft);
   aircraftRef.current = aircraft;
   const markerRef = useRef<L.Marker | null>(null);
   const selectAircraft = useCallback(() => {
-    const current = aircraftRef.current;
-    onSelect(liveAircraftToFlight(current));
+    onSelect(liveAircraftToFlight(aircraftRef.current));
   }, [onSelect]);
   // Select on press so a progressive tile refresh cannot replace the marker
   // between pointer-down and click-up. Keeping click covers keyboard/synthetic
@@ -208,6 +252,18 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     mousedown: selectAircraft,
     click: selectAircraft,
   }), [selectAircraft]);
+
+  // Glide between feed refreshes: the marker element eases to each projected
+  // position over the one-second tick (see .aircraft-marker-wrap in the CSS).
+  useEffect(() => subscribeToTick((now) => {
+    const current = aircraftRef.current;
+    const marker = markerRef.current;
+    if (!marker || current.on_ground) return;
+    const next = projectPosition(current, now);
+    const shown = marker.getLatLng();
+    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) marker.setLatLng(next);
+  }), []);
+
   useLayoutEffect(() => {
     // Firefox can swallow Leaflet's delegated click while a map pan is still
     // settling. Listening on the marker element itself keeps aircraft
@@ -235,15 +291,13 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
       element?.removeEventListener("mousedown", selectAircraft, true);
       element?.removeEventListener("click", selectAircraft, true);
     };
-  }, [selectAircraft]);
-  if (positionOverride == null && (aircraft.latitude == null || aircraft.longitude == null)) return null;
-  return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers}>
-    <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
-  </Marker>;
+  }, [selectAircraft, icon]);
+  if (aircraft.latitude == null || aircraft.longitude == null) return null;
+  return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers}>{!active && liveTooltip(aircraft)}</Marker>;
 }, areMarkersEqual);
 
-const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, positionOverride, theme = "dark" }: AircraftMarkerProps) {
-  const position = useMemo<MarkerPosition>(() => positionOverride ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude, positionOverride]);
+const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, theme = "dark" }: AircraftMarkerProps) {
+  const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
   // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
   const color = active ? MAP_COLORS[theme].accent : emergencyInfo(aircraft) ? MAP_COLORS[theme].danger : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
   const pathOptions = useMemo(() => ({
@@ -256,20 +310,10 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, posi
   const aircraftRef = useRef(aircraft);
   aircraftRef.current = aircraft;
   const eventHandlers = useMemo(() => ({
-    click: () => {
-      const current = aircraftRef.current;
-      onSelect({
-        ...current,
-        status: current.on_ground ? "on_ground" : "airborne",
-        primary_time: 0,
-        airline_name: current.airline_name || "",
-      });
-    },
+    click: () => onSelect(liveAircraftToFlight(aircraftRef.current)),
   }), [onSelect]);
-  if (positionOverride == null && (aircraft.latitude == null || aircraft.longitude == null)) return null;
-  return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers}>
-    <Popup><strong className="mono">{aircraft.callsign || aircraft.icao24.toUpperCase()}</strong><br />{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</Popup>
-  </CircleMarker>;
+  if (aircraft.latitude == null || aircraft.longitude == null) return null;
+  return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers}>{liveTooltip(aircraft)}</CircleMarker>;
 }, areMarkersEqual);
 
 interface BoundsReporterProps { onBounds: (bounds: Bounds) => void }
@@ -298,15 +342,6 @@ function BoundsReporter({ onBounds }: BoundsReporterProps) {
   return null;
 }
 
-interface MapControllerProps {
-  airport: Airport | null;
-  flight: Flight | null;
-  track?: TrackResponse;
-  locateRequest: number;
-  onLocationFound: (location: UserLocation) => void;
-  onLocationError: (message: string) => void;
-}
-
 interface UserLocation {
   latitude: number;
   longitude: number;
@@ -318,78 +353,60 @@ interface TrackSegment {
   color: string;
 }
 
-function getRouteFitPadding(map: L.Map): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
-  const mapRect = map.getContainer().getBoundingClientRect();
-  const width = mapRect.width;
-  const height = mapRect.height;
-  let left = 18;
-  let top = 18;
-  let right = 18;
-  let bottom = 18;
+interface Insets { left: number; top: number; right: number; bottom: number }
 
-  // Keep the route in the part of the map that is actually readable. The
-  // panels are siblings of the Leaflet container, so their dimensions are
-  // available after the selected-flight drawer has entered the DOM. This is
-  // preferable to hard-coding one desktop layout and hiding a long route
-  // underneath the details sheet.
-  const overlays = document.querySelectorAll<HTMLElement>(".query-panel, .results-panel, .details-drawer");
-  overlays.forEach((overlay) => {
-    const style = window.getComputedStyle(overlay);
-    // Do not use opacity as a visibility test: the drawer intentionally fades
-    // in from opacity 0, and route focus can arrive during that animation.
-    if (style.visibility === "hidden" || style.display === "none") return;
-    const rect = overlay.getBoundingClientRect();
-    const overlapLeft = Math.max(0, rect.left - mapRect.left);
-    const overlapTop = Math.max(0, rect.top - mapRect.top);
-    const overlapRight = Math.min(width, rect.right - mapRect.left);
-    const overlapBottom = Math.min(height, rect.bottom - mapRect.top);
-    if (overlapRight <= overlapLeft || overlapBottom <= overlapTop) return;
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
-    // A full-width bottom sheet only reduces the vertical map area. Applying
-    // horizontal padding for it would collapse the safe rectangle to zero.
-    const fullWidthSheet = rect.width >= width * 0.8;
-    // The desktop query and results rails span almost the entire map height.
-    // They reserve horizontal space only; treating them as top and bottom
-    // overlays would collapse the usable height and force a world-level zoom.
-    const fullHeightRail = rect.height >= height * 0.8 && !fullWidthSheet;
-    const bottomSheet = rect.bottom >= mapRect.bottom - 24 && overlapTop > 24;
-    const centralDetailsSheet = overlay.classList.contains("details-drawer") && overlapTop > 24;
-    // The selected-flight drawer is a lower sheet on desktop. Its right edge
-    // can cross the map midpoint, but using both edges as rectangular padding
-    // would leave Leaflet with an invalid (negative-width) fit area. Reserve
-    // its vertical footprint below and let the route use the top map band.
-    const horizontalOverlay = !fullWidthSheet && !centralDetailsSheet;
-    if (horizontalOverlay) {
-      if (overlapLeft < width / 2) left = Math.max(left, overlapRight + 18);
-      if (overlapRight > width / 2) right = Math.max(right, width - overlapLeft + 18);
-    }
-    if (!fullHeightRail) {
-      if (bottomSheet) {
-        bottom = Math.max(bottom, height - overlapTop + 18);
-      } else {
-        if (overlapTop < height / 2) top = Math.max(top, overlapBottom + 18);
-        if (overlapBottom > height / 2) bottom = Math.max(bottom, height - overlapTop + 18);
-      }
-    }
-  });
-
-  const maxHorizontal = Math.max(36, width - 36);
-  const maxVertical = Math.max(36, height - 36);
-  if (left + right > maxHorizontal) {
-    const ratio = maxHorizontal / (left + right);
-    left = Math.max(18, left * ratio);
-    right = Math.max(18, maxHorizontal - left);
-  }
-  if (top + bottom > maxVertical) {
-    const ratio = maxVertical / (top + bottom);
-    top = Math.max(18, top * ratio);
-    bottom = Math.max(18, maxVertical - top);
-  }
-
-  return {
-    paddingTopLeft: [Math.round(left), Math.round(top)],
-    paddingBottomRight: [Math.round(right), Math.round(bottom)],
+/**
+ * Part of the map that no docked panel covers. It is derived from the layout
+ * classes and CSS variables rather than from element rectangles, so it is
+ * already correct while a panel is still sliding in; measuring the panel
+ * mid-animation is what used to send the first camera move to the wrong place.
+ */
+function getSafeInsets(map: L.Map): Insets {
+  const edge = 16;
+  const insets: Insets = { left: edge, top: edge, right: edge, bottom: edge };
+  const workspace = map.getContainer().closest<HTMLElement>(".workspace");
+  if (!workspace || workspace.closest(".map-expanded")) return insets;
+  const styles = window.getComputedStyle(workspace);
+  const width = (name: string, fallback: number) => {
+    const value = Number.parseFloat(styles.getPropertyValue(name));
+    return Number.isFinite(value) ? value : fallback;
   };
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    // Phones show the panels as bottom sheets.
+    if (workspace.classList.contains("has-dock")) insets.bottom += Math.round(map.getSize().y * 0.5);
+    return insets;
+  }
+  insets.top += 52;
+  if (workspace.classList.contains("has-dock")) insets.left += width("--dock-width", 392) + edge;
+  if (workspace.classList.contains("traffic-open")) insets.right += width("--traffic-width", 360) + edge;
+  return insets;
+}
+
+/** Map centre that makes `point` land in the middle of the uncovered area. */
+function placementCenter(map: L.Map, point: L.LatLngExpression, zoom: number, insets: Insets): L.LatLng {
+  const offset = L.point((insets.left - insets.right) / 2, (insets.top - insets.bottom) / 2);
+  return map.unproject(map.project(point, zoom).subtract(offset), zoom).wrap();
+}
+
+function fitRoute(map: L.Map, track: TrackResponse | undefined, animate: boolean) {
+  const path = track?.track.path ?? [];
+  const bounds = L.latLngBounds([]);
+  for (const point of path) if (Number.isFinite(point[1]) && Number.isFinite(point[2])) bounds.extend([point[1], point[2]]);
+  if (!bounds.isValid()) return;
+  const insets = getSafeInsets(map);
+  map.stop();
+  map.flyToBounds(bounds.pad(0.1), {
+    animate,
+    duration: 1.1,
+    easeLinearity: 0.2,
+    maxZoom: 9,
+    paddingTopLeft: [insets.left, insets.top],
+    paddingBottomRight: [insets.right, insets.bottom],
+  });
 }
 
 function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): TrackSegment[] {
@@ -418,55 +435,93 @@ function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): Track
   return segments;
 }
 
-function MapController({ airport, flight, track, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
+/**
+ * Brings a freshly selected aircraft into view with a single camera move.
+ * Already comfortably on screen: the map does not move at all (the way FR24
+ * behaves). Close to a panel or an edge: one short pan. Out of reach: one
+ * eased flight. The route is drawn without touching the camera afterwards,
+ * so a click never produces two competing motions.
+ */
+function revealPoint(map: L.Map, point: [number, number], animate: boolean) {
+  const insets = getSafeInsets(map);
+  const size = map.getSize();
+  const pixel = map.latLngToContainerPoint(point);
+  const safe = { left: insets.left + 56, top: insets.top + 56, right: size.x - insets.right - 56, bottom: size.y - insets.bottom - 56 };
+  const inside = pixel.x >= safe.left && pixel.x <= safe.right && pixel.y >= safe.top && pixel.y <= safe.bottom;
+  const zoom = Math.max(map.getZoom(), 7);
+  if (inside && zoom === map.getZoom()) return;
+  const target = placementCenter(map, point, zoom, insets);
+  map.stop();
+  if (zoom === map.getZoom() && map.getCenter().distanceTo(target) < 400_000) {
+    map.panTo(target, { animate, duration: 0.7, easeLinearity: 0.25 });
+  } else {
+    map.flyTo(target, zoom, { animate, duration: 1, easeLinearity: 0.2 });
+  }
+}
+
+interface MapControllerProps {
+  airport: Airport | null;
+  flight: Flight | null;
+  track?: TrackResponse;
+  fitRequest: number;
+  locateRequest: number;
+  onLocationFound: (location: UserLocation) => void;
+  onLocationError: (message: string) => void;
+}
+
+function MapController({ airport, flight, track, fitRequest, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
   const map = useMap();
-  const focusedFlight = useRef<string | null>(null);
+  const selection = useRef<{ id: string; fitted: boolean } | null>(null);
   const centeredAirport = useRef<string | null>(null);
+  const lastFitRequest = useRef(fitRequest);
+
+  // The aircraft is revealed once per selection.
+  const selectedId = flight?.icao24 ?? null;
+  const selectedLatitude = flight?.latitude;
+  const selectedLongitude = flight?.longitude;
   useEffect(() => {
-    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (track?.track.path?.length) {
-      focusedFlight.current = flight?.icao24 ?? null;
-      const bounds = L.latLngBounds(track.track.path.map((point) => [point[1], point[2]]));
-      // A route can expand from a local airport view to a continent-wide
-      // journey. Leaflet's flyToBounds preserves that spatial story with an
-      // eased zoom-out arc instead of the abrupt linear fit animation.
-      map.stop();
-      map.flyToBounds(bounds.pad(0.24), {
-        animate,
-        duration: 1.05,
-        easeLinearity: 0.16,
-        maxZoom: 9,
-        ...getRouteFitPadding(map),
-      });
+    if (!selectedId) {
+      selection.current = null;
       return;
     }
-    if (flight) {
-      focusedFlight.current = flight.icao24;
-      if (flight.latitude == null || flight.longitude == null) return;
-      // Give the route request a brief chance to resolve. Flying to the
-      // current position and immediately flying back out to the full route
-      // creates two competing motions when a flight is selected.
-      const timer = window.setTimeout(() => {
-        map.stop();
-        map.flyTo([flight.latitude!, flight.longitude!], Math.max(map.getZoom(), 8), { duration: 0.55, animate });
-      }, animate ? 280 : 0);
-      return () => window.clearTimeout(timer);
+    if (selection.current?.id !== selectedId) selection.current = { id: selectedId, fitted: false };
+    if (selectedLatitude == null || selectedLongitude == null) return;
+    revealPoint(map, [selectedLatitude, selectedLongitude], !prefersReducedMotion());
+    // Re-running on a late-arriving position is harmless: revealPoint is a no-op when already visible.
+  }, [map, selectedId, selectedLatitude, selectedLongitude]);
+
+  // A recorded flight has no position on the map: frame its trace instead.
+  useEffect(() => {
+    const current = selection.current;
+    if (!flight || !current || current.fitted || !track?.track.path?.length) return;
+    if (track.track.icao24 && track.track.icao24.toLowerCase() !== flight.icao24.toLowerCase()) return;
+    current.fitted = true;
+    if (flight.latitude != null && flight.longitude != null) return;
+    fitRoute(map, track, !prefersReducedMotion());
+  }, [flight, map, track]);
+
+  useEffect(() => {
+    if (fitRequest === lastFitRequest.current) return;
+    lastFitRequest.current = fitRequest;
+    fitRoute(map, track, !prefersReducedMotion());
+  }, [fitRequest, map, track]);
+
+  const airportIcao = airport?.icao ?? null;
+  const airportLatitude = airport?.latitude;
+  const airportLongitude = airport?.longitude;
+  useEffect(() => {
+    if (!airportIcao || airportLatitude == null || airportLongitude == null || centeredAirport.current === airportIcao) return;
+    const first = centeredAirport.current === null;
+    centeredAirport.current = airportIcao;
+    const insets = getSafeInsets(map);
+    map.stop();
+    if (first) {
+      // The first position appears immediately; later changes travel there.
+      map.setView(placementCenter(map, [airportLatitude, airportLongitude], 8, insets), 8, { animate: false });
+    } else {
+      map.flyTo(placementCenter(map, [airportLatitude, airportLongitude], 9, insets), 9, { animate: !prefersReducedMotion(), duration: 1.1, easeLinearity: 0.2 });
     }
-    if (airport?.latitude != null && airport.longitude != null) {
-      const returningFromFlight = focusedFlight.current !== null;
-      const previousAirport = centeredAirport.current;
-      focusedFlight.current = null;
-      centeredAirport.current = airport.icao;
-      if (!returningFromFlight && previousAirport === airport.icao) return;
-      map.stop();
-      // The first map position appears immediately. Subsequent airport
-      // changes and closing a route travel back through the same map space.
-      map.flyTo([airport.latitude, airport.longitude], 8, {
-        animate: animate && (returningFromFlight || previousAirport !== null),
-        duration: returningFromFlight ? 0.85 : 0.7,
-      });
-    }
-  }, [airport, flight, map, track]);
+  }, [airportIcao, airportLatitude, airportLongitude, map]);
 
   useEffect(() => {
     if (!locateRequest) return;
@@ -494,48 +549,180 @@ function MapController({ airport, flight, track, locateRequest, onLocationFound,
   return null;
 }
 
-interface FollowControllerProps {
-  active: boolean;
-  position: MarkerPosition | null;
+/** Zoom-dependent label visibility lives on the map element so zooming never re-renders a marker. */
+function MapViewClasses({ labelsEnabled }: { labelsEnabled: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const apply = () => {
+      const zoom = map.getZoom();
+      container.classList.toggle("show-labels", labelsEnabled && zoom >= LABEL_MIN_ZOOM);
+      container.classList.toggle("show-label-detail", labelsEnabled && zoom >= LABEL_DETAIL_ZOOM);
+    };
+    apply();
+    map.on("zoomend", apply);
+    return () => {
+      map.off("zoomend", apply);
+      container.classList.remove("show-labels", "show-label-detail");
+    };
+  }, [labelsEnabled, map]);
+  return null;
+}
+
+function AirportPins({ airports, activeIcao, onSelect }: { airports: Airport[]; activeIcao: string | null; onSelect: (airport: Airport) => void }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  useEffect(() => {
+    const update = () => setZoom(map.getZoom());
+    map.on("zoomend", update);
+    return () => { map.off("zoomend", update); };
+  }, [map]);
+  if (zoom < AIRPORT_PIN_MIN_ZOOM) return null;
+  return <>
+    {airports.filter((airport) => airport.latitude != null && airport.longitude != null).map((airport) => (
+      <AirportPin key={airport.icao} airport={airport} active={airport.icao === activeIcao} onSelect={onSelect} />
+    ))}
+  </>;
+}
+
+function AirportPin({ airport, active, onSelect }: { airport: Airport; active: boolean; onSelect: (airport: Airport) => void }) {
+  const icon = useMemo(() => airportPinIcon(airport, active), [airport, active]);
+  const handlers = useMemo(() => ({ click: () => onSelect(airport) }), [airport, onSelect]);
+  return (
+    <Marker position={[airport.latitude!, airport.longitude!]} icon={icon} eventHandlers={handlers} zIndexOffset={-1000} keyboard={false}>
+      <Tooltip direction="top" offset={[0, -6]} opacity={1} className="aircraft-tooltip"><strong>{airport.name}</strong><span>{airport.icao}{airport.iata ? ` · ${airport.iata}` : ""} · open the board</span></Tooltip>
+    </Marker>
+  );
+}
+
+function useReveal(key: string, ready: boolean): number {
+  const [fraction, setFraction] = useState(1);
+  useEffect(() => {
+    if (!ready) return;
+    if (prefersReducedMotion()) {
+      setFraction(1);
+      return;
+    }
+    const start = performance.now();
+    const duration = 950;
+    let frame = 0;
+    setFraction(0);
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      setFraction(1 - (1 - progress) ** 3);
+      if (progress < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [key, ready]);
+  return fraction;
+}
+
+interface SelectedTrackProps {
+  flight: Flight;
+  track?: TrackResponse;
+  live: LiveAircraft | null;
+  theme: MapTheme;
+  following: boolean;
   onRelease: () => void;
 }
 
-function FollowController({ active, position, onRelease }: FollowControllerProps) {
+/**
+ * Everything drawn for the selected aircraft: the altitude-coloured trace
+ * (revealed from its start to the aircraft on selection), the trace origin,
+ * and the follow camera. It ticks on its own clock so the aircraft's other
+ * traffic never re-renders with it.
+ */
+function SelectedTrack({ flight, track, live, theme, following, onRelease }: SelectedTrackProps) {
   const map = useMap();
-  const latitude = position?.[0];
-  const longitude = position?.[1];
-  const started = useRef(false);
+  const now = useNowSeconds(true);
+  const selectedId = flight.icao24.toLowerCase();
+  const head = useMemo<[number, number] | null>(() => {
+    if (live) return projectPosition(live, now);
+    return flight.latitude != null && flight.longitude != null ? [flight.latitude, flight.longitude] : null;
+  }, [flight.latitude, flight.longitude, live, now]);
 
+  const basePoints = useMemo<TrackPoint[]>(() => {
+    if (track?.track.icao24 && track.track.icao24.toLowerCase() !== selectedId) return [];
+    return (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
+  }, [selectedId, track]);
+
+  const fraction = useReveal(`${selectedId}:${track?.track.icao24 ?? ""}`, basePoints.length > 1);
+  const drawnBase = useMemo(
+    () => fraction >= 1 ? basePoints : basePoints.slice(0, Math.max(2, Math.ceil(basePoints.length * fraction))),
+    [basePoints, fraction],
+  );
+  const baseSegments = useMemo(() => buildAltitudeSegments(drawnBase), [drawnBase]);
+  const lastBase = basePoints[basePoints.length - 1];
+  // The last stretch joins the end of the trace to the aircraft's position now.
+  const headSegment = useMemo<TrackSegment | null>(() => {
+    if (!head || !lastBase || fraction < 1) return null;
+    const altitude = live?.baro_altitude ?? lastBase[3];
+    return { positions: [[lastBase[1], lastBase[2]], head], color: altitudeColor(altitude) };
+  }, [fraction, head, lastBase, live?.baro_altitude]);
+  const halo = useMemo<[number, number][]>(() => {
+    const positions = drawnBase.map((point) => [point[1], point[2]] as [number, number]);
+    if (headSegment) positions.push(headSegment.positions[1]);
+    return positions;
+  }, [drawnBase, headSegment]);
+  const firstPoint = basePoints[0];
+  const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
+  const fallbackIcon = useMemo(
+    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight) }),
+    [flight],
+  );
+
+  const followStarted = useRef(false);
   useEffect(() => {
-    if (!active) {
-      started.current = false;
+    if (!following) {
+      followStarted.current = false;
       return;
     }
     map.on("dragstart", onRelease);
     return () => { map.off("dragstart", onRelease); };
-  }, [active, map, onRelease]);
-
+  }, [following, map, onRelease]);
   useEffect(() => {
-    if (!active || latitude == null || longitude == null) return;
-    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!started.current) {
-      // First frame: close in on the aircraft, then only pan with it.
-      started.current = true;
+    if (!following || !head) return;
+    const animate = !prefersReducedMotion();
+    const insets = getSafeInsets(map);
+    if (!followStarted.current) {
+      // First frame: close in on the aircraft, then only pan along with it.
+      followStarted.current = true;
+      const zoom = Math.max(map.getZoom(), 9);
       map.stop();
-      map.flyTo([latitude, longitude], Math.max(map.getZoom(), 9), { animate, duration: 0.8 });
+      map.flyTo(placementCenter(map, head, zoom, insets), zoom, { animate, duration: 0.9 });
       return;
     }
-    map.panTo([latitude, longitude], { animate, duration: 1, easeLinearity: 0.25 });
-  }, [active, latitude, longitude, map]);
-  return null;
+    // One second of linear pan per one-second tick keeps the aircraft still on screen.
+    map.panTo(placementCenter(map, head, map.getZoom(), insets), { animate, duration: 1, easeLinearity: 1, noMoveStart: true });
+  }, [following, head, map]);
+
+  return (
+    <>
+      {halo.length > 1 && <Polyline positions={halo} pathOptions={{ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7, lineCap: "round", lineJoin: "round" }} />}
+      {baseSegments.map((segment, index) => (
+        <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96, lineCap: "round", lineJoin: "round" }} />
+      ))}
+      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ color: headSegment.color, weight: 3.5, opacity: 0.96, lineCap: "round", lineJoin: "round" }} />}
+      {firstPoint && basePoints.length > 1 && (
+        <Marker position={[firstPoint[1], firstPoint[2]]} icon={startIcon} keyboard={false}>
+          <Tooltip direction="top" offset={[0, -8]} opacity={1} className="aircraft-tooltip"><strong>Trace start</strong><span className="mono">{formatAltitude(firstPoint[3])}</span></Tooltip>
+        </Marker>
+      )}
+      {!live && head && <Marker position={head} icon={fallbackIcon} keyboard={false} />}
+    </>
+  );
 }
 
 interface FlightMapProps {
   airport: Airport | null;
+  airports?: Airport[];
   selectedFlight: Flight | null;
   previewFlight?: Flight | null;
   track?: TrackResponse;
   theme: MapTheme;
+  filters: MapFilters;
+  labelsEnabled: boolean;
   liveEnabled: boolean;
   liveAvailable: boolean;
   liveProbePending?: boolean;
@@ -543,6 +730,7 @@ interface FlightMapProps {
   onToggleLive: () => void;
   onToggleExpanded: () => void;
   onSelectFlight: (flight: Flight) => void;
+  onSelectAirport?: (airport: Airport) => void;
   onLiveSnapshot?: (data: LiveFlightsResponse, airportIcao: string | null) => void;
   onViewportCenter?: (center: [number, number]) => void;
 }
@@ -558,10 +746,13 @@ interface ProgressiveLiveState {
 
 export function FlightMap({
   airport,
+  airports = [],
   selectedFlight,
   previewFlight = null,
   track,
   theme,
+  filters,
+  labelsEnabled,
   liveEnabled,
   liveAvailable,
   liveProbePending = false,
@@ -569,9 +760,11 @@ export function FlightMap({
   onToggleLive,
   onToggleExpanded,
   onSelectFlight,
+  onSelectAirport,
   onLiveSnapshot,
   onViewportCenter,
 }: FlightMapProps) {
+  const [map, setMap] = useState<L.Map | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const handleBounds = useCallback((next: Bounds) => {
     setBounds((current) => (boundsEqual(current, next) ? current : next));
@@ -580,6 +773,7 @@ export function FlightMap({
     if (bounds) onViewportCenter?.([(bounds.lamin + bounds.lamax) / 2, (bounds.lomin + bounds.lomax) / 2]);
   }, [bounds, onViewportCenter]);
   const [locateRequest, setLocateRequest] = useState(0);
+  const [fitRequest, setFitRequest] = useState(0);
   // Follow keeps the selected aircraft centred as it moves, like FR24's
   // follow mode. It ends when the user drags the map or picks another aircraft.
   const [following, setFollowing] = useState(false);
@@ -801,89 +995,31 @@ export function FlightMap({
   const displayedLiveData = liveState.data;
   const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
   const displayedLiveStates = displayedLiveData?.states ?? NO_AIRCRAFT;
-  // A broad viewport can contain thousands of aircraft. Keep the detailed
-  // plane icons for normal views, then switch to a lightweight canvas layer so
-  // zooming out does not turn every aircraft into a DOM subtree.
-  const denseTraffic = displayedLiveStates.length > 750;
-  const liveStatus = liveState.error || liveState.failedTiles > 0
-    ? hasLiveSnapshot ? `Live refresh delayed · showing last snapshot · ${liveState.loadedTiles}/${liveState.totalTiles} sectors loaded` : "Live traffic temporarily unavailable"
-    : liveState.fetching
-      ? liveState.loadedTiles > 0
-        ? `${displayedLiveData?.count ?? 0} aircraft · loading sector ${Math.min(liveState.loadedTiles + 1, liveState.totalTiles)}/${liveState.totalTiles}`
-        : "Scanning visible airspace…"
-      : liveState.loadedTiles < liveState.totalTiles
-        ? `${displayedLiveData?.count ?? 0} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
-        : `${displayedLiveData?.count ?? 0} aircraft in view`;
-
   const selectedIcao24 = selectedFlight ? selectedFlight.icao24.toLowerCase() : null;
   const selectedLive = useMemo(
     () => selectedIcao24 ? displayedLiveStates.find((aircraft) => aircraft.icao24.toLowerCase() === selectedIcao24) ?? null : null,
     [displayedLiveStates, selectedIcao24],
   );
-  // The trace is fetched once per selection, while the live feed keeps
-  // updating. When the feed has a newer fix, extend the trace with it so the
-  // selected aircraft (and the route behind it) keeps moving.
-  const trackPoints = useMemo(() => {
-    if (selectedIcao24 && track?.track.icao24 && track.track.icao24.toLowerCase() !== selectedIcao24) return [];
-    const points = (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
-    const last = points[points.length - 1];
-    const liveTime = selectedLive?.time_position ?? selectedLive?.last_contact;
-    if (last && selectedLive?.latitude != null && selectedLive.longitude != null && liveTime != null && liveTime > last[0] + 1) {
-      return [...points, [
-        liveTime,
-        selectedLive.latitude,
-        selectedLive.longitude,
-        selectedLive.baro_altitude ?? last[3],
-        selectedLive.true_track ?? last[4],
-        selectedLive.on_ground ?? last[5],
-      ] as TrackPoint];
-    }
-    return points;
-  }, [selectedIcao24, selectedLive, track]);
-  const trackPositions = useMemo(
-    () => trackPoints.map((point) => [point[1], point[2]] as MarkerPosition),
-    [trackPoints],
-  );
-  // OpenSky returns trace points in time order. Once the trace is available,
-  // use its latest point for the selected marker so the aircraft sits exactly
-  // on the route instead of remaining at a stale live-feed coordinate.
-  const trackLatest = useMemo(() => {
-    const point = trackPoints[trackPoints.length - 1];
-    if (!point) return null;
-    return {
-      position: [point[1], point[2]] as MarkerPosition,
-      altitude: point[3],
-      heading: Number.isFinite(point[4]) ? point[4] : null,
-    };
-  }, [trackPoints]);
-  const trackEndpoints = useMemo(() => {
-    if (trackPoints.length < 2) return null;
-    const first = trackPoints[0];
-    const last = trackPoints[trackPoints.length - 1];
-    return {
-      start: [first[1], first[2]] as [number, number],
-      end: [last[1], last[2]] as [number, number],
-      startAltitude: first[3],
-      endAltitude: last[3],
-    };
-  }, [trackPoints]);
-  const trackSegments = useMemo(() => buildAltitudeSegments(trackPoints), [trackPoints]);
-  const selectedIconKind = useMemo(() => selectedFlight ? aircraftIconKind(selectedFlight) : "unknown", [selectedFlight]);
-  const selectedIcon = useMemo(
-    () => planeIcon(trackLatest?.heading ?? selectedFlight?.true_track ?? 0, true, selectedFlight?.on_ground === true, selectedFlight?.icao24, selectedIconKind),
-    [selectedFlight?.icao24, selectedFlight?.on_ground, selectedFlight?.true_track, selectedIconKind, trackLatest?.heading],
-  );
-  const selectedMapPosition = trackLatest?.position ?? (
-    selectedLive?.latitude != null && selectedLive.longitude != null
-      ? [selectedLive.latitude, selectedLive.longitude] as MarkerPosition
-      : null
-  ) ?? (
-    selectedFlight?.latitude != null && selectedFlight.longitude != null
-      ? [selectedFlight.latitude, selectedFlight.longitude] as MarkerPosition
-      : null
-  );
-  const routeStartIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
-  const routeEndIcon = useMemo(() => routeEndpointIcon("end", theme), [theme]);
+  // The filters narrow the map, never the aircraft the user is looking at.
+  const visibleStates = useMemo(() => {
+    const kept = filterAircraft(displayedLiveStates, filters);
+    return selectedLive && !kept.includes(selectedLive) ? [...kept, selectedLive] : kept;
+  }, [displayedLiveStates, filters, selectedLive]);
+  // A broad viewport can contain thousands of aircraft. Keep the detailed
+  // plane icons for normal views, then switch to a lightweight canvas layer so
+  // zooming out does not turn every aircraft into a DOM subtree.
+  const denseTraffic = visibleStates.length > 750;
+  const hiddenByFilters = displayedLiveStates.length - visibleStates.length;
+  const liveStatus = liveState.error || liveState.failedTiles > 0
+    ? hasLiveSnapshot ? `Refresh delayed · last snapshot kept · ${liveState.loadedTiles}/${liveState.totalTiles} sectors` : "Live traffic temporarily unavailable"
+    : liveState.fetching && liveState.loadedTiles === 0
+      ? "Scanning visible airspace…"
+      : liveState.fetching
+        ? `${visibleStates.length} aircraft · sector ${Math.min(liveState.loadedTiles + 1, liveState.totalTiles)}/${liveState.totalTiles}`
+        : liveState.loadedTiles < liveState.totalTiles
+          ? `${visibleStates.length} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
+          : `${visibleStates.length} aircraft`;
+
   const locationIcon = useMemo(() => userLocationIcon(), []);
   const handleLocationFound = useCallback((location: UserLocation) => {
     setUserLocation(location);
@@ -896,9 +1032,22 @@ export function FlightMap({
     setLocationError(null);
     setLocateRequest((value) => value + 1);
   }, []);
+  const hasTrace = Boolean(track?.track.path && track.track.path.length > 1);
+
+  useEffect(() => {
+    function handleShortcuts(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey || !selectedFlight) return;
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.key.toLowerCase() === "f") setFollowing((current) => !current);
+      else if (event.key.toLowerCase() === "r" && hasTrace) setFitRequest((value) => value + 1);
+    }
+    window.addEventListener("keydown", handleShortcuts);
+    return () => window.removeEventListener("keydown", handleShortcuts);
+  }, [hasTrace, selectedFlight]);
+
   return (
     <section className="map-surface" aria-label="Live flight map">
-      <MapContainer center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
+      <MapContainer ref={setMap} center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -907,54 +1056,25 @@ export function FlightMap({
           maxZoom={19}
         />
         <BoundsReporter onBounds={handleBounds} />
+        <MapViewClasses labelsEnabled={labelsEnabled} />
         <MapController
           airport={airport}
           flight={selectedFlight}
           track={track}
+          fitRequest={fitRequest}
           locateRequest={locateRequest}
           onLocationFound={handleLocationFound}
           onLocationError={handleLocationError}
         />
         <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={onSelectFlight} />
-        <FollowController active={following && Boolean(selectedFlight)} position={selectedMapPosition} onRelease={releaseFollow} />
-        {trackPositions.length > 1 && <Polyline
-          positions={trackPositions}
-          pathOptions={{
-            color: MAP_COLORS[theme].halo,
-            weight: 9,
-            opacity: 0.72,
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />}
-        {trackSegments.map((segment, index) => (
-          <Polyline
-            key={`${segment.color}-${index}`}
-            positions={segment.positions}
-            pathOptions={{ color: segment.color, weight: 4, opacity: 0.96, lineCap: "round", lineJoin: "round" }}
-          />
-        ))}
-        {trackEndpoints && <>
-          <Marker position={trackEndpoints.start} icon={routeStartIcon}>
-            <Popup>
-              <strong>Trace start</strong><br />
-              <span className="mono">{formatAltitude(trackEndpoints.startAltitude)}</span>
-            </Popup>
-          </Marker>
-          <Marker position={trackEndpoints.end} icon={routeEndIcon}>
-            <Popup>
-              <strong>Latest trace point</strong><br />
-              <span className="mono">{formatAltitude(trackEndpoints.endAltitude)}</span>
-            </Popup>
-          </Marker>
-        </>}
-        {displayedLiveStates.map((aircraft) => denseTraffic ? (
+        {onSelectAirport && <AirportPins airports={airports} activeIcao={airport?.icao ?? null} onSelect={onSelectAirport} />}
+        {selectedFlight && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
+        {visibleStates.map((aircraft) => denseTraffic ? (
           <AircraftDot
             key={aircraft.icao24}
             aircraft={aircraft}
             active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
             onSelect={onSelectFlight}
-            positionOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.position : undefined}
             theme={theme}
           />
         ) : (
@@ -963,13 +1083,8 @@ export function FlightMap({
             aircraft={aircraft}
             active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
             onSelect={onSelectFlight}
-            positionOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.position : undefined}
-            headingOverride={aircraft.icao24 === selectedFlight?.icao24 ? trackLatest?.heading : undefined}
           />
         ))}
-        {selectedMapPosition && !displayedLiveStates.some((item) => item.icao24 === selectedFlight?.icao24) && (
-          <Marker position={selectedMapPosition} icon={selectedIcon} />
-        )}
         {userLocation && (
           <>
             <Circle
@@ -978,55 +1093,56 @@ export function FlightMap({
               pathOptions={{ color: MAP_COLORS[theme].accent, weight: 1, opacity: 0.5, fillColor: MAP_COLORS[theme].accent, fillOpacity: 0.08 }}
             />
             <Marker position={[userLocation.latitude, userLocation.longitude]} icon={locationIcon}>
-              <Popup>
-                <strong>Your location</strong><br />
+              <Tooltip direction="top" offset={[0, -10]} opacity={1} className="aircraft-tooltip">
+                <strong>Your location</strong>
                 <span className="mono">Accuracy ±{Math.round(userLocation.accuracy)} m</span>
-              </Popup>
+              </Tooltip>
             </Marker>
           </>
         )}
       </MapContainer>
 
-      <div className="map-label">
-        <strong>{airport ? `${airport.name} airspace` : "European airspace"}</strong>
-        <span className="map-label-meta"><span className={`system-dot ${liveAvailable ? "online" : "warning"}`} /> {displayedLiveData ? `${displayedLiveData.count} aircraft` : "Awaiting traffic feed"}</span>
-      </div>
-      <div className="map-footer" aria-label="Map data sources">
-        <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
-        <strong>{displayedLiveData ? `${displayedLiveData.count} targets` : "No targets"}</strong>
-        <span className="map-footer-rule" aria-hidden="true" />
-        <span>ADS-B · OSM</span>
-      </div>
-      <div className={`live-badge ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
-        <span className={`pulse-dot ${liveEnabled ? "active" : ""}`} />
-        <span className="live-badge-label">{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</span>
-        <span className="live-badge-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
+      <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
+        <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />
+        <strong>{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</strong>
+        <span className="map-status-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
+        {hiddenByFilters > 0 && <span className="map-status-filter">{hiddenByFilters} hidden by filters</span>}
         {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}
         {liveEnabled && (liveState.error || liveState.failedTiles > 0) && <button type="button" className="live-retry" onClick={() => setLiveRefresh((value) => value + 1)}>Retry</button>}
       </div>
-      <div className="map-controls">
-        <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>
-          {liveEnabled ? <Pause size={17} /> : <Play size={17} />}
-        </button>
-        <button type="button" className={userLocation ? "location-active" : ""} onClick={requestLocation} aria-label="Locate me" title={userLocation ? "Update my location" : "Locate me"}><LocateFixed size={17} /></button>
-        <button type="button" onClick={onToggleExpanded} aria-label={expanded ? "Exit full map" : "Open full map"} title={expanded ? "Exit full map" : "Full map"}>
-          {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-        </button>
-        {selectedFlight && (
-          <button
-            type="button"
-            className={following ? "follow-active" : ""}
-            onClick={() => setFollowing(!following)}
-            aria-pressed={following}
-            aria-label={following ? "Stop following aircraft" : "Follow selected aircraft"}
-            title={following ? "Stop following" : "Follow aircraft"}
-          >
-            <Crosshair size={17} />
+
+      <div className="map-controls" role="group" aria-label="Map controls">
+        <div className="map-control-group">
+          <button type="button" onClick={() => map?.zoomIn()} aria-label="Zoom in" title="Zoom in"><Plus size={17} /></button>
+          <button type="button" onClick={() => map?.zoomOut()} aria-label="Zoom out" title="Zoom out"><Minus size={17} /></button>
+        </div>
+        <div className="map-control-group">
+          <button type="button" className={userLocation ? "location-active" : ""} onClick={requestLocation} aria-label="Locate me" title={userLocation ? "Update my location" : "Locate me"}><LocateFixed size={17} /></button>
+          <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>
+            {liveEnabled ? <Pause size={17} /> : <Play size={17} />}
           </button>
+          <button type="button" onClick={onToggleExpanded} aria-label={expanded ? "Show panels" : "Hide panels"} title={expanded ? "Show panels" : "Full map"}>
+            {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+          </button>
+        </div>
+        {selectedFlight && (
+          <div className="map-control-group">
+            <button
+              type="button"
+              className={following ? "follow-active" : ""}
+              onClick={() => setFollowing(!following)}
+              aria-pressed={following}
+              aria-label={following ? "Stop following aircraft" : "Follow selected aircraft"}
+              title={following ? "Stop following (F)" : "Follow aircraft (F)"}
+            >
+              <Navigation size={16} />
+            </button>
+            <button type="button" disabled={!hasTrace} onClick={() => setFitRequest((value) => value + 1)} aria-label="Show full route" title="Show full route (R)"><Route size={17} /></button>
+          </div>
         )}
       </div>
       {locationError && <div className="location-status" role="status">{locationError}</div>}
-      {trackSegments.length > 0 && <AltitudeLegend compact className="map-altitude-legend" />}
+      {hasTrace && <AltitudeLegend compact className="map-altitude-legend" />}
     </section>
   );
 }

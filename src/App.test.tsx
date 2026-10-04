@@ -25,6 +25,12 @@ function json(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }));
 }
 
+async function openAirportFromSearch() {
+  const search = await screen.findByRole("combobox", { name: /search flights and airports/i });
+  await userEvent.type(search, "Charles");
+  await userEvent.click(await screen.findByRole("option", { name: /Charles de Gaulle/ }));
+}
+
 function renderApp() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={client}><App /></QueryClientProvider>);
@@ -42,10 +48,10 @@ describe("App", () => {
     }));
 
     renderApp();
-    expect(await screen.findByDisplayValue(/LFPG/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /explore flights/i }));
+    await openAirportFromSearch();
     expect(await screen.findByText("AFR123")).toBeInTheDocument();
     expect(screen.getByText("Air France")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Departures from CDG" })).toBeInTheDocument();
   });
 
   it("turns an authentication error into an actionable message", async () => {
@@ -58,8 +64,7 @@ describe("App", () => {
     }));
 
     renderApp();
-    expect(await screen.findByDisplayValue(/LFPG/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /explore flights/i }));
+    await openAirportFromSearch();
     expect(await screen.findByText(/add them to your local .env file/i)).toBeInTheDocument();
   });
 
@@ -95,11 +100,10 @@ describe("App", () => {
     }));
 
     renderApp();
-    expect(await screen.findByDisplayValue(/LFPG/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /explore flights/i }));
+    await openAirportFromSearch();
     await userEvent.click(await screen.findByRole("button", { name: /AFR28VV/ }));
     expect(await screen.findByText("No photo of F-HBQE yet")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("F-HBQE")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("F-HBQE").length).toBeGreaterThan(0));
     expect(screen.queryByText(/F-HBQD/)).not.toBeInTheDocument();
   });
 });

@@ -50,3 +50,18 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B28: /api/health reports live_available: true without OpenSky credentials.** Live tiles use the public ADS-B feeds; credentials only add history. The earlier value relied on the pulled VERCEL=1.
 - [ ] B29: The bundled airline dataset is missing newer carriers (Volotea, Brussels Airlines, City Airlines…). Refresh it from a maintained source.
 - [x] **B30: The registration in flight details now always matches the photo.** When the server's ADS-B profile lookup missed, FlightAware's *scheduled* tail overrode the transponder registration that the live feed had already provided (for example F-HBQD shown for F-HBQE, F-GZHY for F-HXSX). The photo, looked up by hex, showed the real airframe: 29 of 29 matched in a check against live traffic. The client now ranks sources (transponder profile, then live-feed registration, then scheduled tail), and the server reuses the map's recent live cache instead of a provider call that competes with map tiles.
+
+## FR24-style rework (2026-10-04)
+
+- [x] **B31: Clicking an aircraft no longer produces two camera moves.** Selecting used to fly to the aircraft, wait for the route, then fly out to fit the whole route (up to zoom 9), while the drawer was measured mid-animation. Now there is at most one move (none when the aircraft is comfortably on screen), the route is drawn in without moving the map, and "Show route" (R) frames it on request. The free map area is derived from layout classes, so it is correct while a panel is still sliding in. Closing a flight no longer flies back to the airport.
+- [x] **B32: Aircraft move continuously.** Positions are dead-reckoned along the reported track and ground speed (capped at 90 s of age) once per second, and markers ease to each position, so the next fix absorbs the difference instead of snapping. The selected aircraft's trace ends at the aircraft.
+- [x] **B33: Layout rebuilt around a full-bleed map.** The left "Choose an airport" form and the right results card were replaced by a top search bar, a left flight dock that only exists when something is selected, and a collapsible right panel with **In view** and **Airport** tabs. Hero copy, the "Flight intelligence" tagline, the frosted-glass blur and the large pill radii were removed.
+- [x] **B34: One search field** for aircraft on the map (callsign, registration, type, airline) and airports. Selecting an airport loads its board straight away; there is no "Explore flights" step.
+- [x] **B35: Flight dock redesigned**: photo, big origin/destination codes with progress and time flown/to go, live readouts that keep updating after selection (they used to freeze at click time), collapsible sections, nicer source labels.
+- [x] **B36: Map filters** (altitude window, ground traffic, airline/type/registration text; emergencies are never hidden) with a "hidden by filters" counter.
+- [x] **B37: Aircraft labels** (callsign, plus flight level and speed when zoomed in), solid category silhouettes, hover cards instead of click popups, selection pop animation.
+- [x] **B38: Airport markers** that open the departures and arrivals board.
+- [x] **B39: Units** (aviation or metric) shared by every readout, plus follow (F) and show-route (R) shortcuts.
+- [x] **B40: Shared links to a live aircraft now work.** A link without an airport used to select nothing; the aircraft is now looked up directly.
+- [ ] B41: Add a real-tile visual regression capture; the screenshots in this repo use a procedural base map because the capture environment had no internet access.
+- [ ] B42: Show a short trail behind every aircraft in view (needs a cheap batched history source).

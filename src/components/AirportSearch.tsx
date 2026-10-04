@@ -26,7 +26,6 @@ export function AirportSearch({
   onToggleFavorite,
 }: AirportSearchProps) {
   const listboxId = useId();
-  const [shortcut] = useState(() => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘K" : "Ctrl K");
   const input = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(selected ? `${selected.icao} · ${selected.name}` : "");
@@ -119,7 +118,7 @@ export function AirportSearch({
 
   return (
     <div className="airport-search" ref={container} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-      <label className="field-label airport-field-label" htmlFor="airport-search">Airport <kbd className="airport-shortcut mono" aria-hidden="true">{shortcut}</kbd></label>
+      <label className="sr-only" htmlFor="airport-search">Airport</label>
       <div className="search-input-wrap">
         <Search size={17} aria-hidden="true" />
         <input
@@ -136,8 +135,7 @@ export function AirportSearch({
           onFocus={() => setOpen(true)}
           onChange={(event) => { setQuery(event.target.value); onClear?.(); setOpen(true); setActiveIndex(0); }}
           onKeyDown={handleKeyDown}
-          aria-keyshortcuts="Meta+K Control+K /"
-        />
+                  />
         {query && (
           <button type="button" className="clear-button" aria-label="Clear airport" onClick={() => { setQuery(""); onClear?.(); setActiveIndex(0); input.current?.focus(); setOpen(true); }}>
             <X size={15} />

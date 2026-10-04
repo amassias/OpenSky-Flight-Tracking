@@ -3,12 +3,15 @@ import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert }
 import { usePersistentState } from "../hooks/usePersistentState";
 import type { Flight } from "../types";
 import { distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
+import { useUnits } from "../units";
 
 type StatusFilter = "all" | "airborne" | "on_ground" | "completed";
 type SortOrder = "time_desc" | "time_asc" | "airline_asc" | "distance_asc" | "altitude_desc" | "speed_desc";
 
 interface FlightListProps {
   flights: Flight[];
+  /** "live" lists aircraft in the map view; "airport" lists recorded movements. */
+  variant?: "live" | "airport";
   selectedFlight: Flight | null;
   loading: boolean;
   errorMessage?: string;
@@ -29,6 +32,7 @@ interface FlightCardProps {
 }
 
 const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview }: FlightCardProps) {
+  useUnits();
   const status = statusLabel(flight.status, flight.on_ground);
   const time = flight.primary_time ?? flight.first_seen ?? flight.last_seen;
   const emergency = emergencyInfo(flight);
@@ -55,7 +59,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
           </span>
           <span className="airline">{operator}{flight.airline_name && airframe ? <span className="airframe"> · {airframe}</span> : null}</span>
         </span>
-        <span className="route mono">{routeLabel(flight)}</span>
+        <span className="route mono">{flight.data_source === "live-nearby" ? flight.aircraft_type || "—" : routeLabel(flight)}</span>
         <span className="flight-meta">
           {emergency
             ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
@@ -81,6 +85,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
 
 export function FlightList({
   flights,
+  variant = "airport",
   selectedFlight,
   loading,
   errorMessage,
@@ -92,8 +97,10 @@ export function FlightList({
   referencePoint = null,
 }: FlightListProps) {
   const [query, setQuery] = useState("");
+  const live = variant === "live";
   const [status, setStatus] = usePersistentState<StatusFilter>("skytrace-list-status", "all");
-  const [sort, setSort] = usePersistentState<SortOrder>("skytrace-list-sort", "time_desc");
+  // Recorded movements read best by time; aircraft in view by distance.
+  const [sort, setSort] = usePersistentState<SortOrder>(live ? "skytrace-list-sort-live" : "skytrace-list-sort", live ? "distance_asc" : "time_desc");
 
   const visibleFlights = useMemo(() => {
     const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -166,7 +173,7 @@ export function FlightList({
         <label className="compact-search">
           <Search size={15} aria-hidden="true" />
           <span className="sr-only">Filter flights</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Callsign, registration, aircraft…" title="Search callsign, airline, registration, aircraft type or route; combine terms to narrow results" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter this list" title="Search callsign, airline, registration, aircraft type or route; combine terms to narrow results" />
         </label>
         <label className="select-control" title="Filter by status">
           <Filter size={14} aria-hidden="true" />
@@ -182,11 +189,11 @@ export function FlightList({
           <ArrowDownUp size={14} aria-hidden="true" />
           <span className="sr-only">Sort order</span>
           <select value={sort} onChange={(event) => setSort(event.target.value as SortOrder)}>
-            <option value="time_desc">Latest</option>
-            <option value="time_asc">Earliest</option>
+            {!live && <option value="time_desc">Latest</option>}
+            {!live && <option value="time_asc">Earliest</option>}
             <option value="airline_asc">Airline A–Z</option>
             <option value="distance_asc" disabled={!referencePoint}>Nearest</option>
-            <option value="altitude_desc">Highest altitude</option>
+            <option value="altitude_desc">Highest</option>
             <option value="speed_desc">Fastest</option>
           </select>
         </label>
@@ -217,8 +224,8 @@ export function FlightList({
         {!loading && !errorMessage && hasSearched && flights.length === 0 && (
           <div className="message-state">
             <Plane size={26} aria-hidden="true" />
-            <h3>{notice ? "Historical data unavailable" : "No movements found"}</h3>
-            <p>{notice || "OpenSky has no recorded flights for this airport and UTC date. Try the previous day."}</p>
+            <h3>{live ? "No aircraft in view" : notice ? "Historical data unavailable" : "No movements found"}</h3>
+            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice || "OpenSky has no recorded flights for this airport and UTC date. Try the previous day."}</p>
             {notice && <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>}
           </div>
         )}
@@ -231,9 +238,8 @@ export function FlightList({
         )}
         {!loading && !errorMessage && !hasSearched && (
           <div className="message-state">
-            <span className="radar-illustration"><span /></span>
-            <h3>Choose your airfield</h3>
-            <p>Search an airport to explore arrivals, departures and live aircraft.</p>
+            <h3>No airport selected</h3>
+            <p>Search an airport to list its departures and arrivals.</p>
           </div>
         )}
         {visibleFlights.map((flight) => (

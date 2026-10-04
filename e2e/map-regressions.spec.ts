@@ -26,12 +26,12 @@ test.beforeEach(async ({ page }) => {
 test('map controls remain clickable and map resizes in full map', async ({page}, testInfo) => {
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   await page.screenshot({path: testInfo.outputPath('map.png')});
-  await page.getByRole('button', {name: 'Open full map', exact: true}).click({timeout: 3000});
+  await page.getByRole('button', {name: 'Hide panels', exact: true}).click({timeout: 3000});
   await expect(page.locator('.app')).toHaveClass(/map-expanded/);
   await page.screenshot({path: testInfo.outputPath('full-map.png')});
   await page.getByRole('button', {name: 'Pause live traffic'}).click();
   await expect(page.getByText('Live traffic paused')).toBeVisible();
-  await page.getByRole('button', {name: 'Exit full map'}).click();
+  await page.getByRole('button', {name: 'Show panels'}).click();
 });
 
 test('clock does not rewrite aircraft DOM', async ({page}) => {
@@ -56,7 +56,7 @@ test('refreshes the live viewport after zooming out', async ({page, isMobile}) =
   returnWideViewport = true;
   await page.mouse.wheel(0, -480);
   await expect(page.locator('.aircraft-marker')).toHaveCount(301);
-  await expect(page.locator('.live-badge')).toContainText('301 aircraft in view');
+  await expect(page.locator('.map-status')).toContainText('301 aircraft');
 });
 
 test('uses the canvas layer for a dense live viewport', async ({page, isMobile}) => {
@@ -66,7 +66,7 @@ test('uses the canvas layer for a dense live viewport', async ({page, isMobile})
   await page.locator('.leaflet-map').hover();
   await page.mouse.wheel(0, 280);
   await expect(page.locator('.leaflet-overlay-pane canvas')).toHaveCount(1);
-  await expect(page.locator('.map-label-meta')).toContainText('900 aircraft');
+  await expect(page.locator('.map-status')).toContainText('900 aircraft');
   await expect(page.locator('.aircraft-marker')).toHaveCount(0);
 });
 
@@ -80,9 +80,11 @@ test('keeps the last live snapshot when a zoom refresh fails', async ({page, isM
     body: JSON.stringify({ success: false, error: 'upstream timeout' }),
   }));
 
-  await page.locator('.leaflet-map').hover();
+  // Zoom in on the aircraft themselves: with a panel open the map centre is not where they are.
+  const target = (await page.locator('.aircraft-marker').first().boundingBox())!;
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
   await page.mouse.wheel(0, -280);
-  await expect(page.locator('.live-badge')).toContainText('Live refresh delayed · showing last snapshot');
-  await expect(page.locator('.live-badge')).not.toContainText('Your search is preserved');
+  await expect(page.locator('.map-status')).toContainText('Refresh delayed · last snapshot kept');
+  await expect(page.locator('.map-status')).not.toContainText('Your search is preserved');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
 });

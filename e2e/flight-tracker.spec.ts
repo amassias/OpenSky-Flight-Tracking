@@ -29,21 +29,23 @@ async function mockApi(page: Page, options: { historyUnavailable?: boolean } = {
   });
 }
 
+/** Phones start map-first with the traffic panel collapsed; open it where a test reads the board. */
+async function openTrafficPanel(page: Page) {
+  const reopen = page.getByRole("button", { name: "Open traffic panel" });
+  if (await reopen.isVisible()) await reopen.click();
+}
+
 test.beforeEach(async ({ page }) => {
   await mockApi(page);
   await page.goto("/");
 });
 
-test("searches an airport and opens a shareable flight detail", async ({ page, isMobile }) => {
-  if (isMobile) {
-    await page.getByRole("button", { name: "Search airports and flights" }).click();
-  } else {
-    await expect(page.getByText("Choose an airport.")).toBeVisible();
-  }
-  await expect(page.getByRole("combobox", { name: "Airport" })).toHaveValue(/LFPG/);
-  await page.getByRole("button", { name: /explore flights/i }).click();
+test("searches an airport and opens a shareable flight detail", async ({ page }) => {
+  await page.getByRole("combobox", { name: "Search flights and airports" }).fill("Paris");
+  await page.getByRole("option", { name: /Paris Charles de Gaulle/ }).click();
+  await expect(page.getByRole("heading", { name: "Departures from CDG" })).toBeVisible();
   await expect(page.getByText("AFR123").first()).toBeVisible();
-  await page.getByRole("button", { name: /AFR123/i }).click();
+  await page.locator(".flight-card").filter({ hasText: "AFR123" }).click();
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page).toHaveURL(/airport=LFPG.*icao24=39abcd/);
   const photoLink = page.locator(".aircraft-photo-link");
@@ -56,13 +58,15 @@ test("searches an airport and opens a shareable flight detail", async ({ page, i
   await expect(page.locator(".altitude-hover-readout")).toContainText("Altitude");
 });
 
-test("supports the mobile search sheet", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "Mobile-only interaction");
-  await page.getByRole("button", { name: "Search airports and flights" }).click();
-  await expect(page.getByRole("complementary", { name: "Flight search controls" })).toBeVisible();
-  await page.getByRole("complementary", { name: "Flight search controls" }).getByRole("button", { name: "Close search" }).click();
+test("collapses the traffic panel and brings it back", async ({ page }) => {
+  const panel = page.getByRole("complementary", { name: "Traffic" });
+  if (!(await panel.isVisible())) await page.getByRole("button", { name: "Open traffic panel" }).click();
+  await expect(panel).toBeVisible();
+  await panel.getByRole("button", { name: "Collapse traffic panel" }).click();
+  await expect(panel).toHaveCount(0);
+  await page.getByRole("button", { name: "Open traffic panel" }).click();
+  await expect(panel).toBeVisible();
 });
-
 
 test("closing a shared flight keeps it closed", async ({ page }) => {
   await page.goto('/?airport=LFPG&date=2026-07-10&mode=departure&icao24=39abcd');
@@ -72,12 +76,11 @@ test("closing a shared flight keeps it closed", async ({ page }) => {
   await expect(page).not.toHaveURL(/icao24=/);
 });
 
-test("airport suggestions dismiss when leaving the field", async ({page, isMobile}) => {
-  if (isMobile) await page.getByRole('button', {name: 'Search airports and flights'}).click();
-  await page.getByRole('combobox', {name: 'Airport'}).click();
-  await expect(page.getByRole('listbox')).toBeVisible();
-  await page.getByRole('complementary', {name: 'Flight search controls'}).click({position: {x: 10, y: 10}});
-  await expect(page.getByRole('listbox')).toHaveCount(0);
+test("search suggestions dismiss when leaving the field", async ({ page }) => {
+  await page.getByRole("combobox", { name: "Search flights and airports" }).click();
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page.locator(".leaflet-map").click({ position: { x: 10, y: 300 } });
+  await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 
 test("resolves origin and destination for a selected live aircraft", async ({ page }) => {
@@ -86,28 +89,38 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page.getByText("Estimated from callsign")).toBeVisible();
-  await expect(page.getByText("Incheon International Airport")).toBeVisible();
-  await expect(page.getByText("Aircraft profile")).toBeVisible();
-  await expect(page.getByText("F-HABC", { exact: true })).toBeVisible();
+  await expect(page.getByText("Incheon", { exact: true })).toBeVisible();
+  await expect(page.getByText("F-HABC", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("F-HABC · A359")).toBeVisible();
   await expect(page.getByText("AIRBUS A-350-941")).toBeVisible();
-  await expect(page.getByText("Operations")).toBeVisible();
+  await expect(page.getByText("Operations", { exact: true })).toBeVisible();
   await expect(page.getByText("FlightAware", { exact: true })).toBeVisible();
   await expect(page.getByText("64% complete")).toBeVisible();
 });
 
-test("anchors the selected aircraft to the latest trace point", async ({ page }) => {
+test("draws the trace from its start up to the selected aircraft", async ({ page }) => {
   await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
-  await expect(page.locator(".route-endpoint-marker")).toHaveCount(2);
-  await expect.poll(async () => {
-    const aircraftBox = await page.locator('.aircraft-marker[data-icao24="39abcd"]').boundingBox();
-    const endpointBox = await page.locator(".route-endpoint-end").boundingBox();
-    if (!aircraftBox || !endpointBox) return Number.POSITIVE_INFINITY;
-    return Math.hypot(
-      aircraftBox.x + aircraftBox.width / 2 - endpointBox.x - endpointBox.width / 2,
-      aircraftBox.y + aircraftBox.height / 2 - endpointBox.y - endpointBox.height / 2,
-    );
-  }, { timeout: 2_000 }).toBeLessThan(3);
+  await expect(page.locator(".route-endpoint-start")).toHaveCount(1);
+  await expect(page.locator(".aircraft-marker.active")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Show full route" })).toBeEnabled();
+});
+
+test("selecting an aircraft moves the map once and then leaves it alone", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Desktop camera behaviour is the focus of this change.");
+  await page.route("**/api/live-flights**", (route) => route.fulfill({ json: {
+    success: true, time: 1_752_000_000, count: 1,
+    // Far from the default view, so the camera has to travel.
+    states: [{ icao24: "39abcd", callsign: "AFR123", latitude: 47.6, longitude: 5.2, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false }],
+  } }));
+  await page.reload();
+  const pane = page.locator(".leaflet-map-pane");
+  await page.getByRole("complementary", { name: "Traffic" }).getByRole("button", { name: /AFR123/ }).click();
+  await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
+  await page.waitForTimeout(1_400);
+  const settled = await pane.evaluate((element) => (element as HTMLElement).style.transform);
+  // The route arrives after the aircraft is framed; it must not trigger a second flight.
+  await page.waitForTimeout(1_500);
+  expect(await pane.evaluate((element) => (element as HTMLElement).style.transform)).toBe(settled);
 });
 
 test("keeps airport results populated from the live map snapshot when history is unavailable", async ({ page }) => {
@@ -115,7 +128,8 @@ test("keeps airport results populated from the live map snapshot when history is
   await mockApi(page, { historyUnavailable: true });
   await page.goto("/?airport=LFPG&date=2026-07-10&mode=departure");
   await expect(page.getByRole("heading", { name: "Live traffic around CDG" })).toBeVisible();
-  await expect(page.getByText("Live position").first()).toBeVisible();
+  await openTrafficPanel(page);
+  await expect(page.locator(".flight-card").filter({ hasText: "AFR123" })).toBeVisible();
 });
 
 test("shows a location marker after the user grants geolocation", async ({ page, context }) => {
@@ -170,6 +184,7 @@ test("filters live aircraft by registration and type, then sorts by altitude", a
     ],
   } }));
   await page.reload();
+  await openTrafficPanel(page);
   const results = page.getByRole("region", { name: "Flight results", exact: true });
   await expect(results.getByRole("button", { name: /AFR123/ })).toBeVisible();
   await results.getByRole("textbox", { name: "Filter flights" }).fill("a359 f-habc");
@@ -182,37 +197,57 @@ test("filters live aircraft by registration and type, then sorts by altitude", a
   if (isMobile) await expect(page.locator("body")).toHaveJSProperty("scrollWidth", await page.locator("body").evaluate((body) => body.clientWidth));
 });
 
-test("recovers from an airport search error without losing the query", async ({ page, isMobile }) => {
+test("recovers from an airport search error without losing the query", async ({ page }) => {
   let failed = true;
   await page.route("**/api/search-airports**", (route) => failed
     ? route.fulfill({ status: 503, json: { error: "Temporarily unavailable" } })
     : route.fulfill({ json: [airport] }));
-  if (isMobile) await page.getByRole("button", { name: "Search airports and flights" }).click();
-  const input = page.getByRole("combobox", { name: "Airport" });
-  await expect(input).toHaveValue(/LFPG/);
+  const input = page.getByRole("combobox", { name: "Search flights and airports" });
   await input.fill("Paris");
-  await expect(page.getByText("Airport search could not connect. Check your connection and try again.")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Airport search is unavailable right now.")).toBeVisible({ timeout: 15000 });
   await expect(input).toHaveValue("Paris");
-  await expect(page.getByText(/No airport found/)).toHaveCount(0);
   failed = false;
-  await page.getByRole("button", { name: "Retry airport search" }).click();
-  await page.getByRole("button", { name: /CDG Paris Charles/ }).click();
-  await expect(input).toHaveValue(/LFPG/);
-  await expect(page.getByRole("button", { name: "Explore flights" })).toBeEnabled();
+  await input.fill("Charles");
+  await page.getByRole("option", { name: /Paris Charles/ }).click();
+  await expect(page.getByRole("heading", { name: "Departures from CDG" })).toBeVisible();
 });
 
-test("uses one airport search and prevents a stale airport from being submitted", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Desktop search hierarchy is the focus of this change.");
-  await expect(page.getByRole("search")).toHaveCount(0);
-  const airportInput = page.getByRole("combobox", { name: "Airport" });
-  await expect(airportInput).toHaveValue(/LFPG/);
+test("one search field serves aircraft and airports, reachable from the keyboard", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Keyboard shortcuts are a desktop affordance.");
+  const search = page.getByRole("combobox", { name: "Search flights and airports" });
   await page.keyboard.press("ControlOrMeta+k");
-  await expect(airportInput).toBeFocused();
-  await airportInput.fill("Unknown field");
-  await expect(page.getByRole("button", { name: "Explore flights" })).toBeDisabled();
-  await airportInput.fill("Paris");
-  await page.getByRole("button", { name: /CDG Paris Charles/ }).click();
-  await expect(page.getByRole("button", { name: "Explore flights" })).toBeEnabled();
+  await expect(search).toBeFocused();
+  await search.fill("afr");
+  await expect(page.getByRole("option", { name: /AFR123/ })).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
+});
+
+test("filters hide aircraft on the map and say how many", async ({ page }) => {
+  await page.route("**/api/live-flights**", (route) => route.fulfill({ json: {
+    success: true, time: 1_752_000_000, count: 2,
+    states: [
+      { icao24: "39abcd", callsign: "AFR123", latitude: 49.1, longitude: 2.7, baro_altitude: 11000, velocity: 220, true_track: 72, on_ground: false },
+      { icao24: "39abce", callsign: "EZY456", latitude: 49.2, longitude: 2.8, baro_altitude: 1000, velocity: 80, true_track: 72, on_ground: false },
+    ],
+  } }));
+  await page.reload();
+  await expect(page.locator(".aircraft-marker")).toHaveCount(2);
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  await page.getByRole("searchbox", { name: /Airline, type or registration/ }).fill("afr");
+  await expect(page.locator(".aircraft-marker")).toHaveCount(1);
+  await expect(page.locator(".map-status")).toContainText("1 hidden by filters");
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await expect(page.locator(".aircraft-marker")).toHaveCount(2);
+});
+
+test("switching units updates the readouts", async ({ page }) => {
+  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  const readouts = page.getByLabel("Live readouts");
+  await expect(readouts).toContainText("kt");
+  await page.getByRole("button", { name: /^Display/ }).click();
+  await page.getByRole("button", { name: "m · km/h" }).click();
+  await expect(readouts).toContainText("km/h");
 });
 
 test("replaces the flight drawer cleanly when another aircraft is selected", async ({ page, isMobile }) => {
@@ -225,6 +260,7 @@ test("replaces the flight drawer cleanly when another aircraft is selected", asy
     ],
   } }));
   await page.reload();
+  await openTrafficPanel(page);
   const board = page.getByRole("region", { name: "Flight results", exact: true });
   await board.getByRole("button", { name: /AFR123/ }).click();
   const drawer = page.getByRole("complementary", { name: "Selected flight details" });

@@ -1,4 +1,5 @@
-import type { Bounds, Flight, FlightStatus } from "./types";
+import type { Bounds, Flight, FlightStatus, LiveAircraft } from "./types";
+import { altitudeText, speedText } from "./units";
 
 export const ALTITUDE_UNKNOWN_COLOR = "#8e8e93";
 
@@ -59,8 +60,6 @@ const utcTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
   hour12: false,
 });
-const integerFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-
 export function formatTime(timestamp?: number | null): string {
   if (!timestamp) return "—";
   return utcTimeFormatter.format(new Date(timestamp * 1000));
@@ -68,12 +67,12 @@ export function formatTime(timestamp?: number | null): string {
 
 export function formatAltitude(value?: number | null): string {
   if (value == null || !Number.isFinite(value)) return "—";
-  return `${integerFormatter.format(Math.round(value * 3.28084))} ft`;
+  return altitudeText(value);
 }
 
 export function formatSpeed(value?: number | null): string {
   if (value == null || !Number.isFinite(value)) return "—";
-  return `${integerFormatter.format(Math.round(value * 1.94384))} kt`;
+  return speedText(value);
 }
 
 /**
@@ -227,4 +226,29 @@ export function distanceKm(a: [number, number], b: [number, number]): number {
   const dLon = toRad(b[1] - a[1]);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+/** 16-point compass name for a heading in degrees. */
+export function compassPoint(degrees: number): string {
+  return COMPASS[Math.round((((degrees % 360) + 360) % 360) / 22.5) % 16];
+}
+
+/** "2h 05m" / "42 min" for a duration in seconds; null when it makes no sense. */
+export function formatDuration(seconds?: number | null): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return null;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
+}
+
+/** A map aircraft as a selectable flight: live rows carry no recorded time, so primary_time is 0. */
+export function liveAircraftToFlight(aircraft: LiveAircraft): Flight {
+  return {
+    ...aircraft,
+    status: aircraft.on_ground ? "on_ground" : "airborne",
+    primary_time: 0,
+    airline_name: aircraft.airline_name || "",
+  };
 }

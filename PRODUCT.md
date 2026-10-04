@@ -13,7 +13,7 @@ web
 
 ## Product Purpose
 
-SkyTrace is a map-first flight intelligence interface. It lets a visitor explore live ADS-B traffic, search an airport, review arrival and departure movements, select an aircraft, inspect its route and altitude profile, and share a flight view. Success means that a visitor can identify what is flying in the visible area and understand a selected flight without losing the map context.
+SkyTrace is a map-first live flight tracker. It lets a visitor explore live ADS-B traffic, search an airport, review arrival and departure movements, select an aircraft, inspect its route and altitude profile, and share a flight view. Success means that a visitor can identify what is flying in the visible area and understand a selected flight without losing the map context.
 
 ## Positioning
 
@@ -30,7 +30,8 @@ SkyTrace brings live viewport traffic, airport movement history, an interactive 
 - Live aircraft positions are requested for the visible map area and refreshed periodically.
 - Airport search supports city, airport name, IATA, ICAO, region, and country terms.
 - UTC arrival and departure history, flight filtering, sorting, status summaries, and track details are supported.
-- Selected aircraft can show origin, destination, callsign, speed, altitude, track, and an altitude-coloured path with a hover readout.
+- Selected aircraft can show origin, destination, callsign, speed, altitude, vertical rate, track, a flight-progress bar, and an altitude-coloured path with a hover readout. Aircraft keep moving between feed refreshes (dead reckoning) and can be followed.
+- One search field finds aircraft on the map (callsign, registration, type) and airports. Filters (altitude window, ground traffic, airline/type text), aircraft labels, airport markers and units (aviation or metric) are display options stored in the browser.
 - The map supports light and dark themes, browser geolocation with an accuracy radius, responsive layouts, keyboard support, and local browser preferences.
 - OpenStreetMap provides map tiles. Live traffic uses public ADS-B fallbacks when OpenSky cannot be reached; provider limits and missing history must be presented honestly and must not erase the last useful snapshot.
 - No account or personal flight history is created; browser storage is limited to interface preferences, recent airports, and favourites.
@@ -38,7 +39,7 @@ SkyTrace brings live viewport traffic, airport movement history, an interactive 
 ## Brand Commitments
 
 - Product name: SkyTrace.
-- Product descriptor: Flight intelligence.
+- Product descriptor: Live flight tracker.
 - The user explicitly wants a flight-tracker experience inspired by FlightRadar24's map-first interaction model while keeping SkyTrace's own product identity and features.
 
 ## Evidence on Hand

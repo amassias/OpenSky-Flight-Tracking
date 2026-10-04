@@ -110,3 +110,22 @@ describe("live flight helpers", () => {
     expect(distanceKm([49.0097, 2.5479], [51.47, -0.4543])).toBeCloseTo(348, -1);
   });
 });
+
+describe("compassPoint and formatDuration", () => {
+  it("names 16 compass points around the circle", async () => {
+    const { compassPoint } = await import("./utils");
+    expect(compassPoint(0)).toBe("N");
+    expect(compassPoint(22)).toBe("NNE");
+    expect(compassPoint(90)).toBe("E");
+    expect(compassPoint(359)).toBe("N");
+    expect(compassPoint(-90)).toBe("W");
+  });
+
+  it("writes durations the way a board would", async () => {
+    const { formatDuration } = await import("./utils");
+    expect(formatDuration(42 * 60)).toBe("42 min");
+    expect(formatDuration(2 * 3600 + 5 * 60)).toBe("2h 05m");
+    expect(formatDuration(-5)).toBeNull();
+    expect(formatDuration(null)).toBeNull();
+  });
+});

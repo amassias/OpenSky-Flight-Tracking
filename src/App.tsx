@@ -2,16 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { Activity, CalendarDays, TriangleAlert, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Search, X } from "./components/icons";
+import { TriangleAlert } from "./components/icons";
+import { List } from "./components/customIcons";
 import { aircraftPhoto, api, readableApiError } from "./api";
-import { AirportSearch } from "./components/AirportSearch";
+import { AirportTab } from "./components/AirportTab";
 import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
 import { FlightMap } from "./components/FlightMap";
+import { MapToolbar } from "./components/MapToolbar";
+import { OmniSearch } from "./components/OmniSearch";
 import { Topbar } from "./components/Topbar";
+import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
-import type { Airport, Flight, FlightMode, LiveFlightsResponse, MapTheme } from "./types";
-import { emergencyInfo, todayUtc } from "./utils";
+import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
+import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme } from "./types";
+import { emergencyInfo, liveAircraftToFlight, todayUtc } from "./utils";
 
 interface FlightRequest {
   airport: Airport;
@@ -24,12 +29,31 @@ interface LiveFallbackSnapshot {
   data: LiveFlightsResponse;
 }
 
-function liveSnapshotSummary(flights: Flight[]) {
+function liveSnapshotSummary(flights: readonly Flight[]) {
   return {
     total: flights.length,
     live_airborne: flights.filter((flight) => flight.status === "airborne" || flight.on_ground === false).length,
     live_on_ground: flights.filter((flight) => flight.status === "on_ground" || flight.on_ground === true).length,
     unique_airlines: new Set(flights.map((flight) => flight.airline_code).filter(Boolean)).size,
+  };
+}
+
+/** Kinematics that keep moving after a flight is selected; identity fields do not. */
+function withLiveKinematics(flight: Flight, live: LiveAircraft): Flight {
+  return {
+    ...flight,
+    latitude: live.latitude ?? flight.latitude,
+    longitude: live.longitude ?? flight.longitude,
+    baro_altitude: live.baro_altitude ?? flight.baro_altitude,
+    geo_altitude: live.geo_altitude ?? flight.geo_altitude,
+    velocity: live.velocity ?? flight.velocity,
+    true_track: live.true_track ?? flight.true_track,
+    vertical_rate: live.vertical_rate ?? flight.vertical_rate,
+    on_ground: live.on_ground ?? flight.on_ground,
+    squawk: live.squawk ?? flight.squawk,
+    time_position: live.time_position ?? flight.time_position,
+    last_contact: live.last_contact ?? flight.last_contact,
+    status: live.on_ground == null ? flight.status : live.on_ground ? "on_ground" : "airborne",
   };
 }
 
@@ -39,13 +63,16 @@ export function App() {
   const [favorites, setFavorites] = usePersistentState<Airport[]>("skytrace-favorites", []);
   const [recent, setRecent] = usePersistentState<Airport[]>("skytrace-recent", []);
   const [liveEnabled, setLiveEnabled] = usePersistentState("skytrace-live", true);
-  const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null);
+  const [labelsEnabled, setLabelsEnabled] = usePersistentState("skytrace-labels", true);
+  const [airportPinsEnabled, setAirportPinsEnabled] = usePersistentState("skytrace-airport-pins", true);
+  const [trafficOpen, setTrafficOpen] = usePersistentState("skytrace-traffic-open", window.innerWidth > 900);
+  const [filters, setFilters] = useState<MapFilters>(NO_FILTERS);
+  const [tab, setTab] = useState<TrafficTab>(initialParams.get("airport") ? "airport" : "live");
+  const [homeAirport, setHomeAirport] = useState<Airport | null>(null);
   const [date, setDate] = useState(initialParams.get("date") || todayUtc());
   const [mode, setMode] = useState<FlightMode>(initialParams.get("mode") === "arrival" ? "arrival" : "departure");
   const [request, setRequest] = useState<FlightRequest | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
-  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
-  const [mobileResultsExpanded, setMobileResultsExpanded] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   // Each notice gets its own id so repeating a message replays it and restarts
   // the dismiss timer instead of being swallowed as an identical state update.
@@ -53,7 +80,7 @@ export function App() {
   const setToast = useCallback((message: string | null) => {
     setToastState(message ? { id: Date.now(), message } : null);
   }, []);
-  const [airportFocusRequest, setAirportFocusRequest] = useState(0);
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
   const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -93,18 +120,19 @@ export function App() {
       const fromUrl = initialAirport.data?.find((airport) => airport.icao === initialCode.toUpperCase());
       if (fromUrl) {
         restoredAirport.current = true;
-        if (selectedAirport?.icao !== fromUrl.icao) setSelectedAirport(fromUrl);
-        if (!request) setRequest({ airport: fromUrl, date, mode });
+        setHomeAirport(fromUrl);
+        setRequest({ airport: fromUrl, date, mode });
+        setTrafficOpen(true);
         return;
       }
     }
 
-    if (!selectedAirport && popular.data?.length) {
+    // Nothing to restore: open the map on the last airport used, or a busy hub.
+    if (popular.data?.length) {
       restoredAirport.current = true;
-      const fallback = recent[0] || popular.data.find((airport) => airport.icao === "LFPG") || popular.data[0];
-      setSelectedAirport(fallback);
+      setHomeAirport(recent[0] || popular.data.find((airport) => airport.icao === "LFPG") || popular.data[0]);
     }
-  }, [date, initialAirport.data, initialAirport.isLoading, initialCode, mode, popular.data, recent, request, selectedAirport]);
+  }, [date, initialAirport.data, initialAirport.isLoading, initialCode, mode, popular.data, recent, setTrafficOpen]);
 
   const flights = useQuery({
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
@@ -122,6 +150,24 @@ export function App() {
     if (match) { restoredFlight.current = true; setSelectedFlight(match); }
   }, [flights.data, initialParams, selectedFlight]);
 
+  // A shared link to a live aircraft carries no airport: look the aircraft up
+  // directly instead of waiting for it to scroll into the default map view.
+  const sharedIcao24 = !initialCode ? initialParams.get("icao24") : null;
+  const sharedFlight = useQuery({
+    queryKey: ["shared-flight", sharedIcao24],
+    queryFn: ({ signal }) => api.flightInfo(sharedIcao24!.toLowerCase(), undefined, signal),
+    enabled: Boolean(sharedIcao24),
+    staleTime: Infinity,
+    retry: false,
+  });
+  useEffect(() => {
+    if (restoredFlight.current || !sharedFlight.data) return;
+    restoredFlight.current = true;
+    const { success: _success, ...info } = sharedFlight.data;
+    void _success;
+    setSelectedFlight({ ...info, callsign: info.callsign || sharedIcao24!.toUpperCase(), primary_time: 0, data_source: "live-nearby" } as Flight);
+  }, [sharedFlight.data, sharedIcao24]);
+
   const flightInfo = useQuery({
     queryKey: ["flight-info", selectedFlight?.icao24],
     queryFn: ({ signal }) => api.flightInfo(selectedFlight!.icao24, selectedFlight!.callsign, signal),
@@ -135,58 +181,68 @@ export function App() {
     retry: false,
   });
 
+  // The selected aircraft keeps reporting after the click. Only a flight picked
+  // from the live map or board is the current one; a recorded flight from an
+  // earlier date must not borrow today's position for the same airframe.
+  const liveSelected = useMemo(() => {
+    if (!selectedFlight || !(selectedFlight.primary_time === 0 || selectedFlight.data_source === "live-nearby")) return null;
+    return liveFallbackSnapshot?.data.states.find((aircraft) => aircraft.icao24 === selectedFlight.icao24) ?? null;
+  }, [liveFallbackSnapshot, selectedFlight]);
+
   const detailsFlight = useMemo(() => {
-    if (!selectedFlight || !flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return selectedFlight;
+    if (!selectedFlight) return null;
+    const current = liveSelected ? withLiveKinematics(selectedFlight, liveSelected) : selectedFlight;
+    if (!flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return current;
     const info = flightInfo.data;
     // Airframe identity, most to least reliable: the transponder profile from
     // flight-info, then the transponder registration the live feed already
     // gave us, and only then FlightAware's tail, which is the aircraft
     // *scheduled* on this flight number and differs after an aircraft swap.
     const scheduledOnly = info.registration_source === "schedule";
-    const liveAirframe = scheduledOnly && Boolean(selectedFlight.registration);
+    const liveAirframe = scheduledOnly && Boolean(current.registration);
     return {
-      ...selectedFlight,
-      callsign: info.callsign || selectedFlight.callsign,
-      airline_code: info.airline_code || selectedFlight.airline_code,
-      airline_name: info.airline_name || selectedFlight.airline_name,
-      departure_airport: info.departure_airport ?? selectedFlight.departure_airport,
-      departure_airport_name: info.departure_airport_name ?? selectedFlight.departure_airport_name,
-      arrival_airport: info.arrival_airport ?? selectedFlight.arrival_airport,
-      arrival_airport_name: info.arrival_airport_name ?? selectedFlight.arrival_airport_name,
-      first_seen: info.first_seen ?? selectedFlight.first_seen,
-      last_seen: info.last_seen ?? selectedFlight.last_seen,
-      route_source: info.route_source ?? selectedFlight.route_source,
-      route_provider: info.route_provider ?? selectedFlight.route_provider,
-      registration: liveAirframe ? selectedFlight.registration : info.registration ?? selectedFlight.registration,
-      registration_source: liveAirframe ? "adsb" : info.registration ? info.registration_source : selectedFlight.registration_source,
-      aircraft_type: (scheduledOnly ? selectedFlight.aircraft_type : null) ?? info.aircraft_type ?? selectedFlight.aircraft_type,
-      aircraft_description: info.aircraft_description ?? selectedFlight.aircraft_description,
-      aircraft_owner: info.aircraft_owner ?? selectedFlight.aircraft_owner,
-      aircraft_year: info.aircraft_year ?? selectedFlight.aircraft_year,
-      aircraft_category: info.aircraft_category ?? selectedFlight.aircraft_category,
-      emergency: info.emergency ?? selectedFlight.emergency,
-      nav_qnh: info.nav_qnh ?? selectedFlight.nav_qnh,
-      nav_altitude_mcp: info.nav_altitude_mcp ?? selectedFlight.nav_altitude_mcp,
-      nav_heading: info.nav_heading ?? selectedFlight.nav_heading,
-      nav_modes: info.nav_modes ?? selectedFlight.nav_modes,
-      messages: info.messages ?? selectedFlight.messages,
-      rssi: info.rssi ?? selectedFlight.rssi,
-      seen_seconds: info.seen_seconds ?? selectedFlight.seen_seconds,
-      seen_position_seconds: info.seen_position_seconds ?? selectedFlight.seen_position_seconds,
-      nic: info.nic ?? selectedFlight.nic,
-      rc: info.rc ?? selectedFlight.rc,
-      nac_p: info.nac_p ?? selectedFlight.nac_p,
-      nac_v: info.nac_v ?? selectedFlight.nac_v,
-      sil: info.sil ?? selectedFlight.sil,
-      sil_type: info.sil_type ?? selectedFlight.sil_type,
-      source: info.source ?? selectedFlight.source,
-      squawk: info.squawk ?? selectedFlight.squawk,
-      category: info.category ?? selectedFlight.category,
-      last_contact: info.last_contact ?? selectedFlight.last_contact,
-      time_position: info.time_position ?? selectedFlight.time_position,
-      flightaware: info.flightaware ?? selectedFlight.flightaware,
+      ...current,
+      callsign: info.callsign || current.callsign,
+      airline_code: info.airline_code || current.airline_code,
+      airline_name: info.airline_name || current.airline_name,
+      departure_airport: info.departure_airport ?? current.departure_airport,
+      departure_airport_name: info.departure_airport_name ?? current.departure_airport_name,
+      arrival_airport: info.arrival_airport ?? current.arrival_airport,
+      arrival_airport_name: info.arrival_airport_name ?? current.arrival_airport_name,
+      first_seen: info.first_seen ?? current.first_seen,
+      last_seen: info.last_seen ?? current.last_seen,
+      route_source: info.route_source ?? current.route_source,
+      route_provider: info.route_provider ?? current.route_provider,
+      registration: liveAirframe ? current.registration : info.registration ?? current.registration,
+      registration_source: liveAirframe ? "adsb" : info.registration ? info.registration_source : current.registration_source,
+      aircraft_type: (scheduledOnly ? current.aircraft_type : null) ?? info.aircraft_type ?? current.aircraft_type,
+      aircraft_description: info.aircraft_description ?? current.aircraft_description,
+      aircraft_owner: info.aircraft_owner ?? current.aircraft_owner,
+      aircraft_year: info.aircraft_year ?? current.aircraft_year,
+      aircraft_category: info.aircraft_category ?? current.aircraft_category,
+      emergency: info.emergency ?? current.emergency,
+      nav_qnh: info.nav_qnh ?? current.nav_qnh,
+      nav_altitude_mcp: info.nav_altitude_mcp ?? current.nav_altitude_mcp,
+      nav_heading: info.nav_heading ?? current.nav_heading,
+      nav_modes: info.nav_modes ?? current.nav_modes,
+      messages: info.messages ?? current.messages,
+      rssi: info.rssi ?? current.rssi,
+      seen_seconds: info.seen_seconds ?? current.seen_seconds,
+      seen_position_seconds: info.seen_position_seconds ?? current.seen_position_seconds,
+      nic: info.nic ?? current.nic,
+      rc: info.rc ?? current.rc,
+      nac_p: info.nac_p ?? current.nac_p,
+      nac_v: info.nac_v ?? current.nac_v,
+      sil: info.sil ?? current.sil,
+      sil_type: info.sil_type ?? current.sil_type,
+      source: info.source ?? current.source,
+      squawk: liveSelected?.squawk ?? info.squawk ?? current.squawk,
+      category: info.category ?? current.category,
+      last_contact: liveSelected?.last_contact ?? info.last_contact ?? current.last_contact,
+      time_position: liveSelected?.time_position ?? info.time_position ?? current.time_position,
+      flightaware: info.flightaware ?? current.flightaware,
     };
-  }, [flightInfo.data, selectedFlight]);
+  }, [flightInfo.data, liveSelected, selectedFlight]);
 
   const track = useQuery({
     queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0],
@@ -228,6 +284,10 @@ export function App() {
   }, [request, selectedFlight]);
 
   useEffect(() => {
+    document.title = detailsFlight ? `${detailsFlight.callsign || detailsFlight.icao24.toUpperCase()} · SkyTrace` : "SkyTrace · Live flight tracker";
+  }, [detailsFlight?.callsign, detailsFlight?.icao24]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(timer);
@@ -237,27 +297,34 @@ export function App() {
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (mapExpanded) setMapExpanded(false);
-      else if (mobileControlsOpen) setMobileControlsOpen(false);
       else if (selectedFlight) setSelectedFlight(null);
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [mapExpanded, mobileControlsOpen, selectedFlight]);
+  }, [mapExpanded, selectedFlight]);
 
   useEffect(() => {
-    function focusAirportSearch(event: KeyboardEvent) {
+    function focusSearch(event: KeyboardEvent) {
       const typing = event.target instanceof Element
         && event.target.closest("input, textarea, select, [contenteditable='true']");
       const shortcut = event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey);
       if (!shortcut && (event.key !== "/" || typing)) return;
       event.preventDefault();
-      if (window.matchMedia("(max-width: 900px)").matches) setMobileControlsOpen(true);
-      setAirportFocusRequest((current) => current + 1);
+      setSearchFocusRequest((current) => current + 1);
     }
-    window.addEventListener("keydown", focusAirportSearch);
-    return () => window.removeEventListener("keydown", focusAirportSearch);
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
   }, []);
 
+  const liveStates = useMemo(() => liveFallbackSnapshot?.data.states ?? [], [liveFallbackSnapshot]);
+  const filteredLive = useMemo(
+    () => filterAircraft(liveStates, filters).map((flight) => ({ ...flight, data_source: "live-nearby" as const })),
+    [filters, liveStates],
+  );
+  const filtersActive = activeFilterCount(filters) > 0;
+
+  // Airport board: recorded movements, falling back to the live map around
+  // the airport when OpenSky history cannot be reached.
   const matchingLiveSnapshot = Boolean(
     request
       && liveFallbackSnapshot?.airportIcao === request.airport.icao
@@ -265,55 +332,66 @@ export function App() {
   );
   const livePreviewDuringLoad = Boolean(flights.isFetching && matchingLiveSnapshot);
   const clientLiveFallback = Boolean(flights.data?.source === "unavailable" && matchingLiveSnapshot);
-  // Before any airport search the board mirrors the aircraft already drawn on
-  // the map, so the panel never claims to be empty while the sky is not.
-  const liveBoard = !request && Boolean(liveFallbackSnapshot?.data.states.length);
-  const useLiveSnapshot = clientLiveFallback || livePreviewDuringLoad || liveBoard;
-  const displayedFlights = useMemo(() => useLiveSnapshot
-    ? (liveFallbackSnapshot?.data.states ?? []).map((flight) => ({ ...flight, data_source: "live-nearby" as const }))
-    : flights.data?.flights ?? [], [flights.data, liveFallbackSnapshot, useLiveSnapshot]);
-  const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback || liveBoard;
-  const summary = useLiveSnapshot
-    ? liveSnapshotSummary(displayedFlights)
-    : flights.data?.summary;
-  const displayNotice = liveBoard
-    ? undefined
-    : livePreviewDuringLoad
+  const useLiveSnapshot = clientLiveFallback || livePreviewDuringLoad;
+  const airportFlights = useMemo(() => useLiveSnapshot
+    ? liveStates.map((flight) => ({ ...flight, data_source: "live-nearby" as const }))
+    : flights.data?.flights ?? [], [flights.data, liveStates, useLiveSnapshot]);
+  const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback;
+  const airportSummary = useLiveSnapshot ? liveSnapshotSummary(airportFlights) : flights.data?.summary;
+  const liveSummary = useMemo(() => liveSnapshotSummary(filteredLive), [filteredLive]);
+  const airportNotice = livePreviewDuringLoad
     ? `Loading recorded ${request?.mode}s · showing current live traffic around ${request?.airport.icao} meanwhile.`
     : clientLiveFallback
     ? `OpenSky history is unavailable for ${request?.date}. Showing the live map snapshot around ${request?.airport.icao}; these are not recorded ${request?.mode}s.`
     : flights.data?.notice;
-  const requestTitle = liveBoard
-    ? "Live in view"
-    : request
-    ? showingLiveFallback
-      ? `Live traffic around ${request.airport.iata || request.airport.icao}`
-      : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${request.airport.iata || request.airport.icao}`
-    : "Flight movements";
-  // Emergencies in the visible airspace are surfaced above the board whatever
-  // list is showing, the way FR24 flags 7500/7600/7700 squawks.
+  const airportCode = request ? request.airport.iata || request.airport.icao : null;
+  const boardHeading = request ? {
+    title: showingLiveFallback
+      ? `Live traffic around ${airportCode}`
+      : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${airportCode}`,
+    subtitle: `${request.date} · UTC · ${request.airport.name}`,
+    source: showingLiveFallback ? "Live snapshot" : "Recorded",
+    tone: showingLiveFallback ? "live" as const : "history" as const,
+  } : null;
+
+  // Emergencies in the visible airspace are flagged on the map whatever panel
+  // is open, the way FR24 surfaces 7500/7600/7700 squawks.
   const emergencies = useMemo(
-    () => (liveFallbackSnapshot?.data.states ?? []).flatMap((aircraft) => {
+    () => liveStates.flatMap((aircraft) => {
       const info = emergencyInfo(aircraft);
       return info ? [{ aircraft, info }] : [];
     }),
-    [liveFallbackSnapshot],
+    [liveStates],
   );
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
-  const activeAirport = request?.airport ?? selectedAirport;
-  const sourceLabel = liveBoard ? "Live" : showingLiveFallback ? "Live snapshot" : request ? "Recorded history" : "Ready to scan";
+  const knownAirports = useMemo(() => {
+    const byIcao = new Map<string, Airport>();
+    for (const airport of [...(popular.data ?? []), ...recent, ...favorites, ...(homeAirport ? [homeAirport] : []), ...(request ? [request.airport] : [])]) byIcao.set(airport.icao, airport);
+    return byIcao;
+  }, [favorites, homeAirport, popular.data, recent, request]);
+  const mapAirports = useMemo(() => [...knownAirports.values()], [knownAirports]);
 
-  function submitSearch() {
-    if (!selectedAirport) {
-      setToast("Select an airport before loading flights.");
-      return;
-    }
-    const nextRequest = { airport: selectedAirport, date, mode };
-    setRequest(nextRequest);
+  const selectFlight = useCallback((flight: Flight) => {
+    setPreviewFlight(null);
+    setSelectedFlight(flight);
+  }, []);
+
+  const openAirport = useCallback((airport: Airport, options: { date?: string; mode?: FlightMode } = {}) => {
+    setRequest({ airport, date: options.date ?? date, mode: options.mode ?? mode });
     setSelectedFlight(null);
-    if (liveFallbackSnapshot?.airportIcao !== selectedAirport.icao) setLiveFallbackSnapshot(null);
-    setRecent([selectedAirport, ...recent.filter((item) => item.icao !== selectedAirport.icao)].slice(0, 6));
-    setMobileControlsOpen(false);
+    setTab("airport");
+    setTrafficOpen(true);
+    setRecent((current) => [airport, ...current.filter((item) => item.icao !== airport.icao)].slice(0, 6));
+  }, [date, mode, setRecent, setTrafficOpen]);
+
+  function changeDate(next: string) {
+    setDate(next);
+    setRequest((current) => current ? { ...current, date: next } : current);
+  }
+
+  function changeMode(next: FlightMode) {
+    setMode(next);
+    setRequest((current) => current ? { ...current, mode: next } : current);
   }
 
   // A circular reveal from the theme button, using the View Transitions API
@@ -350,6 +428,8 @@ export function App() {
     }
   }
 
+  const dockOpen = Boolean(detailsFlight) && !mapExpanded;
+
   return (
     <div className={`app theme-${theme} ${mapExpanded ? "map-expanded" : ""}`}>
       <a className="skip-link" href="#flight-results">Skip to flight results</a>
@@ -358,168 +438,177 @@ export function App() {
         healthPending={health.isPending}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onToggleControls={() => setMobileControlsOpen(true)}
+        search={(
+          <OmniSearch
+            focusRequest={searchFocusRequest}
+            aircraft={liveStates}
+            recent={recent}
+            popular={popular.data ?? []}
+            onSelectAircraft={(aircraft) => selectFlight(liveAircraftToFlight(aircraft))}
+            onSelectAirport={openAirport}
+          />
+        )}
       />
 
-      <main className="workspace">
-        {mobileControlsOpen && <button type="button" className="mobile-scrim" aria-label="Dismiss search panel" onClick={() => setMobileControlsOpen(false)} />}
+      <main className={`workspace ${dockOpen ? "has-dock" : ""} ${trafficOpen ? "traffic-open" : ""}`}>
         <FlightMap
-          airport={request?.airport ?? selectedAirport}
+          airport={request?.airport ?? homeAirport}
+          airports={airportPinsEnabled ? mapAirports : []}
           selectedFlight={selectedFlight}
           previewFlight={previewFlight}
           track={track.data}
           theme={theme}
+          filters={filters}
+          labelsEnabled={labelsEnabled}
           liveEnabled={liveEnabled && liveAvailable}
           liveAvailable={liveAvailable}
           liveProbePending={health.isPending}
           expanded={mapExpanded}
           onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}
-          onSelectFlight={setSelectedFlight}
+          onSelectFlight={selectFlight}
+          onSelectAirport={airportPinsEnabled ? openAirport : undefined}
           onLiveSnapshot={handleLiveSnapshot}
           onViewportCenter={setMapCenter}
         />
 
-        <aside className={`query-panel glass-panel ${mobileControlsOpen ? "mobile-open" : ""}`} aria-label="Flight search controls">
-          <div className="sheet-handle query-sheet-handle" aria-hidden="true" />
-          <div className="mobile-panel-heading">
-            <div><strong>Flight search</strong></div>
-            <button className="icon-button" type="button" onClick={() => setMobileControlsOpen(false)} aria-label="Close search"><X size={19} /></button>
-          </div>
-          <div className="panel-intro">
-            <h1>Choose an airport.<br /><em>Explore its flights.</em></h1>
-            <p>Find recorded movements here, or select an aircraft directly on the live map.</p>
-          </div>
-          <div className="panel-context" role="status">
-            <span className="panel-context-icon"><Activity size={15} aria-hidden="true" /></span>
-            <span className="panel-context-copy">
-              <strong>{activeAirport ? `${activeAirport.iata || activeAirport.icao} airspace` : "European airspace"}</strong>
-              <small>{liveAvailable ? "ADS-B network connected" : "Historical search available"}</small>
-            </span>
-            <span className={`panel-context-state ${liveAvailable ? "online" : "offline"}`}>{liveAvailable ? "Live" : "Offline"}</span>
-          </div>
-          <AirportSearch
-            focusRequest={airportFocusRequest}
-            selected={selectedAirport}
-            popular={popular.data ?? []}
-            recent={recent}
-            favorites={favorites}
-            onSelect={setSelectedAirport}
-            onClear={() => setSelectedAirport(null)}
-            onToggleFavorite={toggleFavorite}
-          />
-          <div className="query-grid">
-            <label className="date-control">
-              <span className="field-label">UTC date</span>
-              <span className="control-shell"><CalendarDays size={16} /><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></span>
-            </label>
-            <div>
-              <span className="field-label">Movement</span>
-              <div className="mode-switch" role="group" aria-label="Movement type">
-                {(["departure", "arrival"] as const).map((option) => (
-                  <button key={option} type="button" className={mode === option ? "active" : ""} aria-pressed={mode === option} onClick={() => setMode(option)}>
-                    {mode === option && <motion.span layoutId="mode-switch-thumb" className="mode-switch-thumb" transition={{ type: "spring", stiffness: 520, damping: 40 }} />}
-                    {option === "departure" ? <PlaneTakeoff size={15} /> : <PlaneLanding size={15} />}
-                    <span>{option === "departure" ? "Departures" : "Arrivals"}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <button type="button" className="primary-button" onClick={submitSearch} disabled={!selectedAirport || flights.isFetching}>
-            <Search size={17} /> {flights.isFetching ? "Loading traffic…" : "Explore flights"}
-          </button>
+        <MapToolbar
+          filters={filters}
+          onFiltersChange={setFilters}
+          labelsEnabled={labelsEnabled}
+          onLabelsChange={setLabelsEnabled}
+          airportsEnabled={airportPinsEnabled}
+          onAirportsChange={setAirportPinsEnabled}
+        />
 
-          {favorites.length > 0 && (
-            <div className="favorite-strip">
-              <span><Heart size={12} /> Favorites</span>
-              <div>{favorites.slice(0, 5).map((airport) => <button type="button" key={airport.icao} onClick={() => setSelectedAirport(airport)} className="mono">{airport.iata || airport.icao}</button>)}</div>
-            </div>
-          )}
-          <div className="data-note">
-            <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
-            <span>{liveAvailable ? "Live ADS-B enabled · select an aircraft" : "OpenSky credentials required for live data"}</span>
-          </div>
-        </aside>
-
-        <section className={`results-panel glass-panel ${mobileResultsExpanded ? "mobile-expanded" : ""}`} id="flight-results">
-          <div className="sheet-handle results-sheet-handle" aria-hidden="true" />
-          <header className="results-heading">
-            <div className="results-heading-copy">
-              <h2>{requestTitle}</h2>
-              <p>{request
-                ? `${request.date} · UTC · ${request.airport.display_name}`
-                : liveBoard
-                ? "Aircraft in the visible map · search an airport for recorded movements"
-                : "Traffic board · select an airport to begin"}</p>
-            </div>
-            <div className="results-heading-actions">
-              <span className={`source-pill ${showingLiveFallback ? "live" : request ? "history" : "ready"}`} role="status">
-                <span className="source-pill-dot" />
-                <span>{sourceLabel}</span>
-              </span>
-              <button
-                type="button"
-                className="mobile-results-toggle"
-                aria-label={mobileResultsExpanded ? "Collapse flight results" : "Expand flight results"}
-                aria-expanded={mobileResultsExpanded}
-                onClick={() => setMobileResultsExpanded(!mobileResultsExpanded)}
-              >
-                <ChevronDown size={18} />
-              </button>
-            </div>
-          </header>
+        <AnimatePresence>
           {emergencies.length > 0 && (
-            <div className="emergency-banner" role="alert">
-              {emergencies.slice(0, 3).map(({ aircraft, info }) => (
-                <button key={aircraft.icao24} type="button" onClick={() => { setPreviewFlight(null); setSelectedFlight({ ...aircraft, status: aircraft.on_ground ? "on_ground" : "airborne", primary_time: 0 }); }}>
+            <motion.div
+              className="emergency-banner"
+              role="alert"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {emergencies.slice(0, 2).map(({ aircraft, info }) => (
+                <button key={aircraft.icao24} type="button" onClick={() => selectFlight(liveAircraftToFlight(aircraft))}>
                   <TriangleAlert size={14} aria-hidden="true" />
                   <strong>{/^[0-9]+$/.test(info.code) ? `Squawk ${info.code}` : "Emergency"}</strong>
                   <span>{aircraft.callsign || aircraft.icao24.toUpperCase()} · {info.label}</span>
                 </button>
               ))}
-            </div>
+            </motion.div>
           )}
-          <div className="stats-row">
-            <div><strong className="mono">{summary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Total flights"}</span></div>
-            <div><strong className="mono accent">{summary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
-            {liveBoard
-              ? <div><strong className="mono">{summary?.live_on_ground ?? 0}</strong><span>On ground</span></div>
-              : <div><strong className="mono">{summary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>}
-          </div>
-          <FlightList
-            flights={displayedFlights}
-            selectedFlight={selectedFlight}
-            loading={flights.isFetching}
-            errorMessage={flights.error ? readableApiError(flights.error) : undefined}
-            notice={displayNotice}
-            hasSearched={Boolean(request) || liveBoard}
-            onSelect={(flight) => { setPreviewFlight(null); setSelectedFlight(flight); }}
-            onPreview={setPreviewFlight}
-            onRetry={() => flights.refetch()}
-            referencePoint={mapCenter}
-          />
-        </section>
-
-        <AnimatePresence mode="wait">
-        {detailsFlight && !mapExpanded && (
-          <FlightDetails
-            key={detailsFlight.icao24}
-            flight={detailsFlight}
-            track={track.data}
-            trackLoading={track.isFetching}
-            trackError={track.error ? readableApiError(track.error) : undefined}
-            routeLoading={flightInfo.isFetching && !flightInfo.data}
-            routeError={flightInfo.error ? readableApiError(flightInfo.error) : undefined}
-            photo={photo.data}
-            photoLoading={photo.isPending && photo.fetchStatus !== "idle"}
-            photoError={photo.isError}
-            onRetryTrack={() => track.refetch()}
-            onClose={() => setSelectedFlight(null)}
-            onShare={shareFlight}
-          />
-        )}
         </AnimatePresence>
+
+        <AnimatePresence>
+          {detailsFlight && !mapExpanded && (
+            <FlightDetails
+              flight={detailsFlight}
+              track={track.data}
+              trackLoading={track.isFetching}
+              trackError={track.error ? readableApiError(track.error) : undefined}
+              routeLoading={flightInfo.isFetching && !flightInfo.data}
+              routeError={flightInfo.error ? readableApiError(flightInfo.error) : undefined}
+              photo={photo.data}
+              photoLoading={photo.isPending && photo.fetchStatus !== "idle"}
+              photoError={photo.isError}
+              airports={knownAirports}
+              onRetryTrack={() => track.refetch()}
+              onClose={() => setSelectedFlight(null)}
+              onShare={shareFlight}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence initial={false}>
+          {trafficOpen && !mapExpanded && (
+            <motion.div
+              key="traffic"
+              className="traffic-slot"
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 18, transition: { duration: 0.16, ease: "easeIn" } }}
+              transition={{ type: "spring", stiffness: 420, damping: 40, mass: 0.9 }}
+            >
+              <TrafficPanel
+                tab={tab}
+                onTabChange={setTab}
+                onClose={() => setTrafficOpen(false)}
+                liveCount={liveSummary.total}
+                airportLabel={airportCode}
+                live={(
+                  <>
+                    <div className="stats-row">
+                      <div><strong className="mono">{liveSummary.total}</strong><span>In view</span></div>
+                      <div><strong className="mono">{liveSummary.live_airborne}</strong><span>Airborne</span></div>
+                      <div><strong className="mono">{liveSummary.live_on_ground}</strong><span>On ground</span></div>
+                    </div>
+                    {filtersActive && (
+                      <div className="data-notice-inline" role="status">
+                        Map filters are on · {filteredLive.length} of {liveStates.length} aircraft shown.
+                        <button type="button" onClick={() => setFilters(NO_FILTERS)}>Reset</button>
+                      </div>
+                    )}
+                    <FlightList
+                      variant="live"
+                      flights={filteredLive}
+                      selectedFlight={selectedFlight}
+                      loading={false}
+                      hasSearched
+                      onSelect={selectFlight}
+                      onPreview={setPreviewFlight}
+                      onRetry={() => undefined}
+                      referencePoint={mapCenter}
+                    />
+                  </>
+                )}
+                airport={(
+                  <AirportTab
+                    selected={request?.airport ?? null}
+                    popular={popular.data ?? []}
+                    recent={recent}
+                    favorites={favorites}
+                    date={date}
+                    mode={mode}
+                    onDateChange={changeDate}
+                    onModeChange={changeMode}
+                    onSelect={openAirport}
+                    onClear={() => undefined}
+                    onToggleFavorite={toggleFavorite}
+                    heading={boardHeading}
+                  >
+                    <div className="stats-row">
+                      <div><strong className="mono">{airportSummary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Flights"}</span></div>
+                      <div><strong className="mono">{airportSummary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
+                      <div><strong className="mono">{airportSummary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>
+                    </div>
+                    <FlightList
+                      flights={airportFlights}
+                      selectedFlight={selectedFlight}
+                      loading={flights.isFetching}
+                      errorMessage={flights.error ? readableApiError(flights.error) : undefined}
+                      notice={airportNotice}
+                      hasSearched={Boolean(request)}
+                      onSelect={selectFlight}
+                      onPreview={setPreviewFlight}
+                      onRetry={() => flights.refetch()}
+                      referencePoint={mapCenter}
+                    />
+                  </AirportTab>
+                )}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {!trafficOpen && !mapExpanded && (
+          <button type="button" className="traffic-reopen" onClick={() => setTrafficOpen(true)} aria-label="Open traffic panel">
+            <List size={15} aria-hidden="true" />
+            <span>Traffic</span>
+            <b className="mono">{liveSummary.total}</b>
+          </button>
+        )}
       </main>
 
       <AnimatePresence>

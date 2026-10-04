@@ -1,9 +1,9 @@
 ---
 name: SkyTrace
-description: A sober, map-first flight instrument. Graphite or paper chrome recedes around a grayscale map; one blue marks every action and the selected aircraft.
+description: A sober, map-first flight tracker. Flat graphite or paper panels dock at the edges of a full-bleed grayscale map; one blue marks every action and the selected aircraft.
 colors:
   bg: "#0b0b0c"
-  panel: "rgba(28, 28, 30, 0.78)"
+  panel: "#1c1c1e"
   panel-solid: "#1c1c1e"
   panel-raised: "#2c2c2e"
   fill: "rgba(255, 255, 255, 0.06)"
@@ -22,7 +22,7 @@ colors:
   aircraft: "#f5f5f7"
   aircraft-ground: "#8e8e93"
   light-bg: "#f5f5f7"
-  light-panel: "rgba(255, 255, 255, 0.8)"
+  light-panel: "#ffffff"
   light-panel-solid: "#ffffff"
   light-text: "#1d1d1f"
   light-muted: "#515154"
@@ -74,9 +74,9 @@ typography:
     lineHeight: 1.35
     letterSpacing: "0"
 rounded:
-  sm: "8px"
-  md: "12px"
-  lg: "18px"
+  sm: "6px"
+  md: "8px"
+  lg: "10px"
   pill: "980px"
 spacing:
   xs: "4px"
@@ -136,7 +136,7 @@ components:
 
 ## Overview
 
-SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks an aircraft and reads its story without losing the map. The visual world is deliberately quiet, in the manner of a well-made system app. Chrome is graphite (dark) or paper (light), built from frosted materials and hairlines. The map is rendered in grayscale so the only colour on it is data: neutral aircraft glyphs, the selected aircraft in blue, and an altitude-graded track.
+SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks an aircraft and reads its story without losing the map. The visual world is deliberately quiet. Chrome is graphite (dark) or paper (light): flat, opaque panels with hairline borders, no blur and no decorative copy. Panels are named after what they do ("In view", "Airport", "Filters"), not introduced with slogans. The map is rendered in grayscale so the only colour on it is data: neutral aircraft glyphs, the selected aircraft in blue, and an altitude-graded track.
 
 ## Colors
 
@@ -177,3 +177,19 @@ Motion is quiet, eased with `cubic-bezier(0.22, 1, 0.36, 1)`, and always respect
 - Don't use glows, gradients, coloured left borders or uppercase monospace labels.
 - Don't use orange for normal states; `warn` is for degraded feeds only.
 - Don't animate on a loop except the single live-status ping.
+
+## Layout (desktop)
+
+The map fills the window under a 48 px bar. Everything else docks to its edges:
+
+- **Top bar:** brand, one search field for aircraft in view, registrations and airports (⌘K or `/`), feed status, UTC clock, theme.
+- **Left dock (392 px):** appears only when an aircraft is selected, and keeps the same instance when another aircraft is picked, so the content cross-fades instead of the panel re-entering. Order: identity, photo, route hero with progress, live readouts, then collapsible sections (Aircraft, Altitude profile, Operations, Signal).
+- **Right panel (352 px):** tabs for **In view** (live board, follows the map) and **Airport** (departures and arrivals for a UTC date). Collapsible to a single "Traffic" button.
+- **Map toolbar (top-left of the free map):** Filters and Display popovers. **Map controls (bottom-right of the free map):** zoom, locate, pause, full map, follow and show route.
+- Every overlay anchors to the part of the map the docks do not cover through the `--inset-left` and `--inset-right` custom properties, and the camera uses the same insets so an aircraft is framed in the visible area rather than under a panel.
+
+## Motion
+
+- Selecting an aircraft makes at most one camera move: none when it is comfortably on screen, a short pan near an edge or a panel, one eased flight when it is out of reach. The trace is then revealed from its start to the aircraft without moving the camera again. "Show route" (R) is the explicit way to frame the whole trace.
+- Aircraft glide between feed refreshes by dead reckoning along their reported track and ground speed; markers ease to each new position over the one-second tick, and a fresh fix absorbs the difference instead of snapping.
+- Panels spring in from their own edge, the selection pops, the tab and Departures/Arrivals thumbs slide. All motion respects reduced-motion settings.
