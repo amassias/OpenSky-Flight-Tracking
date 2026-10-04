@@ -24,6 +24,7 @@ export function AirportSearch({
   onToggleFavorite,
 }: AirportSearchProps) {
   const listboxId = useId();
+  const input = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(selected ? `${selected.icao} · ${selected.name}` : "");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -36,7 +37,7 @@ export function AirportSearch({
   }, [query]);
 
   useEffect(() => {
-    if (selected && !open) setQuery(`${selected.icao} · ${selected.name}`);
+    if (!open) setQuery(selected ? `${selected.icao} · ${selected.name}` : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
@@ -47,6 +48,8 @@ export function AirportSearch({
   });
 
   const searching = query.trim().length >= 2;
+  const pendingSearch = searching && (query.trim() !== debouncedQuery || search.isFetching);
+  const searchFailed = searching && query.trim() === debouncedQuery && search.isError && !search.isFetching;
   const options = searching ? (query.trim() === debouncedQuery ? search.data ?? [] : []) : (recent.length ? recent : popular.slice(0, 6));
 
   // A shrinking result set would otherwise leave aria-activedescendant
@@ -62,6 +65,10 @@ export function AirportSearch({
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, []);
+
+  useEffect(() => {
+    if (open) document.getElementById(`${listboxId}-${activeIndex}`)?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex, listboxId, open]);
 
   function choose(airport: Airport) {
     onSelect(airport);
@@ -101,6 +108,7 @@ export function AirportSearch({
       <div className="search-input-wrap">
         <Search size={17} aria-hidden="true" />
         <input
+          ref={input}
           id="airport-search"
           role="combobox"
           aria-autocomplete="list"
@@ -115,16 +123,18 @@ export function AirportSearch({
           onKeyDown={handleKeyDown}
         />
         {query && (
-          <button type="button" className="clear-button" aria-label="Clear airport" onClick={() => { setQuery(""); onClear?.(); setOpen(true); }}>
+          <button type="button" className="clear-button" aria-label="Clear airport" onClick={() => { setQuery(""); onClear?.(); setActiveIndex(0); input.current?.focus(); setOpen(true); }}>
             <X size={15} />
           </button>
         )}
       </div>
 
       {open && (
-        <div className="airport-results" id={listboxId} role="listbox">
+        // Keep input focus during pointer selection: Safari otherwise blurs it
+        // with no relatedTarget and dismisses the options before click fires.
+        <div className="airport-results" id={listboxId} role="listbox" onMouseDown={(event) => event.preventDefault()}>
           <div className="results-caption">
-            {search.isFetching ? "Searching…" : debouncedQuery.length >= 2 ? `${options.length} matches` : recent.length ? "Recent airports" : "Popular airports"}
+            {pendingSearch ? "Searching…" : searchFailed ? "Search unavailable" : searching ? `${options.length} matches` : recent.length ? "Recent airports" : "Popular airports"}
           </div>
           {options.map((airport, index) => {
             const favorite = favorites.some((item) => item.icao === airport.icao);
@@ -149,7 +159,11 @@ export function AirportSearch({
               </div>
             );
           })}
-          {!search.isFetching && options.length === 0 && <p className="no-match">No airport found. Try an ICAO code or city.</p>}
+          {searchFailed && <div className="no-match" role="alert">
+            <p>Airport search could not connect. Check your connection and try again.</p>
+            <button type="button" className="secondary-button" onClick={() => { input.current?.focus(); search.refetch(); }}>Retry airport search</button>
+          </div>}
+          {!pendingSearch && !searchFailed && options.length === 0 && <p className="no-match">No airport found. Try an ICAO code or city.</p>}
         </div>
       )}
     </div>

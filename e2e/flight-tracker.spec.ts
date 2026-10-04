@@ -160,3 +160,43 @@ test("flags an emergency squawk above the board and on the map", async ({ page }
   await alert.getByRole("button").click();
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
 });
+
+test("filters live aircraft by registration and type, then sorts by altitude", async ({ page, isMobile }) => {
+  await page.route("**/api/live-flights**", (route) => route.fulfill({ json: {
+    success: true, time: 1_752_000_000, count: 2,
+    states: [
+      { icao24: "39abcd", callsign: "AFR123", registration: "F-HABC", aircraft_type: "A359", latitude: 49.1, longitude: 2.7, baro_altitude: 8400, velocity: 220, on_ground: false },
+      { icao24: "39abce", callsign: "EZY456", registration: "G-EZAB", aircraft_type: "A320", latitude: 49.2, longitude: 2.8, baro_altitude: 10000, velocity: 240, on_ground: false },
+    ],
+  } }));
+  await page.reload();
+  const results = page.getByRole("region", { name: "Flight results", exact: true });
+  await expect(results.getByRole("button", { name: /AFR123/ })).toBeVisible();
+  await results.getByRole("textbox", { name: "Filter flights" }).fill("a359 f-habc");
+  await expect(results.getByText("1 of 2 shown")).toBeVisible();
+  await expect(results.getByRole("button", { name: /EZY456/ })).toHaveCount(0);
+  await results.getByRole("button", { name: "Clear", exact: true }).click();
+  await results.getByRole("combobox", { name: "Sort order" }).selectOption("altitude_desc");
+  await expect(results.locator(".flight-card").first()).toContainText("EZY456");
+  await expect(results.locator(".flight-card").last()).toContainText("AFR123");
+  if (isMobile) await expect(page.locator("body")).toHaveJSProperty("scrollWidth", await page.locator("body").evaluate((body) => body.clientWidth));
+});
+
+test("recovers from an airport search error without losing the query", async ({ page, isMobile }) => {
+  let failed = true;
+  await page.route("**/api/search-airports**", (route) => failed
+    ? route.fulfill({ status: 503, json: { error: "Temporarily unavailable" } })
+    : route.fulfill({ json: [airport] }));
+  if (isMobile) await page.getByRole("button", { name: "Search airports and flights" }).click();
+  const input = page.getByRole("combobox", { name: "Airport" });
+  await expect(input).toHaveValue(/LFPG/);
+  await input.fill("Paris");
+  await expect(page.getByText("Airport search could not connect. Check your connection and try again.")).toBeVisible({ timeout: 15000 });
+  await expect(input).toHaveValue("Paris");
+  await expect(page.getByText(/No airport found/)).toHaveCount(0);
+  failed = false;
+  await page.getByRole("button", { name: "Retry airport search" }).click();
+  await page.getByRole("button", { name: /CDG Paris Charles/ }).click();
+  await expect(input).toHaveValue(/LFPG/);
+  await expect(page.getByRole("button", { name: "Explore flights" })).toBeEnabled();
+});

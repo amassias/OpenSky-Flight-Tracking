@@ -5,7 +5,7 @@ import type { Flight } from "../types";
 import { distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
 
 type StatusFilter = "all" | "airborne" | "on_ground" | "completed";
-type SortOrder = "time_desc" | "time_asc" | "airline_asc" | "distance_asc";
+type SortOrder = "time_desc" | "time_asc" | "airline_asc" | "distance_asc" | "altitude_desc" | "speed_desc";
 
 interface FlightListProps {
   flights: Flight[];
@@ -96,15 +96,21 @@ export function FlightList({
   const [sort, setSort] = usePersistentState<SortOrder>("skytrace-list-sort", "time_desc");
 
   const visibleFlights = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const filtered = flights.filter((flight) => {
-      const matchesText = !normalized || [
+      const searchable = [
         flight.callsign,
         flight.icao24,
         flight.airline_name,
         flight.departure_airport,
         flight.arrival_airport,
-      ].some((value) => value?.toLowerCase().includes(normalized));
+        flight.departure_airport_name,
+        flight.arrival_airport_name,
+        flight.registration,
+        flight.aircraft_type,
+        flight.aircraft_description,
+      ].filter(Boolean).join(" ").toLowerCase();
+      const matchesText = terms.every((term) => searchable.includes(term));
       const actualStatus = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
       return matchesText && (status === "all" || actualStatus === status);
     });
@@ -117,6 +123,17 @@ export function FlightList({
       const urgency = Number(Boolean(emergencyInfo(b))) - Number(Boolean(emergencyInfo(a)));
       if (urgency) return urgency;
       if (sort === "distance_asc") return distance(a) - distance(b);
+      if (sort === "altitude_desc" || sort === "speed_desc") {
+        const metric = (flight: Flight) => sort === "altitude_desc"
+          ? flight.baro_altitude ?? flight.geo_altitude
+          : flight.velocity;
+        const aValue = metric(a);
+        const bValue = metric(b);
+        const aKnown = aValue != null && Number.isFinite(aValue);
+        const bKnown = bValue != null && Number.isFinite(bValue);
+        if (!aKnown || !bKnown) return Number(bKnown) - Number(aKnown);
+        return bValue - aValue;
+      }
       if (sort === "airline_asc") return (a.airline_name || "").localeCompare(b.airline_name || "");
       const aTime = a.primary_time ?? a.first_seen ?? a.last_seen ?? 0;
       const bTime = b.primary_time ?? b.first_seen ?? b.last_seen ?? 0;
@@ -149,7 +166,7 @@ export function FlightList({
         <label className="compact-search">
           <Search size={15} aria-hidden="true" />
           <span className="sr-only">Filter flights</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Callsign, airline, route…" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Callsign, registration, aircraft…" title="Search callsign, airline, registration, aircraft type or route; combine terms to narrow results" />
         </label>
         <label className="select-control" title="Filter by status">
           <Filter size={14} aria-hidden="true" />
@@ -168,7 +185,9 @@ export function FlightList({
             <option value="time_desc">Latest</option>
             <option value="time_asc">Earliest</option>
             <option value="airline_asc">Airline A–Z</option>
-            <option value="distance_asc">Nearest</option>
+            <option value="distance_asc" disabled={!referencePoint}>Nearest</option>
+            <option value="altitude_desc">Highest altitude</option>
+            <option value="speed_desc">Fastest</option>
           </select>
         </label>
       </div>
@@ -190,7 +209,7 @@ export function FlightList({
         {!loading && errorMessage && (
           <div className="message-state error-state">
             <span className="message-icon">!</span>
-            <h3>Flight data unavailable</h3>
+            <h3>{flights.length ? "Refresh failed · previous results kept" : "Flight data unavailable"}</h3>
             <p>{errorMessage}</p>
             <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>
           </div>
@@ -217,7 +236,7 @@ export function FlightList({
             <p>Search an airport to explore arrivals, departures and live aircraft.</p>
           </div>
         )}
-        {!errorMessage && visibleFlights.map((flight) => (
+        {visibleFlights.map((flight) => (
           <FlightCard
             key={flightId(flight)}
             flight={flight}

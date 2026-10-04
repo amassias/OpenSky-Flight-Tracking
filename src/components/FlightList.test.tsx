@@ -74,3 +74,40 @@ describe("FlightList live board", () => {
     expect(cards[cards.length - 2]).toHaveFocus();
   });
 });
+
+describe("FlightList exploration and recovery", () => {
+  const aircraft = [
+    { icao24: "aaa", callsign: "LOW", registration: "F-HABC", aircraft_type: "A359", airline_name: "Air France", arrival_airport_name: "London Heathrow", baro_altitude: 0, velocity: 0 },
+    { icao24: "bbb", callsign: "UNKNOWN" },
+    { icao24: "ccc", callsign: "HIGH", geo_altitude: 10000, velocity: 200 },
+    { icao24: "ddd", callsign: "FAST", baro_altitude: 5000, velocity: 250 },
+  ] as Flight[];
+  const order = () => screen.getAllByRole("button").filter((item) => item.classList.contains("flight-card")).map((item) => item.querySelector(".callsign")?.textContent);
+
+  it("combines registration, model and route terms in any order", async () => {
+    render(<FlightList flights={aircraft} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
+    await userEvent.type(screen.getByRole("textbox", { name: "Filter flights" }), " a359 HEATHROW f-habc ");
+    expect(order()).toEqual(["LOW"]);
+    expect(screen.getByText("1 of 4 shown")).toBeInTheDocument();
+  });
+
+  it("sorts known altitude and speed ahead of missing values, including zero", async () => {
+    render(<FlightList flights={aircraft} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
+    const sort = screen.getByRole("combobox", { name: "Sort order" });
+    await userEvent.selectOptions(sort, "altitude_desc");
+    expect(order()).toEqual(["HIGH", "FAST", "LOW", "UNKNOWN"]);
+    await userEvent.selectOptions(sort, "speed_desc");
+    expect(order()).toEqual(["FAST", "HIGH", "LOW", "UNKNOWN"]);
+  });
+
+  it("keeps previous flights selectable after refresh failure and allows retry", async () => {
+    const onSelect = vi.fn();
+    const onRetry = vi.fn();
+    render(<FlightList flights={aircraft} selectedFlight={null} loading={false} errorMessage="Network unavailable" hasSearched onSelect={onSelect} onRetry={onRetry} />);
+    expect(screen.getByText("Refresh failed · previous results kept")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /LOW/ }));
+    expect(onSelect).toHaveBeenCalledWith(aircraft[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+});
