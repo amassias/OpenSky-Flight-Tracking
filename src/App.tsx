@@ -364,11 +364,24 @@ export function App() {
     [liveStates],
   );
   const favoriteCodes = useMemo(() => new Set(favorites.map((airport) => airport.icao)), [favorites]);
+  // The route ends of the selected flight need coordinates for the progress
+  // bar; resolve any that are not already known (the lookup is cached).
+  const routeEnds = [detailsFlight?.departure_airport, detailsFlight?.arrival_airport];
+  const endAirports = useQuery({
+    queryKey: ["route-airports", ...routeEnds],
+    queryFn: async ({ signal }) => (await Promise.all(routeEnds.map(async (icao) => {
+      if (!icao) return null;
+      return (await api.searchAirports(icao, signal)).find((airport) => airport.icao === icao) ?? null;
+    }))).filter((airport): airport is Airport => airport !== null),
+    enabled: routeEnds.some(Boolean),
+    staleTime: Infinity,
+    retry: false,
+  });
   const knownAirports = useMemo(() => {
     const byIcao = new Map<string, Airport>();
-    for (const airport of [...(popular.data ?? []), ...recent, ...favorites, ...(homeAirport ? [homeAirport] : []), ...(request ? [request.airport] : [])]) byIcao.set(airport.icao, airport);
+    for (const airport of [...(popular.data ?? []), ...recent, ...favorites, ...(homeAirport ? [homeAirport] : []), ...(request ? [request.airport] : []), ...(endAirports.data ?? [])]) byIcao.set(airport.icao, airport);
     return byIcao;
-  }, [favorites, homeAirport, popular.data, recent, request]);
+  }, [endAirports.data, favorites, homeAirport, popular.data, recent, request]);
   const mapAirports = useMemo(() => [...knownAirports.values()], [knownAirports]);
 
   const selectFlight = useCallback((flight: Flight) => {

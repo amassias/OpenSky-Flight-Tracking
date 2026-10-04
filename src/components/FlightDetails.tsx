@@ -3,9 +3,8 @@ import { motion } from "motion/react";
 import { ChevronDown, Copy, Database, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
-import { compassPoint, emergencyInfo, formatAltitude, formatDuration, formatSpeed, formatTime, statusLabel, verticalTrend } from "../utils";
-import { useNowSeconds } from "../aircraftMotion";
-import { useUnits, verticalRateText } from "../units";
+import { compassPoint, emergencyInfo, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
+import { distanceText, useUnits, verticalRateText } from "../units";
 import { AltitudeChart } from "./AltitudeChart";
 
 interface FlightDetailsProps {
@@ -77,7 +76,6 @@ function Section({ title, aside, open = false, children }: { title: string; asid
 
 export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   useUnits();
-  const now = useNowSeconds(true);
   const path = track?.track.path ?? [];
   const operations = flight.flightaware;
   const emergency = emergencyInfo(flight);
@@ -98,17 +96,22 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
             : null;
   const hasRoute = Boolean(flight.departure_airport || flight.arrival_airport);
 
-  // Progress: FlightAware's own figure when it has one, otherwise elapsed time
-  // between the first and last sighting of an airborne flight.
+  // Progress comes from the aircraft's position along origin -> destination.
+  // Sighting times (first_seen / last_seen) are not used: for a route guessed
+  // from the callsign they only bracket when the aircraft was heard, which is
+  // how a flight picked up mid-air used to read "100% flown".
   const startTime = flight.first_seen ?? null;
   const endTime = flight.last_seen ?? null;
+  const coordinates = (airport?: Airport, fallback?: { latitude?: number | null; longitude?: number | null } | null) =>
+    airport?.latitude != null && airport.longitude != null ? airport : fallback;
+  const geometry = flight.on_ground === true && !flight.departure_airport ? null : routeProgress(
+    coordinates(origin, operations?.origin),
+    coordinates(destination, operations?.destination),
+    flight,
+  );
   const flightawareProgress = operations?.progress_percent != null && operations.progress_percent >= 0 ? operations.progress_percent : null;
-  const timedProgress = statusKey === "airborne" && startTime && endTime && endTime > startTime
-    ? Math.max(0, Math.min(100, ((now - startTime) / (endTime - startTime)) * 100))
-    : null;
-  const progress = flightawareProgress ?? timedProgress;
-  const elapsed = startTime && statusKey === "airborne" ? formatDuration(now - startTime) : null;
-  const remaining = endTime && statusKey === "airborne" && endTime > now ? formatDuration(endTime - now) : null;
+  const progress = geometry?.percent ?? flightawareProgress;
+  const remaining = geometry?.etaSeconds != null && statusKey === "airborne" ? formatDuration(geometry.etaSeconds) : null;
 
   const hasProfile = Boolean(flight.registration || flight.aircraft_type || flight.aircraft_description || flight.aircraft_owner || flight.aircraft_year);
   const heading = flight.true_track ?? flight.nav_heading ?? null;
@@ -168,8 +171,8 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
           {progress != null && <span className="route-progress-plane" style={{ left: `${progress}%` }}><Plane size={14} /></span>}
         </div>
         <div className="route-hero-foot mono">
-          <span>{elapsed ? `${elapsed} flown` : progress != null ? `${Math.round(progress)}% flown` : "Progress unavailable"}</span>
-          <span>{remaining ? `${remaining} to go` : ""}</span>
+          <span>{geometry ? `${Math.round(geometry.percent)}% · ${distanceText(geometry.flownKm)} flown` : progress != null ? `${Math.round(progress)}% flown` : "Progress unavailable"}</span>
+          <span>{remaining ? `${remaining} to go` : geometry ? `${distanceText(geometry.remainingKm)} to go` : ""}</span>
         </div>
         {routeSourceLabel && <small className="route-source">{routeSourceLabel}{flight.route_provider ? ` · ${flight.route_provider}` : ""}</small>}
       </section>

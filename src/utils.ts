@@ -252,3 +252,37 @@ export function liveAircraftToFlight(aircraft: LiveAircraft): Flight {
     airline_name: aircraft.airline_name || "",
   };
 }
+
+export interface RouteProgress {
+  percent: number;
+  flownKm: number;
+  remainingKm: number;
+  /** Seconds to go at the current ground speed; null when the aircraft is too slow to estimate. */
+  etaSeconds: number | null;
+}
+
+/**
+ * How far along its route an aircraft is, from where it is rather than from
+ * sighting times: distance flown over (flown + still to fly). Measuring both
+ * legs from the aircraft keeps the ratio sensible when it is flying a detour
+ * or the estimated destination is wrong, and needs no schedule at all.
+ */
+export function routeProgress(
+  origin: { latitude?: number | null; longitude?: number | null } | null | undefined,
+  destination: { latitude?: number | null; longitude?: number | null } | null | undefined,
+  position: { latitude?: number | null; longitude?: number | null; velocity?: number | null },
+): RouteProgress | null {
+  const points = [origin, destination, position];
+  if (points.some((point) => point?.latitude == null || point?.longitude == null)) return null;
+  const flownKm = distanceKm([origin!.latitude!, origin!.longitude!], [position.latitude!, position.longitude!]);
+  const remainingKm = distanceKm([position.latitude!, position.longitude!], [destination!.latitude!, destination!.longitude!]);
+  const total = flownKm + remainingKm;
+  if (total < 1) return null;
+  const speed = position.velocity;
+  return {
+    percent: (flownKm / total) * 100,
+    flownKm,
+    remainingKm,
+    etaSeconds: speed != null && speed > 50 ? (remainingKm * 1000) / speed : null,
+  };
+}

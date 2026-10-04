@@ -129,3 +129,29 @@ describe("compassPoint and formatDuration", () => {
     expect(formatDuration(null)).toBeNull();
   });
 });
+
+describe("routeProgress", () => {
+  const paris = { latitude: 49.0097, longitude: 2.5479 };
+  const telAviv = { latitude: 32.0114, longitude: 34.8867 };
+
+  it("measures progress from position, not from sighting times", async () => {
+    const { routeProgress } = await import("./utils");
+    const nearOrigin = routeProgress(telAviv, paris, { latitude: 33, longitude: 33, velocity: 230 })!;
+    const nearDestination = routeProgress(telAviv, paris, { latitude: 47, longitude: 6, velocity: 230 })!;
+    expect(nearOrigin.percent).toBeLessThan(10);
+    expect(nearDestination.percent).toBeGreaterThan(85);
+    expect(nearDestination.etaSeconds!).toBeLessThan(1_800);
+  });
+
+  it("is 0% on the origin apron and 100% at the destination", async () => {
+    const { routeProgress } = await import("./utils");
+    expect(routeProgress(paris, telAviv, { ...paris, velocity: 0 })!.percent).toBeCloseTo(0, 0);
+    expect(routeProgress(paris, telAviv, { ...telAviv, velocity: 0 })!.percent).toBeCloseTo(100, 0);
+  });
+
+  it("gives up without coordinates or when the route has no length", async () => {
+    const { routeProgress } = await import("./utils");
+    expect(routeProgress(null, paris, paris)).toBeNull();
+    expect(routeProgress(paris, paris, paris)).toBeNull();
+  });
+});
