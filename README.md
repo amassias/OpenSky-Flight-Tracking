@@ -1,71 +1,52 @@
-# SkyTrace — OpenSky Flight Tracking
+# SkyTrace
 
-SkyTrace is a map-first live flight tracker powered by the OpenSky Network API and public ADS-B feeds. It combines live viewport traffic, airport arrival and departure history, aircraft photos, routes, tracks and altitude profiles in a React application, in the spirit of Flightradar24.
+Explore the aircraft above you, follow a flight across the map, or inspect traffic around an airport. SkyTrace combines live positions, recorded airport movements, route details and aircraft profiles in one responsive interface.
 
-Public demo: [opensky-flight-tracking.vercel.app](https://opensky-flight-tracking.vercel.app/)
+[Open the public demo](https://opensky-flight-tracking.vercel.app/) · [Run locally](#run-locally) · [Data and privacy](#data-and-privacy)
 
-## Features
+## What you can do
 
-**Map**
-- Full-bleed live map. Aircraft glide between feed refreshes (dead reckoning along their reported track and speed) instead of jumping on every poll
-- One camera move when an aircraft is selected, never two: no movement when it is already comfortably on screen, a short pan near an edge, one eased flight when it is out of reach. The route is drawn without moving the map again, and a "Show route" button (R) frames it on request
-- Follow mode (F) keeps the selected aircraft in the free part of the map as it flies
-- Solid silhouettes by category (airliner, heavy, light aircraft, helicopter, glider, balloon), callsign and flight-level labels when zoomed in, hover cards, emergency squawks (7500/7600/7700) pulled out in red with a banner
-- Airport markers for known airports; click one to open its departures and arrivals
-- Filters: altitude window, hide ground traffic, airline / type / registration text. Emergencies are never filtered out
-- Aviation (ft, kt) or metric (m, km/h) units, dark and light map, optional browser geolocation
+- **Explore live traffic.** Pan and zoom the map, filter aircraft by altitude or identity, switch units and map theme, and spot emergency squawks. Aircraft with enough position data glide between feed updates.
+- **Inspect a flight.** Select an aircraft for its current altitude, speed, route, profile, photo and available operational details. The map makes one purposeful camera move; use **Follow** to stay with it or **Show full route** to frame its trace.
+- **Search in one place.** Find a visible aircraft by callsign, registration, type or airline, or find an airport by name, city, IATA or ICAO code.
+- **Explore an airport.** Review UTC departures and arrivals, then filter or sort the list. When recorded movements are unavailable, SkyTrace labels the live airport snapshot clearly.
+- **Keep your context.** Share a selected flight by URL. Recent airports, favourites and display preferences stay in your browser.
 
-**Search**
-- One field (⌘K, Ctrl K or `/`) for aircraft on the map by callsign, registration, type or airline, and for airports by city, name, IATA, ICAO, region or country
+The same workflows are available on desktop and phone. Data coverage and enrichment depend on the providers; unknown routes and delayed feeds are labelled in the interface.
 
-**Selected flight**
-- Left dock with a Planespotters photo, big origin and destination codes with a progress bar and time flown / to go, live altitude, speed, vertical rate, track and squawk, then collapsible sections for the airframe, the altitude profile, FlightAware operations and ADS-B signal data
-- Altitude-coloured trace with a hover readout for each profile point
-- Shareable URL, including for a live aircraft that is not tied to an airport
+## Real screenshots
 
-**Airport board**
-- UTC departures and arrivals, loaded as soon as an airport is picked; sortable and filterable; a labelled live snapshot when OpenSky history is unavailable
-- Recent and favourite airports stored in the browser
+These are **browser screenshots of the running site**, captured on 5 October 2026 from the current local frontend connected to the public SkyTrace API. The maps use real OpenStreetMap tiles and the aircraft are live API responses. No traffic, map tiles or photos were generated for these images. Live positions and availability will differ when you open the demo.
 
-Phones get the same features through bottom sheets, but the desktop layout is the primary one.
+### Live map
 
-## Keyboard
-
-| Key | Action |
-| --- | --- |
-| `⌘K` / `Ctrl K` / `/` | Focus the search |
-| `↑` `↓` `Enter` | Move through and pick a search result; arrows also move through the flight board |
-| `F` | Follow or stop following the selected aircraft |
-| `R` | Frame the selected aircraft's full route |
-| `Esc` | Close search, popover, full map or the selected flight |
-
-## Screenshots
-
-These captures were generated locally against a synthetic backend (deterministic traffic, a procedural base map and a placeholder aircraft photo), because the capture environment had no internet access. They show the layout and behaviour, not real traffic. They contain no credentials or private account data.
-
-### Overview
-
-![SkyTrace overview](docs/screenshots/skytrace-desktop-overview.png)
+![SkyTrace live aircraft map and traffic list](docs/screenshots/skytrace-desktop-overview.png)
 
 ### Selected flight
 
-![SkyTrace selected flight](docs/screenshots/skytrace-desktop-selected-flight.png)
+![A selected aircraft, its live map position and flight detail panel](docs/screenshots/skytrace-desktop-selected-flight.png)
 
-### Search
+### Search and airport board
 
-![SkyTrace search](docs/screenshots/skytrace-desktop-search.png)
+![Unified aircraft and airport search](docs/screenshots/skytrace-desktop-search.png)
 
-### Airport board
+![Paris CDG airport board with a clearly labelled live fallback](docs/screenshots/skytrace-desktop-airport-board.png)
 
-![SkyTrace airport board](docs/screenshots/skytrace-desktop-airport-board.png)
+### Light theme and phone
 
-### Light map
+![SkyTrace light map with live aircraft](docs/screenshots/skytrace-desktop-light.png)
 
-![SkyTrace light map](docs/screenshots/skytrace-desktop-light.png)
+![Selected aircraft on a phone](docs/screenshots/skytrace-mobile-selected.png)
 
-### Phone
+## Keyboard shortcuts
 
-![SkyTrace on a phone](docs/screenshots/skytrace-mobile-selected.png)
+| Key | Action |
+| --- | --- |
+| `⌘K`, `Ctrl K` or `/` | Focus search |
+| `↑`, `↓`, `Enter` | Navigate and select search or flight results |
+| `F` | Toggle following the selected aircraft |
+| `R` | Frame the selected route |
+| `Esc` | Close the active search, menu, full map or flight detail |
 
 ## Architecture
 
@@ -76,7 +57,7 @@ These captures were generated locally against a synthetic backend (deterministic
 
 The Python server owns all OpenSky authentication. Credentials are never sent to the browser.
 
-## Local setup
+## Run locally
 
 Requirements:
 

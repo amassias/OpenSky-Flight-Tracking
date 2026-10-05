@@ -253,15 +253,19 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     click: selectAircraft,
   }), [selectAircraft]);
 
-  // Glide between feed refreshes: the marker element eases to each projected
-  // position over the one-second tick (see .aircraft-marker-wrap in the CSS).
+  // Only dead-reckoning ticks glide. Leaflet's own camera animations must
+  // position markers immediately or they visibly lag behind their map point.
   useEffect(() => subscribeToTick((now) => {
     const current = aircraftRef.current;
     const marker = markerRef.current;
     if (!marker || current.on_ground) return;
     const next = projectPosition(current, now);
     const shown = marker.getLatLng();
-    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) marker.setLatLng(next);
+    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) {
+      const element = marker.getElement();
+      if (!element?.closest(".map-camera-moving")) element?.classList.add("aircraft-gliding");
+      marker.setLatLng(next);
+    }
   }), []);
 
   useLayoutEffect(() => {
@@ -448,7 +452,9 @@ function revealPoint(map: L.Map, point: [number, number], animate: boolean) {
   const pixel = map.latLngToContainerPoint(point);
   const safe = { left: insets.left + 56, top: insets.top + 56, right: size.x - insets.right - 56, bottom: size.y - insets.bottom - 56 };
   const inside = pixel.x >= safe.left && pixel.x <= safe.right && pixel.y >= safe.top && pixel.y <= safe.bottom;
-  const zoom = Math.max(map.getZoom(), 7);
+  // Preserve the visitor's zoom level on selection. A forced zoom made an
+  // ordinary click feel like a second, unrelated camera action.
+  const zoom = map.getZoom();
   if (inside && zoom === map.getZoom()) return;
   const target = placementCenter(map, point, zoom, insets);
   map.stop();
@@ -471,7 +477,7 @@ interface MapControllerProps {
 
 function MapController({ airport, flight, track, fitRequest, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
   const map = useMap();
-  const selection = useRef<{ id: string; fitted: boolean } | null>(null);
+  const selection = useRef<{ id: string; fitted: boolean; revealed: boolean } | null>(null);
   const centeredAirport = useRef<string | null>(null);
   const lastFitRequest = useRef(fitRequest);
 
@@ -484,10 +490,11 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
       selection.current = null;
       return;
     }
-    if (selection.current?.id !== selectedId) selection.current = { id: selectedId, fitted: false };
-    if (selectedLatitude == null || selectedLongitude == null) return;
+    if (selection.current?.id !== selectedId) selection.current = { id: selectedId, fitted: false, revealed: false };
+    if (selection.current.revealed || selectedLatitude == null || selectedLongitude == null) return;
+    selection.current.revealed = true;
     revealPoint(map, [selectedLatitude, selectedLongitude], !prefersReducedMotion());
-    // Re-running on a late-arriving position is harmless: revealPoint is a no-op when already visible.
+    // Live position updates must not keep pulling the camera away from the user.
   }, [map, selectedId, selectedLatitude, selectedLongitude]);
 
   // A recorded flight has no position on the map: frame its trace instead.
@@ -513,6 +520,9 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
     if (!airportIcao || airportLatitude == null || airportLongitude == null || centeredAirport.current === airportIcao) return;
     const first = centeredAirport.current === null;
     centeredAirport.current = airportIcao;
+    // A deep link can resolve its airport after its aircraft. Keep the flight
+    // camera in charge until the visitor explicitly changes airport.
+    if (flight) return;
     const insets = getSafeInsets(map);
     map.stop();
     if (first) {
@@ -521,7 +531,7 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
     } else {
       map.flyTo(placementCenter(map, [airportLatitude, airportLongitude], 9, insets), 9, { animate: !prefersReducedMotion(), duration: 1.1, easeLinearity: 0.2 });
     }
-  }, [airportIcao, airportLatitude, airportLongitude, map]);
+  }, [airportIcao, airportLatitude, airportLongitude, flight, map]);
 
   useEffect(() => {
     if (!locateRequest) return;
@@ -561,9 +571,16 @@ function MapViewClasses({ labelsEnabled }: { labelsEnabled: boolean }) {
     };
     apply();
     map.on("zoomend", apply);
+    const cameraStart = () => container.classList.add("map-camera-moving");
+    const cameraEnd = () => container.classList.remove("map-camera-moving");
+    map.on("movestart zoomstart", cameraStart);
+    map.on("moveend", cameraEnd);
     return () => {
       map.off("zoomend", apply);
+      map.off("movestart zoomstart", cameraStart);
+      map.off("moveend", cameraEnd);
       container.classList.remove("show-labels", "show-label-detail");
+      container.classList.remove("map-camera-moving");
     };
   }, [labelsEnabled, map]);
   return null;
@@ -678,8 +695,20 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
       followStarted.current = false;
       return;
     }
+    const container = map.getContainer();
+    const stopForManualMapUse = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest(".aircraft-marker-wrap, .airport-pin-wrap")) return;
+      // Leaflet can ignore dragstart during an animated follow pan. Give the
+      // pointer back to the visitor as soon as they interact with the map.
+      map.stop();
+      onRelease();
+    };
+    container.addEventListener("pointerdown", stopForManualMapUse, true);
     map.on("dragstart", onRelease);
-    return () => { map.off("dragstart", onRelease); };
+    return () => {
+      container.removeEventListener("pointerdown", stopForManualMapUse, true);
+      map.off("dragstart", onRelease);
+    };
   }, [following, map, onRelease]);
   useEffect(() => {
     if (!following || !head) return;
@@ -776,10 +805,13 @@ export function FlightMap({
   const [fitRequest, setFitRequest] = useState(0);
   // Follow keeps the selected aircraft centred as it moves, like FR24's
   // follow mode. It ends when the user drags the map or picks another aircraft.
-  const [following, setFollowing] = useState(false);
-  const releaseFollow = useCallback(() => setFollowing(false), []);
+  const [followingIcao24, setFollowingIcao24] = useState<string | null>(null);
+  const releaseFollow = useCallback(() => setFollowingIcao24(null), []);
   const followedIcao24 = selectedFlight?.icao24;
-  useEffect(() => setFollowing(false), [followedIcao24]);
+  const following = Boolean(followedIcao24 && followingIcao24 === followedIcao24);
+  const toggleFollowing = useCallback(() => {
+    setFollowingIcao24((current) => current === followedIcao24 ? null : followedIcao24 ?? null);
+  }, [followedIcao24]);
   const aircraftCacheRef = useRef(new Map<string, LiveAircraft>());
   const aircraftCacheSeenAtRef = useRef(new Map<string, number>());
   const viewportCacheRef = useRef(new Map<string, ViewportCacheEntry>());
@@ -1038,12 +1070,12 @@ export function FlightMap({
     function handleShortcuts(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey || !selectedFlight) return;
       if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
-      if (event.key.toLowerCase() === "f") setFollowing((current) => !current);
+      if (event.key.toLowerCase() === "f") toggleFollowing();
       else if (event.key.toLowerCase() === "r" && hasTrace) setFitRequest((value) => value + 1);
     }
     window.addEventListener("keydown", handleShortcuts);
     return () => window.removeEventListener("keydown", handleShortcuts);
-  }, [hasTrace, selectedFlight]);
+  }, [hasTrace, selectedFlight, toggleFollowing]);
 
   return (
     <section className="map-surface" aria-label="Live flight map">
@@ -1130,7 +1162,7 @@ export function FlightMap({
             <button
               type="button"
               className={following ? "follow-active" : ""}
-              onClick={() => setFollowing(!following)}
+              onClick={toggleFollowing}
               aria-pressed={following}
               aria-label={following ? "Stop following aircraft" : "Follow selected aircraft"}
               title={following ? "Stop following (F)" : "Follow aircraft (F)"}

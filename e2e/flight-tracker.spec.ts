@@ -265,8 +265,11 @@ test("replaces the flight drawer cleanly when another aircraft is selected", asy
   await board.getByRole("button", { name: /AFR123/ }).click();
   const drawer = page.getByRole("complementary", { name: "Selected flight details" });
   await expect(drawer.getByRole("heading", { name: "AFR123" })).toBeVisible();
+  await page.getByRole("button", { name: "Follow selected aircraft" }).click();
+  await expect(page.getByRole("button", { name: "Stop following aircraft" })).toHaveAttribute("aria-pressed", "true");
   await board.getByRole("button", { name: /EZY456/ }).click();
   await expect(drawer).toHaveCount(1);
   await expect(drawer.getByRole("heading", { name: "EZY456" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Follow selected aircraft" })).toHaveAttribute("aria-pressed", "false");
   await expect(page).toHaveURL(/icao24=39abce/);
 });
