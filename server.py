@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
+from timetable import AVINOR_AIRPORTS, get_timetable
 from local_env import load_local_env
 
 from api_client import OpenSkyAPIError, OpenSkyClient
@@ -235,6 +236,13 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json_response(200, self.handle_search_airports(query, limit))
                 return
 
+            if path == "/api/timetable":
+                payload = self.handle_timetable(query_params.get("airport", ["LFPG"])[0],
+                    query_params.get("date", [datetime.now(timezone.utc).date().isoformat()])[0],
+                    query_params.get("mode", ["departure"])[0])
+                self.send_json_response(200, payload)
+                return
+
             if path == "/api/map-airports":
                 self.send_json_response(200, self.handle_get_map_airports())
                 return
@@ -381,9 +389,21 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "display_name": record.get("display_name") or icao,
             "country": record.get("country", ""),
             "region": record.get("region", ""),
+            "city": record.get("city"), "timezone": record.get("timezone"),
+            "airport_type": record.get("airport_type"), "scheduled_service": record.get("scheduled_service"),
+            "military_designation": record.get("military_designation"), "website": record.get("website"),
+            "metadata_source": record.get("metadata_source"),
+            "timetable_provider": "Avinor" if record.get("iata") in AVINOR_AIRPORTS else None,
             "latitude": _safe_float(record.get("latitude")),
             "longitude": _safe_float(record.get("longitude")),
         }
+
+    def handle_timetable(self, airport_icao, date_str, mode):
+        airport_icao = _validate_airport_icao(airport_icao)
+        if mode not in ("departure", "arrival"):
+            raise ValueError("Mode must be departure or arrival")
+        names = {record['iata']: record['name'] for record in ALL_AIRPORTS.values() if record.get('iata')}
+        return get_timetable(self._airport_payload(airport_icao), date_str, mode, names)
 
     def handle_search_airports(self, query, limit):
         if not query:

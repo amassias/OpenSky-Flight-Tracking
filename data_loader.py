@@ -4,6 +4,7 @@ Data loader for airports and airlines
 Loads ICAO airports and airline names from CSV files
 """
 import csv
+import json
 import os
 import sys
 from typing import Dict, List, Tuple
@@ -59,6 +60,12 @@ def load_airports() -> Dict[str, Dict[str, str]]:
                         'longitude': row.get('longitude', '')
                     }
         
+        metadata_path = os.path.join(os.path.dirname(__file__), 'data', 'airport-metadata.json')
+        if os.path.exists(metadata_path):
+            with open(metadata_path, encoding='utf-8') as metadata_file:
+                for icao, details in json.load(metadata_file)['airports'].items():
+                    if icao in airports:
+                        airports[icao].update(details)
         _airports_cache = airports
         print(f"✅ Loaded {len(airports)} airports from {csv_path}", file=sys.stderr)
         
