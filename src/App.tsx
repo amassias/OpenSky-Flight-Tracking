@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { TriangleAlert } from "./components/icons";
 import { List } from "./components/customIcons";
 import { aircraftPhoto, api, readableApiError } from "./api";
-import { AirportTab } from "./components/AirportTab";
+import { AirportTab, type AirportView } from "./components/AirportTab";
 import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
 import { FlightMap } from "./components/FlightMap";
@@ -72,6 +72,8 @@ export function App() {
   const [homeAirport, setHomeAirport] = useState<Airport | null>(null);
   const [date, setDate] = useState(initialParams.get("date") || todayUtc());
   const [mode, setMode] = useState<FlightMode>(initialParams.get("mode") === "arrival" ? "arrival" : "departure");
+  // The live board needs no history access, so it is the default airport view.
+  const [airportView, setAirportView] = useState<AirportView>(initialParams.get("view") === "history" ? "history" : "live");
   const [request, setRequest] = useState<FlightRequest | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -138,7 +140,7 @@ export function App() {
   const flights = useQuery({
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
     queryFn: ({ signal }) => api.flights(request!.airport.icao, request!.date, request!.mode, signal),
-    enabled: Boolean(request),
+    enabled: Boolean(request) && airportView === "history",
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     retry: false,
@@ -151,9 +153,10 @@ export function App() {
     if (match) { restoredFlight.current = true; setSelectedFlight(match); }
   }, [flights.data, initialParams, selectedFlight]);
 
-  // A shared link to a live aircraft carries no airport: look the aircraft up
-  // directly instead of waiting for it to scroll into the default map view.
-  const sharedIcao24 = !initialCode ? initialParams.get("icao24") : null;
+  // A shared link to a live aircraft (no airport, or the live airport board)
+  // looks the aircraft up directly instead of waiting for it to scroll into
+  // the map view; only recorded-history links resolve through the flight list.
+  const sharedIcao24 = !initialCode || initialParams.get("view") !== "history" ? initialParams.get("icao24") : null;
   const sharedFlight = useQuery({
     queryKey: ["shared-flight", sharedIcao24],
     queryFn: ({ signal }) => api.flightInfo(sharedIcao24!.toLowerCase(), undefined, signal),
@@ -272,8 +275,11 @@ export function App() {
     const params = new URLSearchParams();
     if (request) {
       params.set("airport", request.airport.icao);
-      params.set("date", request.date);
       params.set("mode", request.mode);
+      if (airportView === "history") {
+        params.set("view", "history");
+        params.set("date", request.date);
+      }
     }
     if (selectedFlight) {
       params.set("icao24", selectedFlight.icao24);
@@ -282,7 +288,7 @@ export function App() {
     }
     const next = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
     window.history.replaceState(null, "", next);
-  }, [request, selectedFlight]);
+  }, [airportView, request, selectedFlight]);
 
   useEffect(() => {
     document.title = detailsFlight ? `${detailsFlight.callsign || detailsFlight.icao24.toUpperCase()} · SkyTrace` : "SkyTrace · Live flight tracker";
@@ -612,8 +618,13 @@ export function App() {
                     favorites={favorites}
                     date={date}
                     mode={mode}
+                    view={airportView}
                     onDateChange={changeDate}
                     onModeChange={changeMode}
+                    onViewChange={setAirportView}
+                    selectedIcao24={selectedFlight?.icao24 ?? null}
+                    onSelectFlight={selectFlight}
+                    onPreviewFlight={setPreviewFlight}
                     onSelect={openAirport}
                     onClear={() => undefined}
                     onToggleFavorite={toggleFavorite}

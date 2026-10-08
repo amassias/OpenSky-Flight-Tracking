@@ -19,3 +19,11 @@ export const Sliders = createIcon("Sliders", "0 0 512 512", [
 export const List = createIcon("List", "0 0 512 512", [
   "M32 88a40 40 0 1 1 80 0 40 40 0 1 1-80 0zM160 64h320v48H160zM32 256a40 40 0 1 1 80 0 40 40 0 1 1-80 0zM160 232h320v48H160zM32 424a40 40 0 1 1 80 0 40 40 0 1 1-80 0zM160 400h320v48H160z",
 ]);
+/** Points down (towards the south): rotated by the METAR wind direction it shows where the wind blows. */
+export const WindArrow = createIcon("WindArrow", "0 0 384 512", [
+  "M192 480 32 304h112V32h96v272h112z",
+]);
+/** A runway seen from above, threshold bars at each end. */
+export const RunwayIcon = createIcon("RunwayIcon", "0 0 512 512", [
+  "M200 16h112l40 480H160zM240 64v48h32V64zm0 112v64h32v-64zm0 128v64h32v-64zm0 128v32h32v-32z",
+]);

@@ -7,6 +7,8 @@ test("catalog airport opens arrivals and departures from a blue map marker", asy
     const body = url.pathname === "/api/map-airports" ? [airport]
       : url.pathname === "/api/health" ? { credentials_configured: true, live_available: true }
       : url.pathname === "/api/live-flights" ? { count: 0, states: [] }
+      : url.pathname === "/api/airport-conditions" ? { success: true, airport, weather: null, runways: [], favoured_runways: [], runway_basis: "no-wind", frequencies: [], delays: null, unavailable: [] }
+      : url.pathname === "/api/airport-board" ? { success: true, airport: url.searchParams.get("airport"), time: Math.floor(Date.now() / 1000), radius_nm: 150, aircraft_scanned: 0, routes_pending: 0, departures: [], arrivals: [] }
       : url.pathname === "/api/flights" ? { success: true, airport: "LFPO", airport_meta: airport, airport_name: airport.name, mode: url.searchParams.get("mode"), date: "2026-10-08", count: 0, flights: [], summary: { total: 0, live_airborne: 0, live_on_ground: 0, unique_airlines: 0 }, source: "opensky" }
       : [];
     await route.fulfill({ json: body });
@@ -17,8 +19,11 @@ test("catalog airport opens arrivals and departures from a blue map marker", asy
   await expect(marker.locator("i")).toHaveCSS("background-color", /rgb\((41, 151, 255|0, 102, 204)\)/);
   await page.screenshot({ path: testInfo.outputPath("blue-airports.png") });
   await marker.click();
-  await expect(page.getByRole("heading", { name: "Departures from ORY" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /ORY Paris Orly/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Live departures" })).toContainText("No departures observed right now");
   await page.getByRole("button", { name: "Arrivals", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Live arrivals" })).toBeVisible();
+  await page.getByRole("button", { name: "History", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Arrivals at ORY" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("airport-board.png") });
 });
@@ -30,6 +35,8 @@ async function catalogApi(page: import("@playwright/test").Page, options: { unav
     const body = url.pathname === "/api/map-airports" ? [airport, secondAirport]
       : url.pathname === "/api/health" ? { credentials_configured: true, live_available: true }
       : url.pathname === "/api/live-flights" ? { count: 1, states: [{ icao24: "abcd12", callsign: "NEAR123", latitude: 46.51, longitude: 2.21, true_track: 90 }] }
+      : url.pathname === "/api/airport-conditions" ? { success: true, airport, weather: null, runways: [], favoured_runways: [], runway_basis: "no-wind", frequencies: [], delays: null, unavailable: [] }
+      : url.pathname === "/api/airport-board" ? { success: true, airport: url.searchParams.get("airport"), time: Math.floor(Date.now() / 1000), radius_nm: 150, aircraft_scanned: 0, routes_pending: 0, departures: [], arrivals: [] }
       : url.pathname === "/api/flights" ? { success: true, airport: url.searchParams.get("airport"), airport_meta: airport, airport_name: airport.name, mode: url.searchParams.get("mode"), date: "2026-10-08", count: 0, flights: [], summary: { total: 0, live_airborne: 0, live_on_ground: 0, unique_airlines: 0 }, source: options.unavailable ? "unavailable" : "opensky" }
       : [];
     await route.fulfill({ json: body });
@@ -71,7 +78,7 @@ test("lists nearest airports from geolocation and opens a nearby board", async (
   await expect(nearby.locator("li").first()).toContainText("Paris Orly");
   await page.screenshot({ path: testInfo.outputPath("nearby-airports.png") });
   await nearby.getByRole("button", { name: /ORY.*0.0 km/ }).click();
-  await expect(page.getByRole("heading", { name: "Departures from ORY" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /ORY Paris Orly/ })).toBeVisible();
 });
 
 test("clearly labels nearby traffic when recorded movements are unavailable", async ({ page }) => {
@@ -82,6 +89,7 @@ test("clearly labels nearby traffic when recorded movements are unavailable", as
   await page.getByText("Favourite airports only", { exact: true }).click();
   await page.getByRole("button", { name: "Display", exact: true }).click();
   await page.getByTitle("Paris Orly · Arrivals & departures", { exact: true }).click();
+  await page.getByRole("button", { name: "History", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Live traffic around ORY" })).toBeVisible();
   await expect(page.locator(".source-pill")).toHaveText("Nearby traffic");
   await expect(page.locator(".board-heading")).toContainText("Current observations");
@@ -99,16 +107,18 @@ test("old Oslo timetable links open observed traffic without regional provider r
     const body = ["/api/search-airports", "/api/map-airports", "/api/airports"].includes(url.pathname) ? [oslo]
       : url.pathname === "/api/health" ? { live_available: true }
       : url.pathname === "/api/live-flights" ? { count: 0, states: [] }
+      : url.pathname === "/api/airport-conditions" ? { success: true, airport: oslo, weather: null, runways: [], favoured_runways: [], runway_basis: "no-wind", frequencies: [], delays: null, unavailable: [] }
+      : url.pathname === "/api/airport-board" ? { success: true, airport: url.searchParams.get("airport"), time: Math.floor(Date.now() / 1000), radius_nm: 150, aircraft_scanned: 0, routes_pending: 0, departures: [], arrivals: [] }
       : url.pathname === "/api/flights" ? { success: true, airport: "ENGM", airport_meta: oslo, airport_name: oslo.name, mode: url.searchParams.get("mode"), flights: [], summary: { total: 0, live_airborne: 0, unique_airlines: 0 }, source: "opensky" }
       : [];
     await route.fulfill({ json: body });
   });
   await page.goto("/?airport=ENGM&view=schedule");
-  await expect(page.getByRole("heading", { name: "Departures from OSL" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Live departures" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Timetable", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Flydata fra Avinor" })).toHaveCount(0);
   await page.getByRole("button", { name: "Arrivals", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Arrivals at OSL" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Live arrivals" })).toBeVisible();
   await expect(page).not.toHaveURL(/view=schedule/);
   expect(regionalRequests).toEqual([]);
 });

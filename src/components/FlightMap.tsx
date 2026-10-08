@@ -708,12 +708,12 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
     const altitude = live?.baro_altitude ?? lastBase[3];
     return { positions: [[lastBase[1], lastBase[2]], head], color: altitudeColor(altitude) };
   }, [fraction, head, lastBase, live?.baro_altitude]);
-  const halo = useMemo<[number, number][]>(() => {
-    const positions = drawnBase.map((point) => [point[1], point[2]] as [number, number]);
-    if (headSegment) positions.push(headSegment.positions[1]);
-    return positions;
-  }, [drawnBase, headSegment]);
+  // The halo under the long trace only changes while it is revealed; the
+  // one-second head stretch gets its own short halo so a live tick never
+  // copies and re-projects the whole trace.
+  const halo = useMemo<[number, number][]>(() => drawnBase.map((point) => [point[1], point[2]] as [number, number]), [drawnBase]);
   const firstPoint = basePoints[0];
+  const haloOptions = useMemo(() => ({ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7, lineCap: "round" as const, lineJoin: "round" as const }), [theme]);
   const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
   const fallbackIcon = useMemo(
     () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight) }),
@@ -759,7 +759,8 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 
   return (
     <>
-      {halo.length > 1 && <Polyline positions={halo} pathOptions={{ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7, lineCap: "round", lineJoin: "round" }} />}
+      {halo.length > 1 && <Polyline positions={halo} pathOptions={haloOptions} />}
+      {headSegment && <Polyline positions={headSegment.positions} pathOptions={haloOptions} />}
       {baseSegments.map((segment, index) => (
         <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96, lineCap: "round", lineJoin: "round" }} />
       ))}

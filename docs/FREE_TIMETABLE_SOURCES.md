@@ -13,6 +13,20 @@ Checked 8 October 2026. The requirement is a usable worldwide airport timetable:
 
 No currently usable free provider covering every airport was verified. This is a research finding, not a claim that no such provider can ever exist. Providers' worldwide coverage claims must be tested on airports across regions and checked against missing services before implementation. No timetable button is shown until a provider meeting the requirement is actually connected and validated.
 
+## What the airport tab uses instead (8 October 2026)
+
+No free worldwide timetable exists, so the airport tab shows what can be observed or reported *now*, from free sources that need no key and cover every region:
+
+| Source | Used for | Access |
+| --- | --- | --- |
+| [NOAA Aviation Weather Center data API](https://aviationweather.gov/data/api/) | METAR and TAF, flight category, wind for the favoured-runway estimate | Public domain, no key; cached 5 min server-side |
+| [FAA NAS Status](https://nasstatus.faa.gov/api/airport-status-information) | US ground delay programmes, ground stops, arrival/departure delays, closures | Public, no key; cached 2 min |
+| [adsb.lol](https://api.adsb.lol/) / Airplanes.live point API | Aircraft within 150 NM of the airport, one request per board refresh | Free, no key; shares the map's provider pacing |
+| [adsb.lol VRS standing data](https://github.com/adsblol/vrs-standing-data) | Each callsign's usual route (origin and destination) | Static CDN files, no key; cached 6 h, misses 30 min |
+| [OurAirports](https://ourairports.com/data/) runways and frequencies | Runway list, headings and frequencies (`data/airport-details.json`) | Public domain, bundled |
+
+The board therefore lists aircraft taxiing out or climbing away (departures) and aircraft inbound, on approach or just landed (arrivals). It is labelled as an observation with estimated arrival times, never as a schedule.
+
 ## Airport metadata provenance
 
 `data/airport-metadata.json` is reproducible using `node scripts/build-airport-metadata.mjs /path/to/airports.csv` and [OurAirports' CSV](https://github.com/davidmegginson/ourairports-data/blob/main/airports.csv), retrieved 8 October 2026. Fields are documented in the [data dictionary](https://ourairports.com/help/data-dictionary.html). 7,640 of the existing 7,895 airports match by ICAO; unmatched records retain existing information. Military designation is only a heuristic for explicit name/keyword wording, not an authoritative classification.

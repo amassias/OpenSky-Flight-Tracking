@@ -180,7 +180,8 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
       <div className="live-readouts" aria-label="Live readouts">
         <div>
           <span>Altitude</span>
-          <strong className="mono">{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</strong>
+          {/* Barometric altitude on the ground reads a few hundred feet off with QNH; say "Ground" instead. */}
+          <strong className="mono">{flight.on_ground ? "Ground" : formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</strong>
           <small className="mono">
             {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-hidden="true" />}
             {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-hidden="true" />}

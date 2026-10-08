@@ -1,5 +1,7 @@
 import type {
   Airport,
+  AirportBoardResponse,
+  AirportConditionsResponse,
   Bounds,
   FlightMode,
   FlightInfoResponse,
@@ -84,6 +86,8 @@ export const api = {
   searchAirports: (query: string, signal?: AbortSignal) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal),
   flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
+  airportConditions: (airport: string, signal?: AbortSignal) => request<AirportConditionsResponse>("/api/airport-conditions", { airport }, signal),
+  airportBoard: (airport: string, signal?: AbortSignal) => request<AirportBoardResponse>("/api/airport-board", { airport }, signal),
   liveFlights: async (bounds: Bounds, signal?: AbortSignal, fallbackOnly = false) => {
     // Zoom and pan can emit several different boxes in quick succession. A
     // small client-side spacing keeps those changes responsive while avoiding

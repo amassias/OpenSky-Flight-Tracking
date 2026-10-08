@@ -489,10 +489,14 @@ class OpenSkyClient:
         self,
         icao24_list: Optional[Iterable[str]] = None,
         bbox: Optional[tuple] = None,
+        point: Optional[tuple] = None,
     ):
         """Fetch live ADS-B positions from the public production fallback."""
         grid_coverage = False
-        if icao24_list:
+        if point:
+            latitude, longitude, radius_nm = point
+            endpoints = [f"point/{float(latitude):.4f}/{float(longitude):.4f}/{max(1.0, min(250.0, float(radius_nm))):.0f}"]
+        elif icao24_list:
             codes = [str(code).lower() for code in list(icao24_list)[:50] if code]
             endpoints = [f"hex/{','.join(codes)}"]
         elif bbox:
@@ -1184,6 +1188,10 @@ class OpenSkyClient:
     def get_live_fallback_states(self, bbox: tuple):
         """Fetch one provider-safe live tile without waiting on OpenSky."""
         return self._get_airplanes_live_states(bbox=bbox)
+
+    def get_live_point_states(self, latitude: float, longitude: float, radius_nm: float):
+        """Every aircraft within one public-provider circle (at most 250 NM)."""
+        return self._get_airplanes_live_states(point=(latitude, longitude, radius_nm))
 
     def get_track(self, icao24: str, time_sec: int):
         if os.getenv("VERCEL"):

@@ -65,3 +65,9 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B40: Shared links to a live aircraft now work.** A link without an airport used to select nothing; the aircraft is now looked up directly.
 - [ ] B41: Add a real-tile visual regression capture; the screenshots in this repo use a procedural base map because the capture environment had no internet access.
 - [ ] B42: Show a short trail behind every aircraft in view (needs a cheap batched history source).
+
+## Live airport tab and performance pass (2026-10-08)
+
+- [x] **B43: Live airport board.** Opening an airport shows its local time and sun times, the latest METAR/TAF, wind-favoured runways, runways and frequencies, FAA delays for US airports, and live departures and arrivals observed by ADS-B with routes from the adsb.lol route database and estimated arrival times. Recorded OpenSky movements moved to a **History** view.
+- [x] **B44: Layout fixes.** The list filter no longer collapses to one letter in a narrow panel, the Departures/Arrivals control and the source pill no longer overflow the panel, the date field is no longer clipped, the stray "—" on live cards is gone, and the map status, Nearby airports and emergency banner share one 8 px rhythm instead of overlapping.
+- [x] **B45: Animation and rendering costs.** Re-sorting the live list no longer replays every card's entrance animation; the list renders 100 cards at a time; the selected trace's halo is no longer rebuilt every second; aircraft stop gliding while the tab is hidden; the location pulse animates transform/opacity instead of box-shadow; vendor code ships in cacheable chunks with immutable asset caching.

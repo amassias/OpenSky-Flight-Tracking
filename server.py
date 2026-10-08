@@ -8,6 +8,7 @@ Open: http://localhost:8000
 
 import http.server
 import json
+import math
 import mimetypes
 import os
 import re
@@ -19,6 +20,7 @@ from urllib.parse import parse_qs, urlparse
 
 from local_env import load_local_env
 
+import airport_live
 from api_client import OpenSkyAPIError, OpenSkyClient
 from data_loader import get_airline_name, load_airlines, load_airports, search_airports
 
@@ -53,6 +55,9 @@ POPULAR_AIRPORTS = [
 
 LIVE_SNAPSHOT_CACHE_SECONDS = 60
 HISTORY_RESPONSE_CACHE = {}
+# Last good live board per airport, served (marked degraded) during a provider blip.
+BOARD_RESPONSE_CACHE = {}
+BOARD_STALE_SECONDS = 300
 
 AIRCRAFT_TYPE_DESCRIPTIONS = {
     "A19N": "Airbus A319neo", "A20N": "Airbus A320neo", "A21N": "Airbus A321neo",
@@ -249,6 +254,14 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 mode = query_params.get("mode", ["departure"])[0]
                 payload = self.handle_flights(airport, date_str, mode)
                 self.send_json_response(200, payload)
+                return
+
+            if path == "/api/airport-conditions":
+                self.send_json_response(200, self.handle_airport_conditions(query_params.get("airport", [""])[0]))
+                return
+
+            if path == "/api/airport-board":
+                self.send_json_response(200, self.handle_airport_board(query_params.get("airport", [""])[0]))
                 return
 
             if path == "/api/live-flights":
@@ -828,6 +841,97 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 oldest_key = min(HISTORY_RESPONSE_CACHE, key=lambda item: HISTORY_RESPONSE_CACHE[item][0])
                 HISTORY_RESPONSE_CACHE.pop(oldest_key, None)
             HISTORY_RESPONSE_CACHE[cache_key] = (now + 300, response)
+        return response
+
+    def handle_airport_conditions(self, airport_icao):
+        """Weather, wind-favoured runways, delays and reference data for one airport.
+
+        Each upstream source fails on its own: a missing METAR or an FAA outage
+        leaves the other sections intact and is reported in `unavailable`.
+        """
+        airport = _validate_airport_icao(airport_icao)
+        meta = self._airport_payload(airport)
+        details = airport_live.airport_details(airport)
+        unavailable = []
+        weather = None
+        try:
+            weather = airport_live.fetch_weather(airport, meta.get("latitude"), meta.get("longitude"))
+        except Exception:  # noqa: BLE001 - any provider failure is reported, never fatal
+            unavailable.append("weather")
+        runways = airport_live.runway_wind_components(
+            details["runways"],
+            None if not weather or weather.get("wind_variable") else weather.get("wind_dir"),
+            weather.get("wind_kt") if weather else None,
+        )
+        delays = None
+        if airport_live.faa_covers(airport, meta.get("country") or ""):
+            try:
+                delays = airport_live.faa_delays(airport, meta.get("iata") or "")
+            except Exception:  # noqa: BLE001
+                unavailable.append("delays")
+        return {
+            "success": True,
+            "airport": {**meta, "elevation_ft": details["elevation_ft"], "wikipedia": details["wikipedia"]},
+            "weather": weather,
+            "runways": runways["runways"],
+            "favoured_runways": runways["favoured"],
+            "runway_basis": runways["basis"],
+            "frequencies": details["frequencies"],
+            "delays": delays,
+            "unavailable": unavailable,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def handle_airport_board(self, airport_icao):
+        """Departures and arrivals observed live by ADS-B around one airport."""
+        airport = _validate_airport_icao(airport_icao)
+        meta = self._airport_payload(airport)
+        if meta.get("latitude") is None or meta.get("longitude") is None:
+            raise ValueError(f"Airport {airport} has no coordinates.")
+        details = airport_live.airport_details(airport)
+        latitude, longitude = meta["latitude"], meta["longitude"]
+        radius_deg = airport_live.BOARD_RADIUS_NM / 60
+        bbox = (
+            max(-90.0, latitude - radius_deg),
+            max(-180.0, longitude - radius_deg / max(0.2, math.cos(math.radians(latitude)))),
+            min(90.0, latitude + radius_deg),
+            min(180.0, longitude + radius_deg / max(0.2, math.cos(math.radians(latitude)))),
+        )
+        payload, degraded = None, False
+        try:
+            payload = api_client.get_live_point_states(latitude, longitude, airport_live.BOARD_RADIUS_NM)
+        except OpenSkyAPIError as exc:
+            # The public provider shares its rate limit with the map tiles.
+            # Fall back to the authenticated feed, then to the map's own
+            # recent snapshot, then to the last board, each labelled degraded.
+            degraded = True
+            try:
+                payload = api_client.get_states(bbox=bbox, extended=True)
+            except OpenSkyAPIError:
+                payload = self._cached_live_states_for_bbox(bbox)
+                if payload and payload.get("states"):
+                    payload = {"time": payload.get("time"), "states": payload["states"], "provider": "recent map snapshot", "parsed": True}
+                else:
+                    stale = BOARD_RESPONSE_CACHE.get(airport)
+                    if stale and time.time() - stale[0] <= BOARD_STALE_SECONDS:
+                        return {**stale[1], "degraded": True}
+                    raise exc
+        now = _safe_int((payload or {}).get("time"), default=int(time.time()))
+        raw_states = (payload or {}).get("states", [])
+        states = raw_states if (payload or {}).get("parsed") else self._parse_states(raw_states)
+        board = airport_live.build_board({**meta, "elevation_ft": details["elevation_ft"]}, states, now)
+        response = {
+            "success": True,
+            "airport": airport,
+            "time": now,
+            "provider": (payload or {}).get("provider") or "opensky",
+            "degraded": degraded or bool((payload or {}).get("degraded")),
+            **board,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if len(BOARD_RESPONSE_CACHE) >= 64:
+            BOARD_RESPONSE_CACHE.pop(min(BOARD_RESPONSE_CACHE, key=lambda key: BOARD_RESPONSE_CACHE[key][0]), None)
+        BOARD_RESPONSE_CACHE[airport] = (time.time(), response)
         return response
 
     def handle_live_flights(self, lamin, lomin, lamax, lomax, time_param=None, fallback_only=False):

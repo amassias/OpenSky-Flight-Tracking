@@ -18,6 +18,17 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       sourcemap: true,
+      rollupOptions: {
+        output: {
+          // Libraries change far less often than the app: separate chunks
+          // stay cached across deploys and download in parallel.
+          manualChunks: {
+            react: ["react", "react-dom", "react-dom/client", "@tanstack/react-query"],
+            map: ["leaflet", "react-leaflet"],
+            motion: ["motion/react"],
+          },
+        },
+      },
     },
     test: {
       environment: "jsdom",

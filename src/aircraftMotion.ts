@@ -44,6 +44,9 @@ export function subscribeToTick(listener: TickListener): () => void {
   tickListeners.add(listener);
   if (tickTimer === undefined) {
     tickTimer = window.setInterval(() => {
+      // Nothing is visible to glide while the tab is hidden; the next visible
+      // tick projects every marker straight to its current position.
+      if (document.hidden) return;
       const now = Date.now() / 1000;
       tickListeners.forEach((callback) => callback(now));
     }, 1000);

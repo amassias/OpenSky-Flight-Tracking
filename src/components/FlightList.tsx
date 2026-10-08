@@ -1,9 +1,12 @@
-import { memo, useMemo, useState, type KeyboardEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert } from "./icons";
 import { usePersistentState } from "../hooks/usePersistentState";
 import type { Flight } from "../types";
 import { distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
 import { useUnits } from "../units";
+
+/** Cards rendered per step: a zoomed-out map can hold thousands of aircraft. */
+const PAGE_SIZE = 100;
 
 type StatusFilter = "all" | "airborne" | "on_ground" | "completed";
 type SortOrder = "time_desc" | "time_asc" | "airline_asc" | "distance_asc" | "altitude_desc" | "speed_desc";
@@ -59,7 +62,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
           </span>
           <span className="airline">{operator}{flight.airline_name && airframe ? <span className="airframe"> · {airframe}</span> : null}</span>
         </span>
-        <span className="route mono">{flight.data_source === "live-nearby" ? flight.aircraft_type || "—" : routeLabel(flight)}</span>
+        <span className="route mono">{flight.data_source === "live-nearby" ? flight.aircraft_type || "" : routeLabel(flight)}</span>
         <span className="flight-meta">
           {emergency
             ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
@@ -150,6 +153,22 @@ export function FlightList({
 
   const filtersActive = query.trim() !== "" || status !== "all";
 
+  // Render the board in pages and grow it as the visitor scrolls near the end.
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  useEffect(() => { setLimit(PAGE_SIZE); }, [query, sort, status, variant]);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const hasMore = visibleFlights.length > limit;
+  useEffect(() => {
+    const sentinel = moreRef.current;
+    if (!hasMore || !sentinel || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setLimit((current) => current + PAGE_SIZE);
+    // The viewport root also respects the clipping of whichever ancestor scrolls.
+    }, { threshold: 0 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, limit]);
+
   // ↑/↓ (and Home/End) move between flight cards, like a native list.
   function moveFocus(event: KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
@@ -207,7 +226,7 @@ export function FlightList({
         </div>
       )}
 
-      <div className="flight-list" aria-live="polite" aria-busy={loading} onKeyDown={moveFocus}>
+      <div className="flight-list" aria-busy={loading} onKeyDown={moveFocus}>
         {loading && flights.length === 0 && <div className="movement-loading" role="status">
           <span className="movement-loading-radar" aria-hidden="true"><span /></span>
           <div><strong>Loading airport movements</strong><span>Checking recorded flights and the latest available traffic…</span></div>
@@ -242,7 +261,7 @@ export function FlightList({
             <p>Search an airport to list its departures and arrivals.</p>
           </div>
         )}
-        {visibleFlights.map((flight) => (
+        {visibleFlights.slice(0, limit).map((flight) => (
           <FlightCard
             key={flightId(flight)}
             flight={flight}
@@ -251,6 +270,11 @@ export function FlightList({
             onPreview={onPreview}
           />
         ))}
+        {hasMore && (
+          <button type="button" ref={moreRef} className="list-more" onClick={() => setLimit((current) => current + PAGE_SIZE)}>
+            Show more · {visibleFlights.length - limit} remaining
+          </button>
+        )}
       </div>
     </section>
   );

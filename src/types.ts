@@ -264,3 +264,102 @@ export interface Bounds {
   lamax: number;
   lomax: number;
 }
+
+export interface MetarReport {
+  station: string;
+  station_name?: string | null;
+  /** Set when the report comes from a nearby station instead of the airport itself. */
+  station_distance_km?: number | null;
+  observed_at?: number | null;
+  raw?: string | null;
+  flight_category?: "VFR" | "MVFR" | "IFR" | "LIFR" | string | null;
+  wind_dir?: number | null;
+  wind_variable?: boolean;
+  wind_kt?: number | null;
+  gust_kt?: number | null;
+  visibility?: { meters: number; at_least: boolean } | null;
+  cover?: string | null;
+  clouds: { cover: string; base_ft: number | null }[];
+  ceiling_ft?: number | null;
+  temperature_c?: number | null;
+  dewpoint_c?: number | null;
+  qnh_hpa?: number | null;
+  weather?: string | null;
+  taf?: string | null;
+}
+
+export interface RunwayEnd {
+  ident: string;
+  heading: number | null;
+  headwind_kt?: number;
+  crosswind_kt?: number;
+}
+
+export interface Runway {
+  ends: RunwayEnd[];
+  length_ft: number | null;
+  width_ft: number | null;
+  surface: string | null;
+  lighted: boolean;
+}
+
+export interface FaaDelay {
+  category: string;
+  reason?: string;
+  direction?: string;
+  avg?: string;
+  min?: string;
+  max?: string;
+  trend?: string;
+  end_time?: string;
+  start?: string;
+  reopen?: string;
+}
+
+export interface AirportConditionsResponse {
+  success: boolean;
+  airport: Airport & { elevation_ft?: number | null; wikipedia?: string | null };
+  weather: MetarReport | null;
+  runways: Runway[];
+  favoured_runways: string[];
+  runway_basis: "wind" | "calm" | "no-wind" | "no-geometry";
+  frequencies: { type: string; description: string | null; mhz: number }[];
+  /** null when the FAA feed does not cover this airport; [] when it reports nothing. */
+  delays: FaaDelay[] | null;
+  unavailable: string[];
+  generated_at: string;
+}
+
+export interface BoardAirport {
+  icao: string;
+  iata?: string | null;
+  name?: string | null;
+  city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export type BoardPhase = "parked" | "taxiing" | "departed" | "inbound" | "approach" | "final" | "landed";
+
+export interface BoardFlight extends LiveAircraft {
+  phase: BoardPhase;
+  origin: BoardAirport | null;
+  destination: BoardAirport | null;
+  distance_km: number;
+  route_known: boolean;
+  eta?: number | null;
+}
+
+export interface AirportBoardResponse {
+  success: boolean;
+  airport: string;
+  time: number;
+  provider?: string | null;
+  degraded?: boolean;
+  departures: BoardFlight[];
+  arrivals: BoardFlight[];
+  radius_nm: number;
+  aircraft_scanned: number;
+  routes_pending: number;
+  generated_at: string;
+}

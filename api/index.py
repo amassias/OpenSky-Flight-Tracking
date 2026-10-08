@@ -64,6 +64,23 @@ def map_airports():
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=86400"})
 
 
+@app.get("/api/airport-conditions")
+def airport_conditions(airport: str = ""):
+    result = execute(lambda: service.handle_airport_conditions(airport))
+    if isinstance(result, JSONResponse):
+        return result
+    # Weather is cached upstream for five minutes; let the CDN share it briefly.
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300"})
+
+
+@app.get("/api/airport-board")
+def airport_board(airport: str = ""):
+    result = execute(lambda: service.handle_airport_board(airport))
+    if isinstance(result, JSONResponse):
+        return result
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=10, s-maxage=15, stale-while-revalidate=30"})
+
+
 @app.get("/fetch-flights")
 @app.get("/api/fetch-flights")
 @app.get("/flights")

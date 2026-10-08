@@ -32,3 +32,20 @@ def test_serverless_route_preserves_validation_errors():
     response = client.get("/api/flights", params={"airport": "ZZZZ", "date": "2026-07-09"})
     assert response.status_code == 400
     assert response.json()["success"] is False
+
+
+def test_airport_live_routes_are_served_with_cache_headers():
+    with patch.object(server.FlightServerHandler, "handle_airport_conditions", return_value={"success": True}) as conditions, \
+         patch.object(server.FlightServerHandler, "handle_airport_board", return_value={"success": True}) as board:
+        conditions_response = client.get("/api/airport-conditions", params={"airport": "LFPG"})
+        board_response = client.get("/api/airport-board", params={"airport": "LFPG"})
+    assert conditions_response.status_code == 200 and board_response.status_code == 200
+    conditions.assert_called_once_with("LFPG")
+    board.assert_called_once_with("LFPG")
+    assert "s-maxage=120" in conditions_response.headers["cache-control"]
+    assert "s-maxage=15" in board_response.headers["cache-control"]
+
+
+def test_airport_live_routes_validate_the_airport():
+    response = client.get("/api/airport-board", params={"airport": "ZZZZ"})
+    assert response.status_code == 400
