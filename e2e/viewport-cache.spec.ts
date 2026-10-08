@@ -17,7 +17,7 @@ test('restores a visited viewport while its refresh is in flight', async ({ page
           : [];
       return route.fulfill({ json: { count: states.length, states, time: 1, provider: 'fixture' } });
     }
-    return route.fulfill({ json: path === '/api/search-airports' || path === '/api/airports' ? [airport] : { success: true, flights: [], count: 0, summary: { total: 0, live_airborne: 0, live_on_ground: 0, unique_airlines: 0 } } });
+    return route.fulfill({ json: path === '/api/search-airports' || path === '/api/airports' || path === '/api/map-airports' ? [airport] : { success: true, flights: [], count: 0, summary: { total: 0, live_airborne: 0, live_on_ground: 0, unique_airlines: 0 } } });
   });
 
   await page.goto('/');

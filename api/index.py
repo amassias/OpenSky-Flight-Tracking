@@ -56,6 +56,14 @@ def airports():
     return execute(service.handle_get_popular_airports)
 
 
+@app.get("/api/map-airports")
+def map_airports():
+    result = execute(service.handle_get_map_airports)
+    if isinstance(result, JSONResponse):
+        return result
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/fetch-flights")
 @app.get("/api/fetch-flights")
 @app.get("/flights")

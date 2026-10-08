@@ -64,6 +64,7 @@ export function App() {
   const [recent, setRecent] = usePersistentState<Airport[]>("skytrace-recent", []);
   const [liveEnabled, setLiveEnabled] = usePersistentState("skytrace-live", true);
   const [labelsEnabled, setLabelsEnabled] = usePersistentState("skytrace-labels", true);
+  const [favoriteAirportsOnly, setFavoriteAirportsOnly] = usePersistentState("skytrace-favorite-airports-only", false);
   const [airportPinsEnabled, setAirportPinsEnabled] = usePersistentState("skytrace-airport-pins", true);
   const [trafficOpen, setTrafficOpen] = usePersistentState("skytrace-traffic-open", window.innerWidth > 900);
   const [filters, setFilters] = useState<MapFilters>(NO_FILTERS);
@@ -325,32 +326,41 @@ export function App() {
 
   // Airport board: recorded movements, falling back to the live map around
   // the airport when OpenSky history cannot be reached.
+  const nearbyLiveStates = useMemo(() => {
+    const latitude = request?.airport.latitude;
+    const longitude = request?.airport.longitude;
+    if (latitude == null || longitude == null) return [];
+    return liveStates.filter((flight) => flight.latitude != null && flight.longitude != null
+      && Math.abs(flight.latitude - latitude) <= 0.3 && Math.abs(flight.longitude - longitude) <= 0.45);
+  }, [liveStates, request?.airport.latitude, request?.airport.longitude]);
   const matchingLiveSnapshot = Boolean(
     request
       && liveFallbackSnapshot?.airportIcao === request.airport.icao
-      && liveFallbackSnapshot.data.states.length,
+      && nearbyLiveStates.length,
   );
   const livePreviewDuringLoad = Boolean(flights.isFetching && matchingLiveSnapshot);
   const clientLiveFallback = Boolean(flights.data?.source === "unavailable" && matchingLiveSnapshot);
   const useLiveSnapshot = clientLiveFallback || livePreviewDuringLoad;
   const airportFlights = useMemo(() => useLiveSnapshot
-    ? liveStates.map((flight) => ({ ...flight, data_source: "live-nearby" as const }))
-    : flights.data?.flights ?? [], [flights.data, liveStates, useLiveSnapshot]);
-  const showingLiveFallback = flights.data?.source === "live-nearby" || clientLiveFallback;
+    ? nearbyLiveStates.map((flight) => ({ ...flight, data_source: "live-nearby" as const }))
+    : flights.data?.flights ?? [], [flights.data, nearbyLiveStates, useLiveSnapshot]);
+  const showingLiveFallback = flights.data?.source === "live-nearby" || useLiveSnapshot;
   const airportSummary = useLiveSnapshot ? liveSnapshotSummary(airportFlights) : flights.data?.summary;
   const liveSummary = useMemo(() => liveSnapshotSummary(filteredLive), [filteredLive]);
   const airportNotice = livePreviewDuringLoad
     ? `Loading recorded ${request?.mode}s · showing current live traffic around ${request?.airport.icao} meanwhile.`
     : clientLiveFallback
     ? `OpenSky history is unavailable for ${request?.date}. Showing the live map snapshot around ${request?.airport.icao}; these are not recorded ${request?.mode}s.`
+    : flights.data?.source === "live-nearby"
+    ? `${flights.data.notice || "History unavailable."} Aircraft observed near this airport may be passing overhead; they are not confirmed arrivals or departures.`
     : flights.data?.notice;
   const airportCode = request ? request.airport.iata || request.airport.icao : null;
   const boardHeading = request ? {
     title: showingLiveFallback
       ? `Live traffic around ${airportCode}`
       : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${airportCode}`,
-    subtitle: `${request.date} · UTC · ${request.airport.name}`,
-    source: showingLiveFallback ? "Live snapshot" : "Recorded",
+    subtitle: showingLiveFallback ? `Current observations · ${request.airport.name}` : `${request.date} · UTC · ${request.airport.name}`,
+    source: showingLiveFallback ? "Nearby traffic" : flights.isFetching ? "Loading history" : flights.data?.source === "unavailable" || flights.isError ? "History unavailable" : "Recorded",
     tone: showingLiveFallback ? "live" as const : "history" as const,
   } : null;
 
@@ -382,7 +392,17 @@ export function App() {
     for (const airport of [...(popular.data ?? []), ...recent, ...favorites, ...(homeAirport ? [homeAirport] : []), ...(request ? [request.airport] : []), ...(endAirports.data ?? [])]) byIcao.set(airport.icao, airport);
     return byIcao;
   }, [endAirports.data, favorites, homeAirport, popular.data, recent, request]);
-  const mapAirports = useMemo(() => [...knownAirports.values()], [knownAirports]);
+  const airportCatalog = useQuery({
+    queryKey: ["map-airports"],
+    queryFn: ({ signal }) => api.mapAirports(signal),
+    enabled: !initialCode || !initialAirport.isPending,
+    staleTime: Infinity,
+  });
+  const mapAirports = useMemo(() => {
+    const byIcao = new Map((airportCatalog.data ?? []).map((airport) => [airport.icao, airport]));
+    for (const [icao, airport] of knownAirports) byIcao.set(icao, airport);
+    return [...byIcao.values()];
+  }, [airportCatalog.data, knownAirports]);
 
   const selectFlight = useCallback((flight: Flight) => {
     setPreviewFlight(null);
@@ -466,7 +486,11 @@ export function App() {
       <main className={`workspace ${dockOpen ? "has-dock" : ""} ${trafficOpen ? "traffic-open" : ""}`}>
         <FlightMap
           airport={request?.airport ?? homeAirport}
-          airports={airportPinsEnabled ? mapAirports : []}
+          airports={airportPinsEnabled ? favoriteAirportsOnly ? favorites : mapAirports : []}
+          nearbyAirports={mapAirports}
+          airportCatalogLoading={airportCatalog.isPending}
+          airportCatalogError={airportCatalog.isError}
+          onRetryAirportCatalog={() => { void airportCatalog.refetch(); }}
           selectedFlight={selectedFlight}
           previewFlight={previewFlight}
           track={track.data}
@@ -480,7 +504,7 @@ export function App() {
           onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}
           onSelectFlight={selectFlight}
-          onSelectAirport={airportPinsEnabled ? openAirport : undefined}
+          onSelectAirport={openAirport}
           onLiveSnapshot={handleLiveSnapshot}
           onViewportCenter={setMapCenter}
         />
@@ -492,6 +516,9 @@ export function App() {
           onLabelsChange={setLabelsEnabled}
           airportsEnabled={airportPinsEnabled}
           onAirportsChange={setAirportPinsEnabled}
+          favoritesOnly={favoriteAirportsOnly}
+          favoriteCount={favorites.length}
+          onFavoritesOnlyChange={setFavoriteAirportsOnly}
         />
 
         <AnimatePresence>

@@ -351,3 +351,21 @@ def test_health_reports_live_map_without_opensky_credentials(monkeypatch):
         payload = handler().handle_health()
     assert payload["live_available"] is True
     assert payload["credentials_configured"] is False
+
+
+def test_map_catalog_includes_non_popular_airports_and_valid_coordinates():
+    airports = handler().handle_get_map_airports()
+    assert len(airports) > len(server.POPULAR_AIRPORTS)
+    assert any(item["icao"] not in server.POPULAR_AIRPORTS for item in airports)
+    assert len({item["icao"] for item in airports}) == len(airports)
+    assert all(-90 <= item["latitude"] <= 90 and -180 <= item["longitude"] <= 180 for item in airports)
+
+
+def test_vercel_map_airports_route_returns_cacheable_catalogue():
+    from fastapi.testclient import TestClient
+    from api.index import app
+
+    response = TestClient(app).get("/api/map-airports")
+    assert response.status_code == 200
+    assert len(response.json()) > 1000
+    assert response.headers["cache-control"] == "public, max-age=86400"

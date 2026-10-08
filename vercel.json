@@ -7,6 +7,7 @@
   "rewrites": [
     { "source": "/api/health", "destination": "/api/index" },
     { "source": "/api/search-airports", "destination": "/api/index" },
+    { "source": "/api/map-airports", "destination": "/api/index" },
     { "source": "/api/airports", "destination": "/api/index" },
     { "source": "/api/fetch-flights", "destination": "/api/index" },
     { "source": "/api/flights", "destination": "/api/index" },

@@ -3,6 +3,7 @@ import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
 import { LocateFixed, Maximize2, Minimize2, Navigation, Pause, Play } from "./icons";
 import { Minus, Plus, Route } from "./customIcons";
+import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackPoint, TrackResponse } from "../types";
 import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
@@ -14,10 +15,10 @@ import { AltitudeLegend } from "./AltitudeLegend";
 
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
-/** Below this zoom the airport pins and aircraft labels would only add noise. */
+/** Reveal labels only when there is enough room to read them. */
 const LABEL_MIN_ZOOM = 7;
 const LABEL_DETAIL_ZOOM = 9;
-const AIRPORT_PIN_MIN_ZOOM = 6;
+const AIRPORT_CLUSTER_MAX_ZOOM = 9;
 
 // Leaflet paths and canvas dots cannot read CSS custom properties, so the
 // theme tokens they need are mirrored here (see --aircraft / --accent).
@@ -87,8 +88,8 @@ function airportPinIcon(airport: Airport, active: boolean) {
   return L.divIcon({
     className: "airport-pin-wrap",
     html: `<span class="airport-pin${active ? " active" : ""}"><i></i><b>${escapeHtml(airport.iata || airport.icao)}</b></span>`,
-    iconSize: [12, 12],
-    iconAnchor: [6, 6],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 }
 
@@ -588,26 +589,56 @@ function MapViewClasses({ labelsEnabled }: { labelsEnabled: boolean }) {
 
 function AirportPins({ airports, activeIcao, onSelect }: { airports: Airport[]; activeIcao: string | null; onSelect: (airport: Airport) => void }) {
   const map = useMap();
-  const [zoom, setZoom] = useState(() => map.getZoom());
+  const [viewport, setViewport] = useState(() => ({ zoom: map.getZoom(), bounds: map.getBounds() }));
   useEffect(() => {
-    const update = () => setZoom(map.getZoom());
-    map.on("zoomend", update);
-    return () => { map.off("zoomend", update); };
+    const update = () => setViewport({ zoom: map.getZoom(), bounds: map.getBounds() });
+    map.on("moveend zoomend", update);
+    return () => { map.off("moveend zoomend", update); };
   }, [map]);
-  if (zoom < AIRPORT_PIN_MIN_ZOOM) return null;
+  const groups = useMemo(() => {
+    const bounds = viewport.bounds.pad(0.1);
+    const visible = airports.filter((airport) => airport.latitude != null && airport.longitude != null
+      && bounds.contains([airport.latitude, airport.longitude]));
+    if (viewport.zoom >= AIRPORT_CLUSTER_MAX_ZOOM) return visible.map((airport) => [airport]);
+    const active = visible.filter((airport) => airport.icao === activeIcao);
+    return [...active.map((airport) => [airport]), ...groupAirports(visible.filter((airport) => airport.icao !== activeIcao),
+      (airport) => map.project([airport.latitude!, airport.longitude!], viewport.zoom))];
+  }, [airports, activeIcao, map, viewport]);
   return <>
-    {airports.filter((airport) => airport.latitude != null && airport.longitude != null).map((airport) => (
-      <AirportPin key={airport.icao} airport={airport} active={airport.icao === activeIcao} onSelect={onSelect} />
-    ))}
+    {groups.map((group) => group.length === 1 ? (
+      <AirportPin key={group[0].icao} airport={group[0]} active={group[0].icao === activeIcao} onSelect={onSelect} />
+    ) : <AirportCluster key={group.map((airport) => airport.icao).join(",")} airports={group} />)}
   </>;
+}
+
+function AirportCluster({ airports }: { airports: Airport[] }) {
+  const map = useMap();
+  const bounds = useMemo(() => L.latLngBounds(airports.map((airport) => [airport.latitude!, airport.longitude!] as [number, number])), [airports]);
+  const icon = useMemo(() => L.divIcon({
+    className: "airport-cluster-wrap", html: `<span class="airport-cluster">${airports.length}</span>`,
+    iconSize: [32, 32], iconAnchor: [16, 16],
+  }), [airports.length]);
+  const handlers = useMemo(() => ({ click: () => {
+    map.stop();
+    const insets = getSafeInsets(map);
+    map.flyToBounds(bounds, { animate: !prefersReducedMotion(), duration: 0.7,
+      maxZoom: Math.min(9, map.getZoom() + 2),
+      paddingTopLeft: [insets.left + 32, insets.top + 32], paddingBottomRight: [insets.right + 32, insets.bottom + 32] });
+  } }), [map, bounds]);
+  return <Marker position={bounds.getCenter()} icon={icon} eventHandlers={handlers} zIndexOffset={600}
+    title={`${airports.length} airports · Zoom to explore`}>
+    <Tooltip direction="top" offset={[0, -14]} opacity={1} className="aircraft-tooltip">
+      <strong>{airports.length} airports</strong><span>Click to zoom and choose an airport</span>
+    </Tooltip>
+  </Marker>;
 }
 
 function AirportPin({ airport, active, onSelect }: { airport: Airport; active: boolean; onSelect: (airport: Airport) => void }) {
   const icon = useMemo(() => airportPinIcon(airport, active), [airport, active]);
   const handlers = useMemo(() => ({ click: () => onSelect(airport) }), [airport, onSelect]);
   return (
-    <Marker position={[airport.latitude!, airport.longitude!]} icon={icon} eventHandlers={handlers} zIndexOffset={-1000} keyboard={false}>
-      <Tooltip direction="top" offset={[0, -6]} opacity={1} className="aircraft-tooltip"><strong>{airport.name}</strong><span>{airport.icao}{airport.iata ? ` · ${airport.iata}` : ""} · open the board</span></Tooltip>
+    <Marker position={[airport.latitude!, airport.longitude!]} icon={icon} eventHandlers={handlers} zIndexOffset={active ? 700 : 500} title={`${airport.name} · Arrivals & departures`} alt={`${airport.iata || airport.icao}: arrivals and departures`}>
+      <Tooltip direction="top" offset={[0, -6]} opacity={1} className="aircraft-tooltip"><strong>{airport.name}</strong><span>{airport.icao}{airport.iata ? ` · ${airport.iata}` : ""} · Arrivals & departures</span></Tooltip>
     </Marker>
   );
 }
@@ -746,6 +777,10 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 interface FlightMapProps {
   airport: Airport | null;
   airports?: Airport[];
+  nearbyAirports?: Airport[];
+  airportCatalogLoading?: boolean;
+  airportCatalogError?: boolean;
+  onRetryAirportCatalog?: () => void;
   selectedFlight: Flight | null;
   previewFlight?: Flight | null;
   track?: TrackResponse;
@@ -776,6 +811,10 @@ interface ProgressiveLiveState {
 export function FlightMap({
   airport,
   airports = [],
+  nearbyAirports = [],
+  airportCatalogLoading = false,
+  airportCatalogError = false,
+  onRetryAirportCatalog,
   selectedFlight,
   previewFlight = null,
   track,
@@ -825,6 +864,7 @@ export function FlightMap({
     error: null,
   });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [nearbyOpen, setNearbyOpen] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const airportIcaoRef = useRef<string | null>(airport?.icao ?? null);
   const seededViewportRef = useRef(false);
@@ -1064,6 +1104,8 @@ export function FlightMap({
     setLocationError(null);
     setLocateRequest((value) => value + 1);
   }, []);
+  const closestAirports = useMemo(() => userLocation
+    ? nearestAirports(nearbyAirports, [userLocation.latitude, userLocation.longitude]) : [], [nearbyAirports, userLocation]);
   const hasTrace = Boolean(track?.track.path && track.track.path.length > 1);
 
   useEffect(() => {
@@ -1133,6 +1175,26 @@ export function FlightMap({
           </>
         )}
       </MapContainer>
+
+      <div className="nearby-airports-control">
+        <button type="button" className="toolbar-button" aria-expanded={nearbyOpen} aria-controls="nearby-airports-panel" onClick={() => {
+          setNearbyOpen((open) => !open);
+          if (!nearbyOpen && !userLocation) requestLocation();
+        }}><LocateFixed size={14} aria-hidden="true" />Nearby airports</button>
+        {nearbyOpen && <section id="nearby-airports-panel" className="nearby-airports-panel" aria-label="Nearby airports">
+          <strong>Airports near you</strong>
+          {!userLocation ? <p role="status">{locationError || "Waiting for your location…"}</p>
+            : airportCatalogLoading ? <p role="status">Loading airports…</p>
+            : airportCatalogError ? <p role="status">Airport catalogue unavailable. <button type="button" onClick={onRetryAirportCatalog}>Retry</button></p>
+            : closestAirports.length === 0 ? <p>No geolocated airports available.</p>
+            : <><p>From your location · ±{Math.round(userLocation.accuracy)} m</p><ol>{closestAirports.map(({ airport: nearby, distance }) => (
+              <li key={nearby.icao}><button type="button" onClick={() => { onSelectAirport?.(nearby); setNearbyOpen(false); }}>
+                <span><b>{nearby.iata || nearby.icao}</b><span>{nearby.name}</span></span><small>{distance.toFixed(1)} km</small>
+              </button></li>
+            ))}</ol></>}
+          <button type="button" className="popover-reset" onClick={requestLocation}>{userLocation ? "Update my location" : "Retry location"}</button>
+        </section>}
+      </div>
 
       <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />

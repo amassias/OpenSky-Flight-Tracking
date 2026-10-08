@@ -79,6 +79,7 @@ async function reserveLiveRequestSlot(signal?: AbortSignal): Promise<void> {
 
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>("/api/health", undefined, signal),
+  mapAirports: (signal?: AbortSignal) => request<Airport[]>("/api/map-airports", undefined, signal),
   popularAirports: (signal?: AbortSignal) => request<Airport[]>("/api/airports", undefined, signal),
   searchAirports: (query: string, signal?: AbortSignal) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal),
   flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>

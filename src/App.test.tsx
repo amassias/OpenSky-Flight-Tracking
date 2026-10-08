@@ -41,7 +41,7 @@ describe("App", () => {
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const url = new URL(String(input));
       if (url.pathname === "/api/health") return json({ success: true, airports_loaded: 7895, credentials_configured: true, server_time_utc: new Date().toISOString() });
-      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports") return json([airport]);
+      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports" || url.pathname === "/api/map-airports") return json([airport]);
       if (url.pathname === "/api/flights") return json({ success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 0, live_on_ground: 0, unique_airlines: 1 }, flights: [flight], generated_at: new Date().toISOString() });
       if (url.pathname === "/api/track") return json({ success: true, track: { path: [] }, path_count: 0 });
       throw new Error(`Unexpected request ${url.pathname}`);
@@ -58,7 +58,7 @@ describe("App", () => {
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const url = new URL(String(input));
       if (url.pathname === "/api/health") return json({ success: true, airports_loaded: 7895, credentials_configured: false, server_time_utc: new Date().toISOString() });
-      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports") return json([airport]);
+      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports" || url.pathname === "/api/map-airports") return json([airport]);
       if (url.pathname === "/api/flights") return json({ success: false, error: "Missing credentials" }, 401);
       throw new Error(`Unexpected request ${url.pathname}`);
     }));
@@ -92,7 +92,7 @@ describe("App", () => {
       const url = new URL(String(input));
       if (url.hostname === "api.planespotters.net") return json({ photos: [] });
       if (url.pathname === "/api/health") return json({ success: true, airports_loaded: 7895, credentials_configured: true, server_time_utc: new Date().toISOString() });
-      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports") return json([airport]);
+      if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports" || url.pathname === "/api/map-airports") return json([airport]);
       if (url.pathname === "/api/flights") return json({ success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 1, live_on_ground: 0, unique_airlines: 1 }, flights: [live], generated_at: new Date().toISOString() });
       if (url.pathname === "/api/flight-info") return json({ success: true, icao24: "398604", callsign: "AFR28VV", registration: "F-HBQD", registration_source: "schedule", aircraft_type: "E190" });
       if (url.pathname === "/api/track") return json({ success: true, track: { path: [] }, path_count: 0 });

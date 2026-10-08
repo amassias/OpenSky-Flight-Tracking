@@ -235,6 +235,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json_response(200, self.handle_search_airports(query, limit))
                 return
 
+            if path == "/api/map-airports":
+                self.send_json_response(200, self.handle_get_map_airports())
+                return
+
             if path == "/api/airports":
                 self.send_json_response(200, self.handle_get_popular_airports())
                 return
@@ -390,6 +394,12 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_get_popular_airports(self):
         return [self._airport_payload(icao) for icao in POPULAR_AIRPORTS if icao in ALL_AIRPORTS]
+
+    def handle_get_map_airports(self):
+        airports = [self._airport_payload(icao) for icao in ALL_AIRPORTS]
+        return [airport for airport in airports
+                if airport["latitude"] is not None and airport["longitude"] is not None
+                and -90 <= airport["latitude"] <= 90 and -180 <= airport["longitude"] <= 180]
 
     def _state_row_to_object(self, row):
         def idx(i):

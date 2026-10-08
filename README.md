@@ -9,6 +9,8 @@ Explore the aircraft above you, follow a flight across the map, or inspect traff
 - **Explore live traffic.** Pan and zoom the map, filter aircraft by altitude or identity, switch units and map theme, and spot emergency squawks. Aircraft with enough position data glide between feed updates.
 - **Inspect a flight.** Select an aircraft for its current altitude, speed, route, profile, photo and available operational details. The map makes one purposeful camera move; use **Follow** to stay with it or **Show full route** to frame its trace.
 - **Search in one place.** Find a visible aircraft by callsign, registration, type or airline, or find an airport by name, city, IATA or ICAO code.
+- **Find airports on the map.** Blue markers cover all geolocated airports in the bundled catalogue. Nearby markers form numbered groups; click to zoom in, then open arrivals and departures. Use **Display → Favourite airports only** to limit the markers to your saved airports.
+- **Find airports near you.** Choose **Nearby airports**, allow browser geolocation, and open one of the five closest airports, sorted by distance. Distances are calculated in your browser.
 - **Explore an airport.** Review UTC departures and arrivals, then filter or sort the list. When recorded movements are unavailable, SkyTrace labels the live airport snapshot clearly.
 - **Keep your context.** Share a selected flight by URL. Recent airports, favourites and display preferences stay in your browser.
 
