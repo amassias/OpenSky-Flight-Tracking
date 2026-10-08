@@ -1,27 +1,17 @@
-# Free timetable sources
+# Worldwide timetable source evaluation
 
-Checked 8 October 2026. A public ADS-B receiver network supplies observed aircraft positions, not a complete passenger timetable. A missing aircraft does not establish a cancelled flight. The application keeps operator timetables and observed traffic in separate views.
+Checked 8 October 2026. The requirement is a usable worldwide airport timetable: planned flights, revised times, delays and cancellations. ADS-B observations are not a substitute. The previously connected Norwegian-only Avinor adapter has been removed, including its UI, API route, automatic polling and Oslo shortcut. The airport board continues to show observed movements or explicitly labelled nearby traffic.
 
-| Source | Coverage and free access | Decision |
+| Source | Verified access limits | Decision |
 | --- | --- | --- |
-| [Avinor flight data](https://partner.avinor.no/tjenester/flydata/) | 43 operator airports in Norway, public XML, no API key or subscription. Scheduled flights, status/time updates, cancellations and optional gate/check-in/baggage fields. | Connected. Poll no more than every three minutes per airport and show the required linked attribution beside the data. |
-| [OurAirports](https://ourairports.com/data/) | Public-domain airport metadata; no timetables. | Bundled city/type/service metadata; preserves the existing catalogue's names and coordinates. |
-| [Aviationstack](https://aviationstack.com/pricing) | Free plan: 100 monthly requests, personal/noncommercial use. Flight schedules and future-flight features are in the paid Basic tier (advertised $49.99/month at inspection). | No dependency on a paid plan or secret key. |
-| [Schiphol Flight API](https://developer.schiphol.nl/apis/flight-api/conditions) | Airport-specific; account/key and contractual limitations including storage duration and redistribution. | Not a freely redistributable global source. |
+| [Avinor](https://partner.avinor.no/tjenester/flydata/) | Free operator feed for 43 Norwegian airports. | Removed: does not satisfy worldwide coverage. |
+| [Aviationstack pricing](https://aviationstack.com/pricing) | Free plan: 100 monthly requests, personal/noncommercial real-time flights. Flight schedules and future-flight features are in the paid Basic tier ($49.99/month at inspection). | Not a free worldwide timetable solution. |
+| [FlightAware AeroAPI](https://www.flightaware.com/commercial/aeroapi/) | Worldwide schedules and airport scheduled-arrival/departure endpoints are metered. Requires an account/API key. | A possible licensed provider, not an unrestricted free source. No new paid calls enabled. |
+| [SkyLink current rate limits](https://skylinkapi.com/docs/rate-limits/) and [getting started](https://skylinkapi.com/docs/getting-started/) | A free trial requires an application and review; quota and overage apply. Its GitHub examples advertise 1,000 free monthly requests, but the current official onboarding does not describe a permanently available self-service free service. | Candidate for evaluation only; account, access, live worldwide coverage and terms would need verification. No credentials or trial have been provisioned. |
+| [AirLabs documentation](https://www.airlabs.co/docs/) and [terms](https://airlabs.co/terms-of-service) | Advertises global schedules; requires a key/subscription. Terms allow limited-period free trials. | A free key or open-source client does not establish free worldwide data access or complete airport coverage. Not connected. |
+| [Schiphol Flight API](https://developer.schiphol.nl/apis/flight-api/conditions) | Airport-specific, account/key and storage/redistribution constraints. | Does not satisfy worldwide coverage. |
 
-No verified free, openly reusable global timetable feed was found, including for CDG. This is a scoped integration, not a claim that none can ever exist. Avinor is a free operator feed, not an open-source global timetable database. The adapter itself is included in this repository.
-
-## Avinor contract
-
-- Fixed HTTPS upstream: `https://asrv.avinor.no/XmlFeed/v1.0`, using `airport`, `TimeFrom=96`, `TimeTo=144`, both directions. Private Sandefjord Torp is not covered.
-- The server holds a 180-second per-airport cache shared across dates and directions, serializes refreshes per airport, and backs off for 180 seconds after failure. Vercel additionally caches each timetable URL for 180 seconds. These are instance/CDN caches, not a durable globally coordinated lock; a larger multi-region deployment would need shared caching to guarantee a global polling limit.
-- After an upstream failure, the last successfully fetched snapshot can be displayed for at most 15 minutes, visibly marked stale. Older snapshots are not returned.
-- Required visible attribution: **Flydata fra Avinor**, linked to `https://www.avinor.no/`. The operator provides no completeness or timeliness guarantee.
-- Airport coverage is an explicit allowlist verified against the [official airport selector](https://www.avinor.no/en/airport/oslo/).
-- Day filtering is by scheduled **UTC** date. Local display uses the airport IANA timezone and includes the day/month, so midnight/daylight-saving conversions remain visible. Full requested days must fit the operator's rolling 96-hour past / 144-hour future window.
-- `E` supplies a revised time; `N` supplies the time of the next information update, never an ETA. `C` cancels the flight and suppresses estimates/delay calculations. `D` is labelled off-block rather than takeoff. Positive delays are calculated relative to scheduled time; missing values stay unknown.
-- Schedule identifiers are not ADS-B aircraft identities. Rows do not pretend to select a live aircraft or fabricate a track.
-- Airline display names snapshot: [Avinor airlineNames endpoint](https://asrv.avinor.no/airlineNames/v1.0), downloaded 8 October 2026. Attribution remains alongside the timetable.
+No currently usable free provider covering every airport was verified. This is a research finding, not a claim that no such provider can ever exist. Providers' worldwide coverage claims must be tested on airports across regions and checked against missing services before implementation. No timetable button is shown until a provider meeting the requirement is actually connected and validated.
 
 ## Airport metadata provenance
 

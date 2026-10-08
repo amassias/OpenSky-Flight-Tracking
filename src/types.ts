@@ -69,7 +69,6 @@ export interface Airport {
   scheduled_service?: boolean;
   military_designation?: boolean;
   website?: string;
-  timetable_provider?: string | null;
   latitude: number | null;
   longitude: number | null;
 }
@@ -264,42 +263,4 @@ export interface Bounds {
   lomin: number;
   lamax: number;
   lomax: number;
-}
-
-export interface ScheduledFlight {
-  id: string;
-  flight_number: string;
-  airline_code: string;
-  airline_name: string;
-  direction: "A" | "D";
-  other_airport: string;
-  other_airport_name: string;
-  scheduled: string;
-  estimated: string | null;
-  actual: string | null;
-  actual_event: "off-block" | "arrival" | null;
-  status: "scheduled" | "estimated" | "arrived" | "departed" | "cancelled" | "next-info" | "unknown";
-  next_information: string | null;
-  delay_minutes: number | null;
-  delayed: boolean;
-  gate: string | null;
-  terminal: string | null;
-  check_in: string | null;
-  baggage_belt: string | null;
-}
-
-export interface TimetableResponse {
-  success: boolean;
-  airport: string;
-  date: string;
-  mode: FlightMode;
-  date_basis: "UTC";
-  provider: "Avinor" | null;
-  coverage: "available" | "unsupported" | "out-of-range" | "unavailable";
-  flights: ScheduledFlight[];
-  updated_at: string | null;
-  fetched_at: string | null;
-  stale: boolean;
-  refresh_after_seconds: number;
-  notice?: string | null;
 }

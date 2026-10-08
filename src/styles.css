@@ -616,34 +616,4 @@ input { caret-color: var(--accent); }
   .nearby-airports-panel ol { max-height: 140px; }
 }
 
-/* Operator timetable: the same quiet, compact airport-panel hierarchy. */
 .airport-information { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 8px; }
-.board-view-switch { display: flex; gap: 4px; margin: 10px 0; }
-.board-view-switch button { flex: 1; padding: 8px; border: 1px solid var(--line); background: transparent; color: inherit; border-radius: var(--r-sm); font-size: 12px; }
-.board-view-switch button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.timetable-board { min-height: 0; overflow-y: auto; flex: 1; font-size: 12px; }
-.timetable-source, .timetable-tools, .timetable-meta, .timetable-message { margin: 0; padding: 10px 14px; }
-.timetable-source p { margin: 0 0 5px; }
-.timetable-source a, .timetable-message a { color: var(--accent); text-decoration: underline; }
-.timetable-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid var(--line); }
-.timetable-tools label { display: flex; align-items: center; gap: 5px; }
-.timetable-meta { font-size: 10px; color: var(--muted); line-height: 1.5; }
-.timetable-message { line-height: 1.6; }
-.timetable-list { list-style: none; padding: 0; margin: 0; }
-.timetable-flight { padding: 12px 14px; border-top: 1px solid var(--line); }
-.timetable-flight-heading { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.timetable-status { font-size: 10px; }
-.timetable-flight.cancelled .timetable-status { color: var(--danger); }
-.timetable-flight.delayed .timetable-status { color: var(--warn); }
-.timetable-route { margin: 6px 0 3px; }
-.timetable-airline { margin: 0; color: var(--muted); font-size: 10px; }
-.timetable-times { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
-.timetable-times dt { font-size: 9px; color: var(--muted); margin-bottom: 4px; }
-.timetable-times dd { margin: 0; font-variant-numeric: tabular-nums; font-size: 11px; }
-.timetable-flight .timetable-meta { padding: 7px 0 0; }
-@media (max-width: 900px) {
-  .airport-tab { display: block; overflow-y: auto; overscroll-behavior: contain; }
-  .airport-tab .timetable-board { overflow: visible; }
-  .airport-information { margin-top: 0; }
-  .board-view-switch { margin: 0; }
-}

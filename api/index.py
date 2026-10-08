@@ -56,15 +56,6 @@ def airports():
     return execute(service.handle_get_popular_airports)
 
 
-@app.get("/api/timetable")
-def timetable(airport: str = "LFPG", date: str = "", mode: str = "departure"):
-    from datetime import datetime, timezone
-    result = execute(lambda: service.handle_timetable(airport, date or datetime.now(timezone.utc).date().isoformat(), mode))
-    if isinstance(result, JSONResponse):
-        return result
-    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=0, s-maxage=180"})
-
-
 @app.get("/api/map-airports")
 def map_airports():
     result = execute(service.handle_get_map_airports)

@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { TriangleAlert } from "./components/icons";
 import { List } from "./components/customIcons";
 import { aircraftPhoto, api, readableApiError } from "./api";
-import { TimetableBoard } from "./components/TimetableBoard";
 import { AirportTab } from "./components/AirportTab";
 import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
@@ -73,7 +72,6 @@ export function App() {
   const [homeAirport, setHomeAirport] = useState<Airport | null>(null);
   const [date, setDate] = useState(initialParams.get("date") || todayUtc());
   const [mode, setMode] = useState<FlightMode>(initialParams.get("mode") === "arrival" ? "arrival" : "departure");
-  const [boardView, setBoardView] = useState<"observed" | "schedule">(initialParams.get("view") === "schedule" ? "schedule" : "observed");
   const [request, setRequest] = useState<FlightRequest | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -140,18 +138,9 @@ export function App() {
   const flights = useQuery({
     queryKey: ["flights", request?.airport.icao, request?.date, request?.mode],
     queryFn: ({ signal }) => api.flights(request!.airport.icao, request!.date, request!.mode, signal),
-    enabled: Boolean(request) && boardView === "observed",
+    enabled: Boolean(request),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
-    retry: false,
-  });
-
-  const timetable = useQuery({
-    queryKey: ["timetable", request?.airport.icao, request?.date, request?.mode],
-    queryFn: ({ signal }) => api.timetable(request!.airport.icao, request!.date, request!.mode, signal),
-    enabled: Boolean(request) && boardView === "schedule",
-    staleTime: 180_000,
-    refetchInterval: 180_000,
     retry: false,
   });
 
@@ -285,7 +274,6 @@ export function App() {
       params.set("airport", request.airport.icao);
       params.set("date", request.date);
       params.set("mode", request.mode);
-      if (boardView === "schedule") params.set("view", "schedule");
     }
     if (selectedFlight) {
       params.set("icao24", selectedFlight.icao24);
@@ -294,7 +282,7 @@ export function App() {
     }
     const next = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
     window.history.replaceState(null, "", next);
-  }, [request, selectedFlight, boardView]);
+  }, [request, selectedFlight]);
 
   useEffect(() => {
     document.title = detailsFlight ? `${detailsFlight.callsign || detailsFlight.icao24.toUpperCase()} · SkyTrace` : "SkyTrace · Live flight tracker";
@@ -422,7 +410,6 @@ export function App() {
   }, []);
 
   const openAirport = useCallback((airport: Airport, options: { date?: string; mode?: FlightMode } = {}) => {
-    setBoardView(airport.timetable_provider ? "schedule" : "observed");
     setRequest({ airport, date: options.date ?? date, mode: options.mode ?? mode });
     setSelectedFlight(null);
     setTab("airport");
@@ -630,11 +617,8 @@ export function App() {
                     onSelect={openAirport}
                     onClear={() => undefined}
                     onToggleFavorite={toggleFavorite}
-                    boardView={boardView}
-                    onBoardViewChange={setBoardView}
-                    heading={boardView === "schedule" && request ? { title: "Flight timetable", subtitle: `${request.airport.name} · ${date} UTC`, source: "Scheduled", tone: "history" } : boardHeading}
+                    heading={boardHeading}
                   >
-                    {boardView === "schedule" ? <TimetableBoard airport={request?.airport ?? null} data={timetable.data} loading={timetable.isFetching} error={Boolean(timetable.error)} onRetry={() => timetable.refetch()} /> : <>
                     <div className="stats-row">
                       <div><strong className="mono">{airportSummary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Flights"}</span></div>
                       <div><strong className="mono">{airportSummary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
@@ -652,7 +636,6 @@ export function App() {
                       onRetry={() => flights.refetch()}
                       referencePoint={mapCenter}
                     />
-                    </>}
                   </AirportTab>
                 )}
               />

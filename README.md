@@ -163,8 +163,6 @@ MIT
 
 Interface icons are from [Font Awesome Free](https://fontawesome.com) (solid set) by Fonticons, Inc., licensed under [CC BY 4.0](https://fontawesome.com/license/free). Regenerate them with `node scripts/build-icons.mjs <fontawesome-free-web-folder>`.
 
-### Free operator timetables
+### Airport schedules and data coverage
 
-The airport panel now has separate **Timetable** and **Observed traffic** views. Avinor supplies planned arrivals/departures, revised times, cancellations, reported actual events and available gate information for 43 Norwegian airports without a paid API key. Open Oslo with `?airport=ENGM&view=schedule`. Select a UTC day and optionally display local airport times; the panel identifies its source and stale snapshots. Unsupported airports explicitly state their coverage limit instead of treating ADS-B observations as a timetable.
-
-`GET /api/timetable?airport=ENGM&date=YYYY-MM-DD&mode=departure` returns a `coverage` value (`available`, `unsupported`, `out-of-range`, `unavailable`) and scheduled flights. Responses are cached for three minutes; see [source evaluation, licensing, cache limits and metadata provenance](docs/FREE_TIMETABLE_SOURCES.md).
+The map and airport board display observed traffic. No regional timetable integration is enabled: a planned-flight board needs a verified global provider. See [provider research and metadata provenance](docs/FREE_TIMETABLE_SOURCES.md).

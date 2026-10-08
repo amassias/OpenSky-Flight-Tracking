@@ -87,3 +87,28 @@ test("clearly labels nearby traffic when recorded movements are unavailable", as
   await expect(page.locator(".board-heading")).toContainText("Current observations");
   await expect(page.locator(".flight-card").filter({ hasText: "NEAR123" })).toBeVisible();
 });
+
+test("old Oslo timetable links open observed traffic without regional provider requests", async ({ page }) => {
+  const oslo = { ...airport, icao: "ENGM", iata: "OSL", name: "Oslo Airport", latitude: 60.2, longitude: 11.1, timetable_provider: "Avinor" };
+  const regionalRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/timetable|avinor\.no/.test(request.url())) regionalRequests.push(request.url());
+  });
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    const body = ["/api/search-airports", "/api/map-airports", "/api/airports"].includes(url.pathname) ? [oslo]
+      : url.pathname === "/api/health" ? { live_available: true }
+      : url.pathname === "/api/live-flights" ? { count: 0, states: [] }
+      : url.pathname === "/api/flights" ? { success: true, airport: "ENGM", airport_meta: oslo, airport_name: oslo.name, mode: url.searchParams.get("mode"), flights: [], summary: { total: 0, live_airborne: 0, unique_airlines: 0 }, source: "opensky" }
+      : [];
+    await route.fulfill({ json: body });
+  });
+  await page.goto("/?airport=ENGM&view=schedule");
+  await expect(page.getByRole("heading", { name: "Departures from OSL" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Timetable", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Flydata fra Avinor" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Arrivals", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Arrivals at OSL" })).toBeVisible();
+  await expect(page).not.toHaveURL(/view=schedule/);
+  expect(regionalRequests).toEqual([]);
+});

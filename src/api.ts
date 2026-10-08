@@ -7,7 +7,6 @@ import type {
   HealthResponse,
   LiveFlightsResponse,
   TrackResponse,
-  TimetableResponse,
 } from "./types";
 
 export class ApiError extends Error {
@@ -85,8 +84,6 @@ export const api = {
   searchAirports: (query: string, signal?: AbortSignal) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal),
   flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
-  timetable: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
-    request<TimetableResponse>("/api/timetable", { airport, date, mode }, signal),
   liveFlights: async (bounds: Bounds, signal?: AbortSignal, fallbackOnly = false) => {
     // Zoom and pan can emit several different boxes in quick succession. A
     // small client-side spacing keeps those changes responsive while avoiding

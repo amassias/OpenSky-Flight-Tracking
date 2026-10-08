@@ -18,12 +18,10 @@ interface AirportTabProps {
   onToggleFavorite: (airport: Airport) => void;
   /** Present once an airport has been opened. */
   heading: { title: string; subtitle: string; source: string; tone: "live" | "history" } | null;
-  boardView?: "observed" | "schedule";
-  onBoardViewChange?: (view: "observed" | "schedule") => void;
   children: ReactNode;
 }
 
-export function AirportTab({ selected, popular, recent, favorites, date, mode, onDateChange, onModeChange, onSelect, onClear, onToggleFavorite, heading, boardView = "observed", onBoardViewChange, children }: AirportTabProps) {
+export function AirportTab({ selected, popular, recent, favorites, date, mode, onDateChange, onModeChange, onSelect, onClear, onToggleFavorite, heading, children }: AirportTabProps) {
   const shortcuts = favorites.length ? favorites : recent;
   return (
     <div className="airport-tab">
@@ -40,10 +38,6 @@ export function AirportTab({ selected, popular, recent, favorites, date, mode, o
         {selected && <div className="airport-information">
           <span>{[selected.city, selected.country].filter(Boolean).join(" · ")}{selected.timezone ? ` · ${selected.timezone}` : ""}</span>
           <button type="button" className="icon-button" aria-label={favorites.some((item) => item.icao === selected.icao) ? "Remove airport from favourites" : "Add airport to favourites"} aria-pressed={favorites.some((item) => item.icao === selected.icao)} onClick={() => onToggleFavorite(selected)}><Heart size={14} /></button>
-        </div>}
-        {selected && onBoardViewChange && <div className="board-view-switch" role="group" aria-label="Airport data">
-          <button type="button" aria-pressed={boardView === "schedule"} onClick={() => onBoardViewChange("schedule")}>Timetable</button>
-          <button type="button" aria-pressed={boardView === "observed"} onClick={() => onBoardViewChange("observed")}>Observed traffic</button>
         </div>}
         <div className="airport-form-row">
           <label className="date-control">
