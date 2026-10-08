@@ -931,7 +931,13 @@ class OpenSkyClient:
             airline_code = airline.get("icao") or airline.get("iata") or airline.get("code")
             airline_name = airline.get("name") or airline.get("display_name")
         elif airline not in (None, ""):
-            airline_name = str(airline).strip()
+            text = str(airline).strip()
+            # AeroAPI's `operator` is an ICAO/IATA code ("AFR"), not a name;
+            # the server resolves names from the bundled airline table.
+            if text.isalnum() and text.isupper() and len(text) <= 3:
+                airline_code = text
+            else:
+                airline_name = text
 
         fields = {
             "provider": "FlightAware",

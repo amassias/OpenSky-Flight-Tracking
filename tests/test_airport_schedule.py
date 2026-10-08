@@ -92,3 +92,12 @@ def test_budget_month_key_rolls_over(monkeypatch):
     client._flightaware_pages = {"m2020-01": 9999, "h2020-01-01T00": 9999}
     assert client._flightaware_budget_allows(1)
     assert "m2020-01" not in client._flightaware_pages
+
+
+def test_operator_codes_are_not_used_as_airline_names(monkeypatch):
+    client = client_with(ok({"scheduled_arrivals": [ARRIVAL]}), monkeypatch)
+    flight = client.get_flightaware_airport_schedule("LFPG", "arrival")["flights"][0]
+    assert flight["airline_code"] == "AFR" and "airline_name" not in flight
+    handler = object.__new__(server.FlightServerHandler)
+    with patch.object(server.api_client, "get_flightaware_airport_schedule", return_value={"available": True, "flights": [flight]}):
+        assert handler.handle_airport_schedule("LFPG", "arrival")["flights"][0]["airline_name"] == "Air France"
