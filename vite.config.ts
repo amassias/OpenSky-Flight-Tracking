@@ -18,14 +18,15 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       sourcemap: true,
+      chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {
-          // Libraries change far less often than the app: separate chunks
-          // stay cached across deploys and download in parallel.
-          manualChunks: {
-            react: ["react", "react-dom", "react-dom/client", "@tanstack/react-query"],
-            map: ["leaflet", "react-leaflet"],
-            motion: ["motion/react"],
+          // Libraries change far less often than the app, so they ship in one
+          // chunk that stays cached across deploys. A single vendor chunk
+          // cannot form an import cycle between library chunks (splitting
+          // React from its consumers broke module initialisation order).
+          manualChunks(id) {
+            return id.includes("/node_modules/") ? "vendor" : undefined;
           },
         },
       },
