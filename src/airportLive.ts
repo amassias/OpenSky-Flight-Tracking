@@ -1,4 +1,5 @@
-import type { Airport, BoardFlight, BoardPhase, Flight, FlightMode, MetarReport } from "./types";
+import type { Airport, BoardFlight, BoardPhase, Flight, FlightAwareDetails, FlightMode, LiveAircraft, MetarReport } from "./types";
+import { distanceKm } from "./utils";
 import type { UnitSystem } from "./units";
 
 const RAD = Math.PI / 180;
@@ -122,5 +123,118 @@ export function boardRowToFlight(row: BoardFlight, airport: Airport, mode: Fligh
     arrival_airport_name: to?.name ?? null,
     route_source: row.route_known ? "callsign" : undefined,
     route_provider: row.route_known ? "adsb.lol route database" : null,
+  };
+}
+
+/** Callsigns as ADS-B and AeroAPI both write them: "AFR1234". */
+export function normalizeIdent(value?: string | null): string {
+  return (value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function isoMs(value?: string | null): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export type ScheduleTone = "neutral" | "ok" | "warn" | "alert" | "live";
+
+export interface ScheduleEntry {
+  flight: FlightAwareDetails;
+  /** The same flight seen live by ADS-B, when its callsign is in view. */
+  live: LiveAircraft | null;
+  scheduledMs: number | null;
+  /** Best current time: actual, then estimated, then scheduled. */
+  expectedMs: number | null;
+  delayMinutes: number;
+  /** Share of the route flown, from the live position when available. */
+  progress: number | null;
+  /** Arrival estimate from the live position and ground speed. */
+  liveEtaMs: number | null;
+  status: string;
+  tone: ScheduleTone;
+}
+
+/**
+ * Lines up FlightAware's scheduled flights with the aircraft seen live, so a
+ * board row carries the gate and times from the schedule and the position,
+ * progress and arrival estimate from the aircraft itself.
+ */
+export function mergeSchedule(
+  flights: readonly FlightAwareDetails[],
+  liveAircraft: readonly LiveAircraft[],
+  mode: FlightMode,
+  airport: Airport,
+  nowMs = Date.now(),
+): { entries: ScheduleEntry[]; matchedIcao24: Set<string> } {
+  const byIdent = new Map<string, LiveAircraft>();
+  for (const aircraft of liveAircraft) {
+    const ident = normalizeIdent(aircraft.callsign);
+    if (ident && !byIdent.has(ident)) byIdent.set(ident, aircraft);
+  }
+  const matchedIcao24 = new Set<string>();
+  const entries = flights.map((flight) => {
+    const live = [flight.atc_ident, flight.ident_icao, flight.ident].map(normalizeIdent).find((ident) => ident && byIdent.has(ident));
+    const aircraft = live ? byIdent.get(live)! : null;
+    if (aircraft) matchedIcao24.add(aircraft.icao24);
+    const departure = mode === "departure";
+    const scheduledMs = isoMs(departure ? flight.scheduled_out ?? flight.scheduled_off : flight.scheduled_in ?? flight.scheduled_on);
+    const expectedMs = departure
+      ? isoMs(flight.actual_out) ?? isoMs(flight.estimated_out) ?? isoMs(flight.estimated_off) ?? scheduledMs
+      : isoMs(flight.actual_in) ?? isoMs(flight.estimated_in) ?? isoMs(flight.estimated_on) ?? scheduledMs;
+    const delayMinutes = scheduledMs != null && expectedMs != null ? Math.round((expectedMs - scheduledMs) / 60_000) : 0;
+
+    let progress = flight.progress_percent != null ? flight.progress_percent / 100 : null;
+    let liveEtaMs: number | null = null;
+    const airborne = aircraft && aircraft.on_ground === false && aircraft.latitude != null && aircraft.longitude != null;
+    if (!departure && airborne && airport.latitude != null && airport.longitude != null) {
+      const remainingKm = distanceKm([aircraft.latitude!, aircraft.longitude!], [airport.latitude, airport.longitude]);
+      const totalKm = flight.route_distance ? flight.route_distance * 1.609344 : null;
+      if (totalKm && totalKm > remainingKm * 0.5) progress = Math.min(1, Math.max(0, 1 - remainingKm / totalKm));
+      if (aircraft.velocity && aircraft.velocity > 40) liveEtaMs = nowMs + (remainingKm * 1000 / aircraft.velocity) * 1000;
+    }
+
+    const status = scheduleStatus(flight, aircraft, mode, delayMinutes, progress);
+    return { flight, live: aircraft, scheduledMs, expectedMs, delayMinutes, progress, liveEtaMs, ...status };
+  });
+  entries.sort((a, b) => (a.expectedMs ?? a.scheduledMs ?? Infinity) - (b.expectedMs ?? b.scheduledMs ?? Infinity));
+  return { entries, matchedIcao24 };
+}
+
+function scheduleStatus(flight: FlightAwareDetails, live: LiveAircraft | null, mode: FlightMode, delay: number, progress: number | null): { status: string; tone: ScheduleTone } {
+  if (flight.cancelled) return { status: "Cancelled", tone: "alert" };
+  if (flight.diverted) return { status: "Diverted", tone: "alert" };
+  if (mode === "departure") {
+    if (live?.on_ground && (live.velocity ?? 0) >= 2.5) return { status: "Taxiing", tone: "live" };
+    if (flight.actual_out) return { status: "Left gate", tone: "live" };
+  } else {
+    if (flight.actual_in) return { status: "At gate", tone: "ok" };
+    if (flight.actual_on || live?.on_ground) return { status: "Landed", tone: "ok" };
+    if (flight.actual_off || (live && live.on_ground === false)) {
+      return { status: progress != null ? `En route · ${Math.round(progress * 100)}%` : "En route", tone: "live" };
+    }
+  }
+  if (delay >= 15) return { status: `Delayed ${delay} min`, tone: "warn" };
+  if (delay <= -5) return { status: "Early", tone: "ok" };
+  return { status: "On time", tone: "neutral" };
+}
+
+/** A scheduled flight seen live, as a selectable flight with FlightAware's route and operations. */
+export function scheduleEntryToFlight(entry: ScheduleEntry): Flight | null {
+  const { flight, live } = entry;
+  if (!live) return null;
+  return {
+    ...live,
+    status: live.on_ground ? "on_ground" : "airborne",
+    primary_time: 0,
+    data_source: "live-nearby",
+    airline_name: live.airline_name || flight.airline_name || "",
+    departure_airport: flight.origin?.code_icao ?? live.departure_airport ?? null,
+    departure_airport_name: flight.origin?.name ?? live.departure_airport_name ?? null,
+    arrival_airport: flight.destination?.code_icao ?? live.arrival_airport ?? null,
+    arrival_airport_name: flight.destination?.name ?? live.arrival_airport_name ?? null,
+    route_source: "flightaware",
+    route_provider: "FlightAware",
+    flightaware: flight,
   };
 }

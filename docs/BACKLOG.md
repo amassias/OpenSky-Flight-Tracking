@@ -71,3 +71,8 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B43: Live airport board.** Opening an airport shows its local time and sun times, the latest METAR/TAF, wind-favoured runways, runways and frequencies, FAA delays for US airports, and live departures and arrivals observed by ADS-B with routes from the adsb.lol route database and estimated arrival times. Recorded OpenSky movements moved to a **History** view.
 - [x] **B44: Layout fixes.** The list filter no longer collapses to one letter in a narrow panel, the Departures/Arrivals control and the source pill no longer overflow the panel, the date field is no longer clipped, the stray "—" on live cards is gone, and the map status, Nearby airports and emergency banner share one 8 px rhythm instead of overlapping.
 - [x] **B45: Animation and rendering costs.** Re-sorting the live list no longer replays every card's entrance animation; the list renders 100 cards at a time; the selected trace's halo is no longer rebuilt every second; aircraft stop gliding while the tab is hidden; the location pulse animates transform/opacity instead of box-shadow; vendor code ships in cacheable chunks with immutable asset caching.
+
+## Scheduled airport board (2026-10-09)
+
+- [x] **B46: FlightAware scheduled departures and arrivals** on the airport board (times, gates, terminals, delays, cancellations), joined by callsign to live aircraft for live progress and arrival estimates, with a per-instance page budget and ten-minute CDN caching. Live traffic the schedule page does not list stays below it.
+- [x] **B47: Gates and terminals from FlightAware now appear.** AeroAPI v4 names them `gate_origin`/`gate_destination` and `terminal_origin`/`terminal_destination`; the client read `gate_orig`/`gate_dest`, so they were always empty.

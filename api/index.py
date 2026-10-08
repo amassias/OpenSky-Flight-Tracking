@@ -73,6 +73,17 @@ def airport_conditions(airport: str = ""):
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300"})
 
 
+@app.get("/api/airport-schedule")
+def airport_schedule(airport: str = "", direction: str = "departure"):
+    result = execute(lambda: service.handle_airport_schedule(airport, direction))
+    if isinstance(result, JSONResponse):
+        return result
+    # Every AeroAPI page is billed: let the CDN answer all visitors of an
+    # airport for ten minutes, and keep serving the last board while it refreshes.
+    cache = "public, max-age=120, s-maxage=600, stale-while-revalidate=1200" if result.get("available") else "public, max-age=60, s-maxage=120"
+    return JSONResponse(content=result, headers={"Cache-Control": cache})
+
+
 @app.get("/api/airport-board")
 def airport_board(airport: str = ""):
     result = execute(lambda: service.handle_airport_board(airport))

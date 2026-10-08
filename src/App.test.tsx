@@ -44,6 +44,7 @@ function mockApi(overrides: Record<string, (url: URL) => Promise<Response>> = {}
     if (url.pathname === "/api/airports" || url.pathname === "/api/search-airports" || url.pathname === "/api/map-airports") return json([airport]);
     if (url.pathname === "/api/airport-conditions") return json(conditions);
     if (url.pathname === "/api/airport-board") return json(board);
+    if (url.pathname === "/api/airport-schedule") return json({ success: true, airport: "LFPG", direction: url.searchParams.get("direction"), provider: "FlightAware AeroAPI", available: false, reason: "unconfigured", flights: [] });
     if (url.pathname === "/api/flights") return json({ success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 0, live_on_ground: 0, unique_airlines: 1 }, flights: [flight], generated_at: new Date().toISOString() });
     if (url.pathname === "/api/track") return json({ success: true, track: { path: [] }, path_count: 0 });
     if (url.pathname === "/api/flight-info") return json({ success: true, icao24: url.searchParams.get("icao24"), callsign: url.searchParams.get("callsign") });
@@ -86,6 +87,31 @@ describe("App", () => {
     expect(await screen.findByText("EZY37UJ")).toBeInTheDocument();
     expect(screen.getByText("Nice")).toBeInTheDocument();
     expect(screen.getByText(/in 5 min/)).toBeInTheDocument();
+  });
+
+  it("shows FlightAware's scheduled flights joined to the aircraft seen live", async () => {
+    window.history.replaceState(null, "", "/");
+    const soon = new Date(Date.now() + 20 * 60_000).toISOString();
+    const late = new Date(Date.now() + 45 * 60_000).toISOString();
+    mockApi({
+      "/api/airport-schedule": () => json({
+        success: true, airport: "LFPG", direction: "departure", provider: "FlightAware AeroAPI", available: true, fetched_at: Math.floor(Date.now() / 1000),
+        flights: [
+          { provider: "FlightAware", ident: "AFR1234", ident_icao: "AFR1234", ident_iata: "AF1234", atc_ident: "AFR1234", airline_name: "Air France", destination: { code_icao: "EDDB", code_iata: "BER", city: "Berlin" }, scheduled_out: soon, estimated_out: soon, gate_orig: "K45", terminal_orig: "2F" },
+          { provider: "FlightAware", ident: "AFR990", ident_icao: "AFR990", ident_iata: "AF990", atc_ident: "AFR990", destination: { code_icao: "FAOR", code_iata: "JNB", city: "Johannesburg" }, scheduled_out: soon, estimated_out: late, gate_orig: "M30" },
+        ],
+      }),
+    });
+    renderApp();
+    await openAirportFromSearch();
+    expect(await screen.findByText("Scheduled departures")).toBeInTheDocument();
+    expect(screen.getByText("Gate K45 · T2F")).toBeInTheDocument();
+    expect(screen.getByText("Delayed 25 min")).toBeInTheDocument();
+    // AFR1234 is also taxiing in the live board: one row, not two.
+    expect(screen.getAllByText("AF1234")).toHaveLength(1);
+    expect(screen.queryByText("AFR1234")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /AF1234/ }));
+    expect(await screen.findByRole("heading", { name: "AFR1234" })).toBeInTheDocument();
   });
 
   it("selects a live board flight with this airport as one end of its route", async () => {

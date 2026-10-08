@@ -49,3 +49,12 @@ def test_airport_live_routes_are_served_with_cache_headers():
 def test_airport_live_routes_validate_the_airport():
     response = client.get("/api/airport-board", params={"airport": "ZZZZ"})
     assert response.status_code == 400
+
+
+def test_airport_schedule_is_cached_at_the_cdn_only_when_available():
+    with patch.object(server.FlightServerHandler, "handle_airport_schedule", return_value={"success": True, "available": True, "flights": []}):
+        available = client.get("/api/airport-schedule", params={"airport": "LFPG", "direction": "arrival"})
+    with patch.object(server.FlightServerHandler, "handle_airport_schedule", return_value={"success": True, "available": False, "flights": []}):
+        unavailable = client.get("/api/airport-schedule", params={"airport": "LFPG"})
+    assert "s-maxage=600" in available.headers["cache-control"]
+    assert "s-maxage=120" in unavailable.headers["cache-control"]

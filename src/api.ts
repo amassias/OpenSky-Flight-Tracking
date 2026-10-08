@@ -2,6 +2,7 @@ import type {
   Airport,
   AirportBoardResponse,
   AirportConditionsResponse,
+  AirportScheduleResponse,
   Bounds,
   FlightMode,
   FlightInfoResponse,
@@ -87,6 +88,8 @@ export const api = {
   flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
   airportConditions: (airport: string, signal?: AbortSignal) => request<AirportConditionsResponse>("/api/airport-conditions", { airport }, signal),
+  airportSchedule: (airport: string, direction: FlightMode, signal?: AbortSignal) =>
+    request<AirportScheduleResponse>("/api/airport-schedule", { airport, direction }, signal),
   airportBoard: (airport: string, signal?: AbortSignal) => request<AirportBoardResponse>("/api/airport-board", { airport }, signal),
   liveFlights: async (bounds: Bounds, signal?: AbortSignal, fallbackOnly = false) => {
     // Zoom and pan can emit several different boxes in quick succession. A

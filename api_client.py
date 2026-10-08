@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import asin, ceil, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
 from urllib.parse import quote
@@ -50,6 +50,13 @@ class OpenSkyClient:
         # second API call during the provider's retry window.
         self._flightaware_cache: Dict[str, Dict[str, Any]] = {}
         self._flightaware_next_request_at = 0.0
+        # AeroAPI bills per result set beyond the Personal tier's $5/month
+        # allowance and offers no usage endpoint, so every page is counted
+        # here against a monthly and an hourly ceiling. The counters are per
+        # function instance; CDN caching of the airport schedule keeps the
+        # number of instances that actually reach AeroAPI small.
+        self._flightaware_pages: Dict[str, int] = {}
+        self._flightaware_schedule_cache: Dict[str, Dict[str, Any]] = {}
         self._track_cache: Dict[str, Dict[str, Any]] = {}
 
         if not self.client_id or not self.client_secret:
@@ -959,10 +966,17 @@ class OpenSkyClient:
             "scheduled_in": flight.get("scheduled_in"),
             "estimated_in": flight.get("estimated_in"),
             "actual_in": flight.get("actual_in"),
-            "gate_orig": flight.get("gate_orig"),
-            "gate_dest": flight.get("gate_dest"),
-            "terminal_orig": flight.get("terminal_orig"),
-            "terminal_dest": flight.get("terminal_dest"),
+            # AeroAPI v4 names these gate_origin/gate_destination; the
+            # short names are kept as the public contract.
+            "gate_orig": flight.get("gate_origin") or flight.get("gate_orig"),
+            "gate_dest": flight.get("gate_destination") or flight.get("gate_dest"),
+            "ident_icao": flight.get("ident_icao"),
+            "ident_iata": flight.get("ident_iata"),
+            "codeshares_iata": flight.get("codeshares_iata"),
+            "baggage_claim": flight.get("baggage_claim"),
+            "route_distance": flight.get("route_distance"),
+            "terminal_orig": flight.get("terminal_origin") or flight.get("terminal_orig"),
+            "terminal_dest": flight.get("terminal_destination") or flight.get("terminal_dest"),
             "filed_ete": flight.get("filed_ete"),
             "filed_airspeed": flight.get("filed_airspeed"),
             "filed_altitude": flight.get("filed_altitude"),
@@ -971,7 +985,7 @@ class OpenSkyClient:
         # also prevents an unexpected nested object from reaching the browser.
         allowed_numbers = {
             "progress_percent", "departure_delay", "arrival_delay", "filed_ete",
-            "filed_airspeed", "filed_altitude",
+            "filed_airspeed", "filed_altitude", "route_distance",
         }
         normalized: Dict[str, Any] = {}
         for key, value in fields.items():
@@ -987,9 +1001,122 @@ class OpenSkyClient:
             elif key in {"origin", "destination"}:
                 if isinstance(value, dict):
                     normalized[key] = value
+            elif key == "codeshares_iata":
+                if isinstance(value, list):
+                    normalized[key] = [str(item) for item in value[:8] if item]
             else:
                 normalized[key] = value
         return normalized
+
+    @staticmethod
+    def _flightaware_api_key() -> str:
+        if os.getenv("SKYTRACE_FLIGHTAWARE_ENABLED", "1").strip().lower() in {"0", "false", "no", "off"}:
+            return ""
+        return (os.getenv("FLIGHTAWARE_AEROAPI_KEY") or "").strip()
+
+    @staticmethod
+    def _budget_setting(name: str, default: int) -> int:
+        try:
+            return max(0, int(float(os.getenv(name, str(default)))))
+        except (TypeError, ValueError):
+            return default
+
+    def _flightaware_budget_allows(self, pages: int = 1) -> bool:
+        """True when `pages` more result sets stay within the configured ceilings.
+
+        Defaults: 600 pages a month (about $3 at $0.005 a page, inside the
+        $5 Personal allowance with room for selected-aircraft lookups) and
+        60 an hour so a crawler cannot spend the month in one afternoon.
+        """
+        now = datetime.now(timezone.utc)
+        month, hour = now.strftime("m%Y-%m"), now.strftime("h%Y-%m-%dT%H")
+        # Forget old periods so the counter dictionary stays tiny.
+        for key in [key for key in self._flightaware_pages if key not in (month, hour)]:
+            self._flightaware_pages.pop(key, None)
+        monthly = self._budget_setting("SKYTRACE_AEROAPI_MONTHLY_PAGES", 600)
+        hourly = self._budget_setting("SKYTRACE_AEROAPI_HOURLY_PAGES", 60)
+        return (self._flightaware_pages.get(month, 0) + pages <= monthly
+                and self._flightaware_pages.get(hour, 0) + pages <= hourly)
+
+    def _flightaware_spend(self, pages: int = 1) -> None:
+        now = datetime.now(timezone.utc)
+        for key in (now.strftime("m%Y-%m"), now.strftime("h%Y-%m-%dT%H")):
+            self._flightaware_pages[key] = self._flightaware_pages.get(key, 0) + pages
+
+    def flightaware_budget_state(self) -> Dict[str, int]:
+        now = datetime.now(timezone.utc)
+        return {
+            "month_pages": self._flightaware_pages.get(now.strftime("m%Y-%m"), 0),
+            "month_limit": self._budget_setting("SKYTRACE_AEROAPI_MONTHLY_PAGES", 600),
+            "hour_pages": self._flightaware_pages.get(now.strftime("h%Y-%m-%dT%H"), 0),
+            "hour_limit": self._budget_setting("SKYTRACE_AEROAPI_HOURLY_PAGES", 60),
+        }
+
+    def get_flightaware_airport_schedule(self, airport_icao: str, direction: str) -> Dict[str, Any]:
+        """One page (15 airline flights) of an airport's scheduled departures or arrivals.
+
+        Cached ten minutes per airport and direction. The result says why it is
+        empty ("unconfigured", "budget", "error") so the board can explain it.
+        """
+        endpoint = "scheduled_arrivals" if direction == "arrival" else "scheduled_departures"
+        key = f"{airport_icao}:{endpoint}"
+        now = time.time()
+        cached = self._flightaware_schedule_cache.get(key)
+        try:
+            ttl = max(60.0, float(os.getenv("SKYTRACE_SCHEDULE_CACHE_SECONDS", "600")))
+        except (TypeError, ValueError):
+            ttl = 600.0
+        if cached and now - cached["fetched_at"] < ttl:
+            return cached["result"]
+
+        def stale_or(reason: str) -> Dict[str, Any]:
+            # A recent board beats an empty one while the provider or budget is unavailable.
+            if cached and now - cached["fetched_at"] < 3 * ttl:
+                return {**cached["result"], "stale": True}
+            return {"available": False, "reason": reason, "flights": []}
+
+        api_key = self._flightaware_api_key()
+        if not api_key:
+            return {"available": False, "reason": "unconfigured", "flights": []}
+        if not self._flightaware_budget_allows(1):
+            return stale_or("budget")
+
+        start = datetime.now(timezone.utc) - timedelta(hours=1 if endpoint == "scheduled_arrivals" else 2)
+        self._flightaware_spend(1)
+        try:
+            response = self.session.get(
+                f"https://aeroapi.flightaware.com/aeroapi/airports/{quote(airport_icao, safe='')}/flights/{endpoint}",
+                params={"type": "Airline", "max_pages": 1, "start": start.strftime("%Y-%m-%dT%H:%M:%SZ")},
+                headers={
+                    "Accept": "application/json",
+                    "x-apikey": api_key,
+                    "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; airport board)",
+                },
+                timeout=8,
+            )
+            if response.status_code >= 400:
+                return stale_or("error")
+            payload = response.json()
+        except (requests.RequestException, ValueError):
+            return stale_or("error")
+
+        rows = payload.get(endpoint) if isinstance(payload, dict) else None
+        flights = []
+        for item in rows or []:
+            if not isinstance(item, dict):
+                continue
+            flight = self._normalize_flightaware_flight(item, str(item.get("ident") or ""))
+            flights.append(flight)
+            # A visitor who then selects this aircraft must not cost a second
+            # lookup: seed the per-flight cache under its ATC callsign.
+            for ident in {self._flightaware_ident(item.get("atc_ident")), self._flightaware_ident(item.get("ident_icao"))} - {""}:
+                self._flightaware_cache[ident] = {"checked_at": now, "expires_at": now + ttl, "result": flight}
+        result = {"available": True, "flights": flights, "fetched_at": int(now)}
+        if len(self._flightaware_schedule_cache) >= 128:
+            oldest = min(self._flightaware_schedule_cache, key=lambda item: self._flightaware_schedule_cache[item]["fetched_at"])
+            self._flightaware_schedule_cache.pop(oldest, None)
+        self._flightaware_schedule_cache[key] = {"fetched_at": now, "result": result}
+        return result
 
     def get_flightaware_details(
         self,
@@ -1003,9 +1130,7 @@ class OpenSkyClient:
         failed lookups are cached for the retry window. This keeps FlightAware
         outside the live map polling path and protects a free-plan allowance.
         """
-        if os.getenv("SKYTRACE_FLIGHTAWARE_ENABLED", "1").strip().lower() in {"0", "false", "no", "off"}:
-            return None
-        api_key = (os.getenv("FLIGHTAWARE_AEROAPI_KEY") or "").strip()
+        api_key = self._flightaware_api_key()
         if not api_key:
             return None
 
@@ -1051,6 +1176,9 @@ class OpenSkyClient:
         selected: Optional[Dict[str, Any]] = None
         queried_ident = primary_ident
         for ident in candidates:
+            if not self._flightaware_budget_allows(1):
+                break
+            self._flightaware_spend(1)
             url = f"https://aeroapi.flightaware.com/aeroapi/flights/{quote(ident, safe='')}"
             try:
                 response = self.session.get(

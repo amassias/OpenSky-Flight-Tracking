@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Moon, PlaneLanding, PlaneTakeoff, Radio, Sun, TriangleAlert } from "./icons";
 import { RunwayIcon, WindArrow } from "./customIcons";
 import { api, readableApiError } from "../api";
-import { PHASE_LABEL, boardRowToFlight, localTime, minutesUntil, relativeAge, runwayLength, sunTimes, surfaceName, utcOffsetLabel, visibilityText } from "../airportLive";
+import { PHASE_LABEL, boardRowToFlight, localTime, mergeSchedule, minutesUntil, relativeAge, runwayLength, scheduleEntryToFlight, sunTimes, surfaceName, utcOffsetLabel, visibilityText, type ScheduleEntry } from "../airportLive";
 import { useNow } from "../hooks/useNow";
-import type { Airport, AirportConditionsResponse, BoardFlight, Flight, FlightMode } from "../types";
+import type { Airport, AirportConditionsResponse, BoardFlight, Flight, FlightMode, LiveAircraft } from "../types";
 import { formatAltitude, formatSpeed } from "../utils";
 import { distanceText, useUnits } from "../units";
 
@@ -220,16 +220,88 @@ const BoardRow = memo(function BoardRow({ row, mode, airport, now, selected, onS
   );
 });
 
-interface LiveBoardProps {
-  airport: Airport;
+interface ScheduleRowProps {
+  entry: ScheduleEntry;
   mode: FlightMode;
-  selectedIcao24: string | null;
+  airport: Airport;
+  now: number;
+  selected: boolean;
   onSelect: (flight: Flight) => void;
   onPreview?: (flight: Flight | null) => void;
 }
 
-/** Departures and arrivals observed right now by ADS-B around the airport. */
-export function LiveBoard({ airport, mode, selectedIcao24, onSelect, onPreview }: LiveBoardProps) {
+/** One FlightAware flight: gate times, gate and status, live progress when the aircraft is in view. */
+const ScheduleRow = memo(function ScheduleRow({ entry, mode, airport, now, selected, onSelect, onPreview }: ScheduleRowProps) {
+  useUnits();
+  const { flight, live } = entry;
+  const other = mode === "departure" ? flight.destination : flight.origin;
+  const selectable = useMemo(() => scheduleEntryToFlight(entry), [entry]);
+  const changed = entry.expectedMs != null && entry.scheduledMs != null && Math.abs(entry.delayMinutes) >= 5;
+  const gate = mode === "departure" ? flight.gate_orig : flight.gate_dest;
+  const terminal = mode === "departure" ? flight.terminal_orig : flight.terminal_dest;
+  const eta = mode === "arrival" && live && live.on_ground === false ? entry.liveEtaMs : null;
+  const content = (
+    <>
+      <span className="board-time">
+        <strong className={`mono ${changed ? "is-changed" : ""}`}>{entry.scheduledMs != null ? localTime(entry.scheduledMs, airport.timezone) : "—"}</strong>
+        {changed && entry.expectedMs != null && <small className={`mono tone-${entry.delayMinutes > 0 ? "warn" : "ok"}`}>{localTime(entry.expectedMs, airport.timezone)}</small>}
+        {!changed && eta != null && <small className="mono">in {minutesUntil(eta / 1000, now)} min</small>}
+      </span>
+      <span className="board-main">
+        <strong>
+          <span className="mono">{other?.code_iata || other?.code_icao || other?.code || "—"}</span>
+          <span className="board-place">{other?.city || other?.name || "Unknown"}</span>
+        </strong>
+        <span className="board-ident">
+          <span className="mono">{flight.ident_iata || flight.ident}</span>
+          {flight.airline_name ? ` · ${flight.airline_name}` : ""}
+          {flight.aircraft_type ? ` · ${flight.aircraft_type}` : ""}
+        </span>
+        {entry.progress != null && mode === "arrival" && live && live.on_ground === false && (
+          <span className="board-progress" aria-label={`${Math.round(entry.progress * 100)}% flown`}><span style={{ transform: `scaleX(${entry.progress})` }} /></span>
+        )}
+      </span>
+      <span className="board-aside">
+        <span className={`board-chip tone-${entry.tone}`}>{live && <span className="live-dot" aria-hidden="true" />}{entry.status}</span>
+        <small className="mono">{gate ? `Gate ${gate}` : terminal ? `Terminal ${terminal}` : ""}{gate && terminal ? ` · T${terminal.replace(/^T/i, "")}` : ""}</small>
+      </span>
+    </>
+  );
+  if (!selectable) return <div className={`board-row is-static tone-${entry.tone}`} title="Not in live view yet">{content}</div>;
+  return (
+    <button
+      type="button"
+      className={`board-row tone-${entry.tone} ${selected ? "selected" : ""}`}
+      aria-pressed={selected}
+      onClick={() => onSelect(selectable)}
+      onMouseEnter={() => onPreview?.(selectable)}
+      onMouseLeave={() => onPreview?.(null)}
+      onFocus={() => onPreview?.(selectable)}
+      onBlur={() => onPreview?.(null)}
+    >
+      {content}
+    </button>
+  );
+});
+
+interface LiveBoardProps {
+  airport: Airport;
+  mode: FlightMode;
+  selectedIcao24: string | null;
+  /** Aircraft on the map, matched to scheduled flights by callsign. */
+  liveAircraft?: readonly LiveAircraft[];
+  onSelect: (flight: Flight) => void;
+  onPreview?: (flight: Flight | null) => void;
+}
+
+const NO_AIRCRAFT: readonly LiveAircraft[] = [];
+
+/**
+ * The airport board: FlightAware's scheduled flights (times, gates, delays)
+ * joined to the aircraft seen live, then any live traffic the schedule page
+ * does not list, observed by ADS-B around the airport.
+ */
+export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIRCRAFT, onSelect, onPreview }: LiveBoardProps) {
   const units = useUnits();
   const now = useNow(15_000);
   const board = useQuery({
@@ -240,7 +312,24 @@ export function LiveBoard({ airport, mode, selectedIcao24, onSelect, onPreview }
     refetchInterval: (query) => (query.state.data?.routes_pending ? 8_000 : 30_000),
     retry: 1,
   });
-  const rows = mode === "departure" ? board.data?.departures ?? [] : board.data?.arrivals ?? [];
+  // One AeroAPI page per airport and direction, shared through the CDN for ten minutes.
+  const schedule = useQuery({
+    queryKey: ["airport-schedule", airport.icao, mode],
+    queryFn: ({ signal }) => api.airportSchedule(airport.icao, mode, signal),
+    staleTime: 9 * 60_000,
+    refetchInterval: 10 * 60_000,
+    retry: false,
+  });
+  const observed = mode === "departure" ? board.data?.departures ?? [] : board.data?.arrivals ?? [];
+  const merged = useMemo(() => {
+    const flights = schedule.data?.available ? schedule.data.flights : [];
+    if (!flights.length) return null;
+    // Board rows already carry the board's phase; map aircraft cover the rest of the sky.
+    const candidates = [...(board.data?.departures ?? []), ...(board.data?.arrivals ?? []), ...liveAircraft];
+    return mergeSchedule(flights, candidates, mode, airport, now);
+  }, [airport, board.data, liveAircraft, mode, now, schedule.data]);
+  const rows = merged ? observed.filter((row) => !merged.matchedIcao24.has(row.icao24)) : observed;
+  const scheduledCount = merged?.entries.length ?? 0;
   const age = board.data ? relativeAge(board.data.time, now) : null;
   // A failed refresh keeps the last board on screen and says it is delayed.
   const delayed = Boolean(board.data && (board.isError || board.data.degraded));
@@ -250,7 +339,7 @@ export function LiveBoard({ airport, mode, selectedIcao24, onSelect, onPreview }
       <div className="live-board-meta">
         <span className={`pulse-dot ${board.isError || delayed ? "" : "active"}`} aria-hidden="true" />
         <span>
-          {board.isPending ? "Scanning the airport area…" : !board.data ? "Live board unavailable" : `${rows.length} ${mode === "departure" ? "departing" : "arriving"} · ${delayed ? "refresh delayed, data from" : "updated"} ${age}`}
+          {board.isPending ? "Scanning the airport area…" : !board.data ? "Live board unavailable" : `${scheduledCount ? `${scheduledCount} scheduled · ` : ""}${rows.length} ${scheduledCount ? "more live" : mode === "departure" ? "departing" : "arriving"} · ${delayed ? "refresh delayed, data from" : "updated"} ${age}`}
         </span>
         {board.isFetching && !board.isPending && <span className="list-spinner" aria-hidden="true" />}
       </div>
@@ -264,7 +353,16 @@ export function LiveBoard({ airport, mode, selectedIcao24, onSelect, onPreview }
             <button type="button" className="secondary-button" onClick={() => board.refetch()}>Try again</button>
           </div>
         )}
-        {board.data && rows.length === 0 && (
+        {merged && merged.entries.length > 0 && (
+          <>
+            <h4 className="board-section">Scheduled {mode === "departure" ? "departures" : "arrivals"}</h4>
+            {merged.entries.map((entry) => (
+              <ScheduleRow key={entry.flight.fa_flight_id ?? entry.flight.ident ?? ""} entry={entry} mode={mode} airport={airport} now={now} selected={entry.live?.icao24 === selectedIcao24} onSelect={onSelect} onPreview={onPreview} />
+            ))}
+            {rows.length > 0 && <h4 className="board-section">Also seen live</h4>}
+          </>
+        )}
+        {board.data && rows.length === 0 && !scheduledCount && (
           <div className="message-state compact">
             {mode === "departure" ? <PlaneTakeoff size={22} aria-hidden="true" /> : <PlaneLanding size={22} aria-hidden="true" />}
             <h3>No {mode === "departure" ? "departures" : "arrivals"} observed right now</h3>
@@ -278,6 +376,13 @@ export function LiveBoard({ airport, mode, selectedIcao24, onSelect, onPreview }
         ))}
       </div>
 
+      {schedule.data && (schedule.data.available || schedule.data.reason === "budget") && (
+        <p className="live-board-source">
+          {schedule.data.available
+            ? <>Times, gates and status: FlightAware AeroAPI, the next {schedule.data.flights.length} airline {mode === "departure" ? "departures" : "arrivals"}{schedule.data.fetched_at ? `, updated ${relativeAge(schedule.data.fetched_at, now)}` : ""}{schedule.data.stale ? " (refresh delayed)" : ""}. Progress and arrival estimates use the aircraft's live position.</>
+            : "The scheduled board is paused: this month's FlightAware allowance is used. Live observations continue below."}
+        </p>
+      )}
       {board.data && (
         <p className="live-board-source">
           Observed live by ADS-B within {distanceText(board.data.radius_nm * 1.852, units)} ({board.data.aircraft_scanned} aircraft scanned)

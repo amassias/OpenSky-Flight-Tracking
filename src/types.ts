@@ -54,6 +54,12 @@ export interface FlightAwareDetails {
   filed_ete?: number | null;
   filed_airspeed?: number | null;
   filed_altitude?: number | null;
+  ident_icao?: string | null;
+  ident_iata?: string | null;
+  codeshares_iata?: string[] | null;
+  baggage_claim?: string | null;
+  /** Statute miles, as AeroAPI publishes it. */
+  route_distance?: number | null;
 }
 
 export interface Airport {
@@ -362,4 +368,17 @@ export interface AirportBoardResponse {
   aircraft_scanned: number;
   routes_pending: number;
   generated_at: string;
+}
+
+export interface AirportScheduleResponse {
+  success: boolean;
+  airport: string;
+  direction: FlightMode;
+  provider: string;
+  available: boolean;
+  /** Why the schedule is empty: no key, budget reached or a provider error. */
+  reason?: "unconfigured" | "budget" | "error";
+  stale?: boolean;
+  fetched_at?: number;
+  flights: FlightAwareDetails[];
 }

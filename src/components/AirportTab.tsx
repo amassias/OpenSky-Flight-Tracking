@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { CalendarDays, Heart, PlaneLanding, PlaneTakeoff } from "./icons";
 import { AirportSearch } from "./AirportSearch";
 import { AirportConditions, LiveBoard } from "./AirportLive";
-import type { Airport, Flight, FlightMode } from "../types";
+import type { Airport, Flight, FlightMode, LiveAircraft } from "../types";
 
 export type AirportView = "live" | "history";
 
@@ -22,6 +22,7 @@ interface AirportTabProps {
   onClear: () => void;
   onToggleFavorite: (airport: Airport) => void;
   selectedIcao24: string | null;
+  liveAircraft?: readonly LiveAircraft[];
   onSelectFlight: (flight: Flight) => void;
   onPreviewFlight?: (flight: Flight | null) => void;
   /** Present once an airport has been opened; describes the recorded-history board. */
@@ -45,7 +46,7 @@ function ShortcutList({ airports, onSelect }: { airports: Airport[]; onSelect: (
 
 export function AirportTab({
   selected, popular, recent, favorites, date, mode, view, onDateChange, onModeChange, onViewChange, onSelect, onClear,
-  onToggleFavorite, selectedIcao24, onSelectFlight, onPreviewFlight, heading, children,
+  onToggleFavorite, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
 }: AirportTabProps) {
   const shortcuts = favorites.length ? favorites : recent;
   const favorite = selected ? favorites.some((item) => item.icao === selected.icao) : false;
@@ -92,7 +93,7 @@ export function AirportTab({
           </div>
 
           {view === "live" ? (
-            <LiveBoard airport={selected} mode={mode} selectedIcao24={selectedIcao24} onSelect={onSelectFlight} onPreview={onPreviewFlight} />
+            <LiveBoard airport={selected} mode={mode} selectedIcao24={selectedIcao24} liveAircraft={liveAircraft} onSelect={onSelectFlight} onPreview={onPreviewFlight} />
           ) : (
             <>
               <div className="history-controls">

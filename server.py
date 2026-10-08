@@ -260,6 +260,11 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json_response(200, self.handle_airport_conditions(query_params.get("airport", [""])[0]))
                 return
 
+            if path == "/api/airport-schedule":
+                self.send_json_response(200, self.handle_airport_schedule(
+                    query_params.get("airport", [""])[0], query_params.get("direction", ["departure"])[0]))
+                return
+
             if path == "/api/airport-board":
                 self.send_json_response(200, self.handle_airport_board(query_params.get("airport", [""])[0]))
                 return
@@ -367,6 +372,8 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "airports_loaded": len(ALL_AIRPORTS),
             "credentials_configured": api_client.credentials_available(),
             "flightaware_configured": bool(os.getenv("FLIGHTAWARE_AEROAPI_KEY")),
+            # Per-instance AeroAPI pages spent against the configured ceilings.
+            "flightaware_budget": api_client.flightaware_budget_state(),
             # The map's live tiles come from public ADS-B feeds (fallback=1),
             # which need no OpenSky account; credentials only add history.
             "live_available": True,
@@ -880,6 +887,26 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "delays": delays,
             "unavailable": unavailable,
             "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def handle_airport_schedule(self, airport_icao, direction):
+        """FlightAware's next airline departures or arrivals, with airline names filled in."""
+        airport = _validate_airport_icao(airport_icao)
+        direction = (direction or "departure").strip().lower()
+        if direction not in ("departure", "arrival"):
+            raise ValueError("direction must be either 'departure' or 'arrival'.")
+        schedule = api_client.get_flightaware_airport_schedule(airport, direction)
+        flights = []
+        for flight in schedule.get("flights", []):
+            code = flight.get("airline_code") or (flight.get("ident_icao") or "")[:3]
+            flights.append({**flight, "airline_name": flight.get("airline_name") or (get_airline_name(code) if code else None)})
+        return {
+            "success": True,
+            "airport": airport,
+            "direction": direction,
+            "provider": "FlightAware AeroAPI",
+            **schedule,
+            "flights": flights,
         }
 
     def handle_airport_board(self, airport_icao):

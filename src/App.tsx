@@ -623,6 +623,7 @@ export function App() {
                     onModeChange={changeMode}
                     onViewChange={setAirportView}
                     selectedIcao24={selectedFlight?.icao24 ?? null}
+                    liveAircraft={liveStates}
                     onSelectFlight={selectFlight}
                     onPreviewFlight={setPreviewFlight}
                     onSelect={openAirport}

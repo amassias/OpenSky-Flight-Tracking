@@ -697,3 +697,21 @@ input { caret-color: var(--accent); }
 .board-chip.phase-final { color: var(--ok); }
 .board-chip.phase-approach { color: var(--accent); }
 .live-board-source { margin: 8px 8px 0; color: var(--quiet); font-size: 11px; line-height: 1.45; }
+
+/* Scheduled board (FlightAware) joined to live aircraft */
+.board-section { margin: 8px 8px 4px; color: var(--quiet); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.board-section:first-child { margin-top: 0; }
+.board-row.is-static { cursor: default; }
+.board-row.is-static:hover { background: transparent; }
+.board-row.tone-alert .board-place, .board-row.tone-alert .board-time strong { color: var(--muted); text-decoration: line-through; }
+.board-time strong.is-changed { color: var(--quiet); font-size: 13px; text-decoration: line-through; }
+.board-time .tone-warn { color: var(--warn); font-size: 13px; font-weight: 600; }
+.board-time .tone-ok { color: var(--ok); font-size: 13px; font-weight: 600; }
+.board-chip { gap: 5px; }
+.board-chip.tone-live { color: var(--accent); }
+.board-chip.tone-ok { color: var(--ok); }
+.board-chip.tone-warn { color: var(--warn); }
+.board-chip.tone-alert { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.board-progress { display: block; height: 3px; margin-top: 3px; overflow: hidden; border-radius: 2px; background: var(--fill-strong); }
+.board-progress span { display: block; height: 100%; transform-origin: left; border-radius: inherit; background: var(--accent); transition: transform .6s var(--ease-out); }
