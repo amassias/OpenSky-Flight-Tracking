@@ -20,8 +20,10 @@ from urllib.parse import parse_qs, urlparse
 
 from local_env import load_local_env
 
+import aircraft_history
 import airport_live
 from api_client import OpenSkyAPIError, OpenSkyClient
+from registrations import looks_like_icao24, n_number_to_icao24
 from data_loader import get_airline_name, load_airlines, load_airports, search_airports
 
 load_local_env()
@@ -258,6 +260,18 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
             if path == "/api/airport-conditions":
                 self.send_json_response(200, self.handle_airport_conditions(query_params.get("airport", [""])[0]))
+                return
+
+            if path == "/api/aircraft-history":
+                self.send_json_response(200, self.handle_aircraft_history(query_params.get("icao24", [""])[0]))
+                return
+
+            if path == "/api/aircraft-flights":
+                self.send_json_response(200, self.handle_aircraft_flights(query_params.get("registration", [""])[0]))
+                return
+
+            if path == "/api/aircraft-lookup":
+                self.send_json_response(200, self.handle_aircraft_lookup(query_params.get("q", [""])[0]))
                 return
 
             if path == "/api/airport-schedule":
@@ -888,6 +902,53 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "unavailable": unavailable,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
+
+    def handle_aircraft_history(self, icao24):
+        """One airframe: registry facts, owners and operators over time, and its registry today.
+
+        The offline sources (OpenSky snapshots, FAA registry) are free and instant;
+        the current registered owner comes from ADSBDB's keyless registry lookup.
+        """
+        code = _validate_icao24(icao24)
+        history = aircraft_history.airframe_history(code)
+        registry = api_client.get_aircraft_registry(code)
+        registration = (registry or {}).get("registration") or next((entry["registration"] for entry in history["history"] if entry["registration"] and entry["icao24"] == code), None)
+        sources = list(history["sources"])
+        if registry:
+            sources.append("ADSBDB registry")
+        return {
+            "success": True,
+            **history,
+            "registration": registration,
+            "registry": registry,
+            "found": bool(history["found"] or registry),
+            "sources": sources,
+        }
+
+    def handle_aircraft_flights(self, registration):
+        """Recent flights flown by one tail (FlightAware, on demand, within the shared page budget)."""
+        ident = "".join(character for character in str(registration or "").upper() if character.isalnum())
+        if not ident or len(ident) > 10:
+            raise ValueError("registration must be a valid aircraft registration.")
+        return {"success": True, "registration": ident, "provider": "FlightAware AeroAPI", **api_client.get_flightaware_aircraft_flights(ident)}
+
+    def handle_aircraft_lookup(self, query):
+        """Resolve a registration or hex code typed by a visitor to an ICAO24 code."""
+        text = "".join(str(query or "").upper().split())
+        if not text or len(text) > 10:
+            raise ValueError("Enter a registration or a 6-character ICAO24 code.")
+        if looks_like_icao24(text):
+            code = text.lower()
+            registry = api_client.get_aircraft_registry(code)
+            return {"success": True, "icao24": code, "registration": (registry or {}).get("registration"), "registry": registry}
+        # US registrations convert to their ICAO24 code arithmetically; other
+        # countries are looked up in ADSBDB's registry.
+        code = n_number_to_icao24(text)
+        registry = api_client.get_aircraft_registry(text)
+        code = (registry or {}).get("icao24") or code
+        if not code:
+            raise ValueError(f"No aircraft found for {text}.")
+        return {"success": True, "icao24": code, "registration": (registry or {}).get("registration") or text, "registry": registry}
 
     def handle_airport_schedule(self, airport_icao, direction):
         """FlightAware's next airline departures or arrivals, with airline names filled in."""

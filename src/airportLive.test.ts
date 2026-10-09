@@ -65,7 +65,7 @@ describe("schedule merge", () => {
     // 545 statute miles is 877 km; ~100 km remain, so about 89% flown.
     expect(entry.progress!).toBeGreaterThan(0.86);
     expect(entry.progress!).toBeLessThan(0.92);
-    expect(entry.status).toMatch(/^En route · 8\d%$/);
+    expect(entry.status).toBe("En route");
     expect(Math.round((entry.liveEtaMs! - now) / 60_000)).toBeGreaterThan(5);
     const flight = scheduleEntryToFlight(entry)!;
     expect(flight.departure_airport).toBe("EDDB");

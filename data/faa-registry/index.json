@@ -1,0 +1,7 @@
+{
+ "built_at": "2026-10-09",
+ "source": "https://registry.faa.gov/database/ReleasableAircraft.zip",
+ "license_note": "FAA aircraft registry, public record. Street addresses and individuals' names are not kept.",
+ "airframes": 535349,
+ "shards": 224
+}

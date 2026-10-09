@@ -44,6 +44,15 @@ function ShortcutList({ airports, onSelect }: { airports: Airport[]; onSelect: (
   );
 }
 
+function ViewToggle({ view, onChange }: { view: AirportView; onChange: (view: AirportView) => void }) {
+  return (
+    <div className="segmented view-toggle" role="group" aria-label="Board source">
+      <button type="button" className={view === "live" ? "active" : ""} aria-pressed={view === "live"} onClick={() => onChange("live")}>Live</button>
+      <button type="button" className={view === "history" ? "active" : ""} aria-pressed={view === "history"} onClick={() => onChange("history")}>History</button>
+    </div>
+  );
+}
+
 export function AirportTab({
   selected, popular, recent, favorites, date, mode, view, onDateChange, onModeChange, onViewChange, onSelect, onClear,
   onToggleFavorite, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
@@ -86,26 +95,25 @@ export function AirportTab({
                 </button>
               ))}
             </div>
-            <div className="segmented board-view" role="group" aria-label="Board source">
-              <button type="button" className={view === "live" ? "active" : ""} aria-pressed={view === "live"} onClick={() => onViewChange("live")}>Live</button>
-              <button type="button" className={view === "history" ? "active" : ""} aria-pressed={view === "history"} onClick={() => onViewChange("history")}>History</button>
-            </div>
           </div>
 
           {view === "live" ? (
-            <LiveBoard airport={selected} mode={mode} selectedIcao24={selectedIcao24} liveAircraft={liveAircraft} onSelect={onSelectFlight} onPreview={onPreviewFlight} />
+            <LiveBoard airport={selected} mode={mode} selectedIcao24={selectedIcao24} liveAircraft={liveAircraft} toolbar={<ViewToggle view={view} onChange={onViewChange} />} onSelect={onSelectFlight} onPreview={onPreviewFlight} />
           ) : (
             <>
               <div className="history-controls">
                 <label className="date-control">
                   <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
                 </label>
-                {heading && <span className={`source-pill ${heading.tone}`} role="status"><span className="source-pill-dot" />{heading.source}</span>}
+                <ViewToggle view={view} onChange={onViewChange} />
               </div>
               {heading && (
                 <header className="board-heading">
-                  <h3>{heading.title}</h3>
-                  <p>{heading.subtitle}</p>
+                  <div>
+                    <h3>{heading.title}</h3>
+                    <p>{heading.subtitle}</p>
+                  </div>
+                  <span className={`source-pill ${heading.tone}`} role="status"><span className="source-pill-dot" />{heading.source}</span>
                 </header>
               )}
               {children}

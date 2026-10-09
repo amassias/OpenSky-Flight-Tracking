@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { ChevronDown, Copy, Database, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
 import { compassPoint, emergencyInfo, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
 import { distanceText, useUnits, verticalRateText } from "../units";
+import { AirframeHistory } from "./AirframeHistory";
+import { useAirframeHistory } from "../hooks/useAirframeHistory";
 import { AltitudeChart } from "./AltitudeChart";
 
 interface FlightDetailsProps {
@@ -74,8 +76,28 @@ function Section({ title, aside, open = false, children }: { title: string; asid
   );
 }
 
-export function FlightDetails({ flight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   useUnits();
+  // The registry fills what the live feed did not say, such as the tail and
+  // type of an airframe opened from a registration search.
+  const airframe = useAirframeHistory(liveFlight.icao24).data;
+  const flight = useMemo(() => {
+    if (!airframe) return liveFlight;
+    const facts = airframe.airframe;
+    const registry = airframe.registry;
+    const tail = liveFlight.registration_source === "schedule" ? null : liveFlight.registration;
+    return {
+      ...liveFlight,
+      registration: tail ?? airframe.registration ?? liveFlight.registration,
+      registration_source: tail ? liveFlight.registration_source : airframe.registration ? "adsb" as const : liveFlight.registration_source,
+      aircraft_type: liveFlight.aircraft_type ?? facts.type_code ?? registry?.type_code ?? null,
+      aircraft_description: liveFlight.aircraft_description ?? ([facts.manufacturer, facts.model].filter(Boolean).join(" ") || registry?.type) ?? null,
+      aircraft_owner: liveFlight.aircraft_owner ?? registry?.owner ?? null,
+      aircraft_year: liveFlight.aircraft_year ?? facts.built ?? null,
+      // A bare hex code reads better as the tail once the registry knows it.
+      callsign: liveFlight.callsign && liveFlight.callsign.toUpperCase() !== liveFlight.icao24.toUpperCase() ? liveFlight.callsign : airframe.registration ?? liveFlight.callsign,
+    };
+  }, [airframe, liveFlight]);
   const path = track?.track.path ?? [];
   const operations = flight.flightaware;
   const emergency = emergencyInfo(flight);
@@ -113,6 +135,10 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
   const progress = geometry?.percent ?? flightawareProgress;
   const remaining = geometry?.etaSeconds != null && statusKey === "airborne" ? formatDuration(geometry.etaSeconds) : null;
 
+  // An airframe opened from a registration search has no live position or
+  // route unless it happens to be flying: say so instead of "Resolving…".
+  const offline = !routeLoading && flight.latitude == null && flight.longitude == null && !hasRoute && !flight.on_ground;
+
   const hasProfile = Boolean(flight.registration || flight.aircraft_type || flight.aircraft_description || flight.aircraft_owner || flight.aircraft_year);
   const heading = flight.true_track ?? flight.nav_heading ?? null;
 
@@ -139,7 +165,7 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
       </header>
 
       <div className="details-chips">
-        <span className={`details-status status-${statusKey}`}><span className={`status-dot status-${statusKey}`} />{statusLabel(flight.status, flight.on_ground)}</span>
+        <span className={`details-status status-${statusKey}`}><span className={`status-dot status-${statusKey}`} />{offline ? "No live position" : statusLabel(flight.status, flight.on_ground)}</span>
         {emergency && <span className="details-emergency"><TriangleAlert size={12} aria-hidden="true" /> {/^[0-9]+$/.test(emergency.code) ? `Squawk ${emergency.code}` : "Emergency"} · {emergency.label}</span>}
         {flight.aircraft_type && <span className="details-chip mono">{flight.aircraft_type}</span>}
         {flight.registration && flight.registration_source !== "schedule" && <span className="details-chip mono">{flight.registration}</span>}
@@ -147,6 +173,16 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
 
       <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
 
+      {offline ? (
+        <section className="airframe-offline" aria-label="Live status">
+          <Plane size={18} aria-hidden="true" />
+          <div>
+            <strong>Not in the live feed right now</strong>
+            <p>This airframe is not transmitting within range of a receiver. Its registry history is below; if it flies, its position and route appear here.</p>
+          </div>
+        </section>
+      ) : (
+        <>
       <section className="route-hero" aria-label="Route">
         <div className="route-hero-ends">
           <RouteEndpoint
@@ -205,6 +241,9 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
         </div>
       </div>
 
+        </>
+      )}
+
       <Section title="Aircraft" aside={flight.source || (flight.data_source === "live-nearby" ? "ADS-B live" : "OpenSky")} open>
         <div className="aircraft-profile-grid">
           <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
@@ -214,6 +253,10 @@ export function FlightDetails({ flight, track, trackLoading, trackError, routeLo
           <div><span>Build year</span><strong className="mono">{profileValue(flight.aircraft_year)}</strong></div>
           <div><span>Category</span><strong className="mono">{profileValue(flight.aircraft_category ?? flight.category)}</strong></div>
         </div>
+      </Section>
+
+      <Section title="Airframe history" aside="Owners · registrations" open>
+        <AirframeHistory flight={flight} />
       </Section>
 
       <Section title="Altitude profile" aside={trackLoading ? "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>

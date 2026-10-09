@@ -1,4 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as baseRender, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { aircraftPhoto } from "./api";
 import { FlightDetails } from "./components/FlightDetails";
@@ -24,6 +26,12 @@ function stubFetch(byPath: Record<string, unknown>) {
 }
 
 afterEach(() => vi.unstubAllGlobals());
+
+/** FlightDetails now loads the airframe history, so it needs a query client. */
+function render(ui: ReactElement) {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true, found: false, history: [], airframe: {}, sources: [] }), { status: 200 })));
+  return baseRender(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
+}
 
 describe("aircraftPhoto", () => {
   it("uses the Mode S hex first and caches the answer", async () => {

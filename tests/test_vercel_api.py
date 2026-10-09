@@ -58,3 +58,16 @@ def test_airport_schedule_is_cached_at_the_cdn_only_when_available():
         unavailable = client.get("/api/airport-schedule", params={"airport": "LFPG"})
     assert "s-maxage=600" in available.headers["cache-control"]
     assert "s-maxage=120" in unavailable.headers["cache-control"]
+
+
+def test_aircraft_routes_return_json_and_cache_headers():
+    with patch.object(server.FlightServerHandler, "handle_aircraft_history", return_value={"success": True, "found": True}), \
+         patch.object(server.FlightServerHandler, "handle_aircraft_flights", return_value={"success": True, "available": True}), \
+         patch.object(server.FlightServerHandler, "handle_aircraft_lookup", return_value={"success": True, "icao24": "3986e0"}):
+        history = client.get("/api/aircraft-history", params={"icao24": "3986e0"})
+        flights = client.get("/api/aircraft-flights", params={"registration": "F-HBXA"})
+        lookup = client.get("/api/aircraft-lookup", params={"q": "F-HBXA"})
+    assert history.status_code == flights.status_code == lookup.status_code == 200
+    assert "s-maxage=86400" in history.headers["cache-control"]
+    assert "s-maxage=3600" in flights.headers["cache-control"]
+    assert client.get("/api/aircraft-history", params={"icao24": "zz"}).status_code == 400

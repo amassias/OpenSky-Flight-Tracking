@@ -24,6 +24,9 @@ async function mockApi(page: Page, options: { historyUnavailable?: boolean } = {
     else if (path === "/api/flights") body = { success: true, airport: "LFPG", airport_meta: airport, airport_name: airport.name, mode: "departure", date: "2026-07-10", date_basis: "UTC", count: 1, summary: { total: 1, live_airborne: 1, live_on_ground: 0, unique_airlines: 1 }, flights: [{ icao24: "39abcd", callsign: "AFR123", airline_name: "Air France", departure_airport: "LFPG", departure_airport_name: airport.name, arrival_airport: "EGLL", arrival_airport_name: "London Heathrow", first_seen: 1_752_000_000, last_seen: 1_752_004_000, primary_time: 1_752_000_000, latitude: 49.1, longitude: 2.7, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false, status: "airborne" }] };
     else if (path === "/api/airport-conditions") body = { success: true, airport: { ...airport, elevation_ft: 392 }, weather: { station: "LFPG", observed_at: Math.floor(Date.now() / 1000) - 600, raw: "METAR LFPG 101000Z 25006KT CAVOK 18/09 Q1021", flight_category: "VFR", wind_dir: 250, wind_kt: 6, visibility: { meters: 10000, at_least: true }, cover: "CAVOK", clouds: [], temperature_c: 18, dewpoint_c: 9, qnh_hpa: 1021 }, runways: [], favoured_runways: [], runway_basis: "no-geometry", frequencies: [], delays: null, unavailable: [], generated_at: new Date().toISOString() };
     else if (path === "/api/airport-board") body = { success: true, airport: "LFPG", time: Math.floor(Date.now() / 1000), radius_nm: 150, aircraft_scanned: 1, routes_pending: 0, generated_at: new Date().toISOString(), arrivals: [], departures: [{ icao24: "39abcd", callsign: "AFR123", airline_name: "Air France", latitude: 49.1, longitude: 2.7, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false, phase: "departed", origin: null, destination: { icao: "EGLL", iata: "LHR", city: "London" }, distance_km: 18, route_known: true }] };
+    else if (path === "/api/aircraft-history") body = { success: true, icao24: "39abcd", found: true, registration: "F-HABC", linked_icao24: [], sources: ["OpenSky aircraft database snapshots"], snapshots: { first: "2020-11", last: "2025-08", count: 11 }, airframe: { manufacturer: "Airbus", model: "A350-941", serial: "0123", built: "2020", country: "France" }, registry: { owner: "Air France", owner_country: "France" }, history: [{ source: "opensky", icao24: "39abcd", registration: "F-HABC", from: "2021-06", to: null, precision: "month", owner: "Air France", operator: "Air France", private: false, current: true }, { source: "opensky", icao24: "39abcd", registration: "F-HABC", from: "2020-11", to: "2020-11", precision: "month", owner: "Airbus Sas", operator: null, private: false, current: false }] };
+    else if (path === "/api/aircraft-lookup") body = { success: true, icao24: "39abcd", registration: "F-HABC", registry: { owner: "Air France", type: "A350-941" } };
+    else if (path === "/api/aircraft-flights") body = { success: true, registration: "FHABC", provider: "FlightAware AeroAPI", available: true, flights: [{ fa_flight_id: "x1", ident: "AFR23", ident_iata: "AF23", origin: { code_iata: "CDG" }, destination: { code_iata: "ICN" }, actual_out: "2026-10-08T10:00:00Z", status: "Arrived / Gate Arrival" }] };
     else if (path === "/api/flight-info") body = { success: true, icao24: "39abcd", callsign: "AFR123", airline_code: "AFR", airline_name: "Air France", departure_airport: "LFPG", departure_airport_name: airport.name, arrival_airport: "RKSI", arrival_airport_name: "Incheon International Airport", route_source: "callsign", route_provider: "ADSBDB", registration: "F-HABC", aircraft_type: "A359", aircraft_description: "AIRBUS A-350-941", aircraft_owner: "Air France", aircraft_year: "2020", aircraft_category: "A5", messages: 12345, rssi: -12.5, seen_seconds: 0.7, seen_position_seconds: 1.2, nav_modes: ["autopilot", "althold"], flightaware: { provider: "FlightAware", status: "En Route", origin: { code_icao: "LFPG", name: airport.name }, destination: { code_icao: "RKSI", name: "Incheon International Airport" }, progress_percent: 64, scheduled_out: "2026-07-10T08:00:00Z", estimated_in: "2026-07-10T17:00:00Z", departure_delay: 0, route: "DCT" } };
     else if (path === "/api/track") body = { success: true, path_count: 3, track: { path: [[1_752_000_000, 49.0, 2.55, 1000, 60, false], [1_752_001_000, 49.1, 2.7, 5000, 70, false], [1_752_002_000, 49.3, 3.0, 8400, 72, false]] } };
     else return route.fulfill({ status: 404, json: { success: false, error: "Not found" } });
@@ -275,4 +278,31 @@ test("replaces the flight drawer cleanly when another aircraft is selected", asy
   await expect(drawer.getByRole("heading", { name: "EZY456" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Follow selected aircraft" })).toHaveAttribute("aria-pressed", "false");
   await expect(page).toHaveURL(/icao24=39abce/);
+});
+
+
+test("shows who owned and operated the selected airframe, and recent flights on request", async ({ page }) => {
+  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  const drawer = page.getByRole("complementary", { name: "Selected flight details" });
+  await expect(drawer.getByText("Airframe history")).toBeVisible();
+  const section = drawer.locator(".airframe");
+  await expect(section.locator(".airframe-registration")).toHaveText("F-HABC");
+  await expect(section.getByText("Airbus A350-941")).toBeVisible();
+  await expect(section.getByText("Owner today")).toBeVisible();
+  await expect(section.getByText("Seen Jun 2021 – Aug 2025")).toBeVisible();
+  await expect(section.getByText("Airbus Sas")).toBeVisible();
+  await section.getByRole("button", { name: "Show recent flights of F-HABC" }).click();
+  await expect(section.getByText("CDG → ICN")).toBeVisible();
+});
+
+test("a registration typed in the search opens that airframe's history", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Keyboard search is a desktop affordance.");
+  const search = page.getByRole("combobox", { name: "Search flights and airports" });
+  await search.fill("F-HABC");
+  const option = page.getByRole("option", { name: /F-HABC/ }).filter({ hasText: "History" });
+  await expect(option).toBeVisible();
+  await option.click();
+  const drawer = page.getByRole("complementary", { name: "Selected flight details" });
+  await expect(drawer.locator(".airframe-registration")).toHaveText("F-HABC");
+  await expect(page).toHaveURL(/icao24=39abcd/);
 });

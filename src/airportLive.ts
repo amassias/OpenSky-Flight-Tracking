@@ -204,15 +204,15 @@ export function mergeSchedule(
 function scheduleStatus(flight: FlightAwareDetails, live: LiveAircraft | null, mode: FlightMode, delay: number, progress: number | null): { status: string; tone: ScheduleTone } {
   if (flight.cancelled) return { status: "Cancelled", tone: "alert" };
   if (flight.diverted) return { status: "Diverted", tone: "alert" };
+  const airborne = Boolean(live && live.on_ground === false);
   if (mode === "departure") {
+    if (flight.actual_off || airborne) return { status: "Airborne", tone: "live" };
     if (live?.on_ground && (live.velocity ?? 0) >= 2.5) return { status: "Taxiing", tone: "live" };
     if (flight.actual_out) return { status: "Left gate", tone: "live" };
   } else {
     if (flight.actual_in) return { status: "At gate", tone: "ok" };
     if (flight.actual_on || live?.on_ground) return { status: "Landed", tone: "ok" };
-    if (flight.actual_off || (live && live.on_ground === false)) {
-      return { status: progress != null ? `En route · ${Math.round(progress * 100)}%` : "En route", tone: "live" };
-    }
+    if (flight.actual_off || airborne) return { status: progress != null && progress >= 0.95 ? "Approaching" : "En route", tone: progress != null && progress >= 0.95 ? "ok" : "live" };
   }
   if (delay >= 15) return { status: `Delayed ${delay} min`, tone: "warn" };
   if (delay <= -5) return { status: "Early", tone: "ok" };

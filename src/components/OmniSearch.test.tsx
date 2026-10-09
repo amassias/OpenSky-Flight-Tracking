@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OmniSearch } from "./OmniSearch";
+import { looksLikeRegistration } from "../airframe";
 import type { Airport, LiveAircraft } from "../types";
 
 const airport: Airport = { icao: "LFPG", iata: "CDG", name: "Paris Charles de Gaulle", display_name: "Paris Charles de Gaulle (CDG)", country: "FR", region: "Île-de-France", latitude: 49, longitude: 2.5 };
@@ -46,7 +47,7 @@ describe("OmniSearch", () => {
     const { input } = renderSearch();
     await userEvent.click(input);
     expect(await screen.findByRole("option", { name: /Paris Charles de Gaulle/ })).toBeInTheDocument();
-    expect(screen.getByText(/currently on the map/i)).toBeInTheDocument();
+    expect(screen.getByText(/Callsigns search the aircraft on the map/i)).toBeInTheDocument();
   });
 
   it("explains an empty result instead of staying silent", async () => {
@@ -54,5 +55,30 @@ describe("OmniSearch", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("[]", { headers: { "Content-Type": "application/json" } })));
     await userEvent.type(input, "zzzz");
     expect(await screen.findByText(/No aircraft in view or airport matches/)).toBeInTheDocument();
+  });
+
+  it("recognises what can name one airframe and leaves callsigns alone", () => {
+    for (const value of ["F-HBXA", "g-euuu", "N283VA", "N1", "3986e0", "OE-LQG"]) expect(looksLikeRegistration(value)).toBe(true);
+    for (const value of ["AFR123", "paris", "BAW9", "A320", "F-", ""]) expect(looksLikeRegistration(value)).toBe(false);
+  });
+
+  it("looks a registration up even when the aircraft is not on the map", async () => {
+    const onSelectAirframe = vi.fn();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/aircraft-lookup") {
+        return new Response(JSON.stringify({ success: true, icao24: "3986e0", registration: "F-HBXA", registry: { owner: "Air France HOP", type: "EMB-170 STD" } }), { headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("[]", { headers: { "Content-Type": "application/json" } });
+    });
+    const { input } = renderSearch({ aircraft: [], onSelectAirframe });
+    vi.stubGlobal("fetch", fetchMock);
+    await userEvent.type(input, "F-HBXA");
+    const option = await screen.findByRole("option", { name: /F-HBXA/ });
+    expect(option).toHaveTextContent("Air France HOP");
+    expect(screen.getByText("Airframe by registration")).toBeInTheDocument();
+    await userEvent.click(option);
+    expect(onSelectAirframe).toHaveBeenCalledWith("3986e0", "F-HBXA", { owner: "Air France HOP", type: "EMB-170 STD" });
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("callsign"))).toBe(false);
   });
 });

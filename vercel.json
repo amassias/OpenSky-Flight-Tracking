@@ -14,6 +14,9 @@
     { "source": "/api/airport-conditions", "destination": "/api/index" },
     { "source": "/api/airport-board", "destination": "/api/index" },
     { "source": "/api/airport-schedule", "destination": "/api/index" },
+    { "source": "/api/aircraft-history", "destination": "/api/index" },
+    { "source": "/api/aircraft-flights", "destination": "/api/index" },
+    { "source": "/api/aircraft-lookup", "destination": "/api/index" },
     { "source": "/api/live-flights", "destination": "/api/index" },
     { "source": "/api/flight-info", "destination": "/api/index" },
     { "source": "/api/track", "destination": "/api/index" }

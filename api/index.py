@@ -73,6 +73,32 @@ def airport_conditions(airport: str = ""):
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300"})
 
 
+@app.get("/api/aircraft-history")
+def aircraft_history_route(icao24: str = ""):
+    result = execute(lambda: service.handle_aircraft_history(icao24))
+    if isinstance(result, JSONResponse):
+        return result
+    # Offline data and a day-cached registry lookup: safe to share for a day.
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"})
+
+
+@app.get("/api/aircraft-flights")
+def aircraft_flights_route(registration: str = ""):
+    result = execute(lambda: service.handle_aircraft_flights(registration))
+    if isinstance(result, JSONResponse):
+        return result
+    cache = "public, max-age=600, s-maxage=3600, stale-while-revalidate=7200" if result.get("available") else "public, max-age=60, s-maxage=120"
+    return JSONResponse(content=result, headers={"Cache-Control": cache})
+
+
+@app.get("/api/aircraft-lookup")
+def aircraft_lookup_route(q: str = ""):
+    result = execute(lambda: service.handle_aircraft_lookup(q))
+    if isinstance(result, JSONResponse):
+        return result
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=3600, s-maxage=86400"})
+
+
 @app.get("/api/airport-schedule")
 def airport_schedule(airport: str = "", direction: str = "departure"):
     result = execute(lambda: service.handle_airport_schedule(airport, direction))

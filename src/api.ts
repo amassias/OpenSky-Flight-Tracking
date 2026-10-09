@@ -1,5 +1,8 @@
 import type {
+  AircraftFlightsResponse,
+  AircraftLookupResponse,
   Airport,
+  AirframeHistoryResponse,
   AirportBoardResponse,
   AirportConditionsResponse,
   AirportScheduleResponse,
@@ -88,6 +91,9 @@ export const api = {
   flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
   airportConditions: (airport: string, signal?: AbortSignal) => request<AirportConditionsResponse>("/api/airport-conditions", { airport }, signal),
+  airframeHistory: (icao24: string, signal?: AbortSignal) => request<AirframeHistoryResponse>("/api/aircraft-history", { icao24 }, signal),
+  aircraftFlights: (registration: string, signal?: AbortSignal) => request<AircraftFlightsResponse>("/api/aircraft-flights", { registration }, signal),
+  aircraftLookup: (query: string, signal?: AbortSignal) => request<AircraftLookupResponse>("/api/aircraft-lookup", { q: query }, signal),
   airportSchedule: (airport: string, direction: FlightMode, signal?: AbortSignal) =>
     request<AirportScheduleResponse>("/api/airport-schedule", { airport, direction }, signal),
   airportBoard: (airport: string, signal?: AbortSignal) => request<AirportBoardResponse>("/api/airport-board", { airport }, signal),

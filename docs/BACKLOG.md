@@ -76,3 +76,10 @@ Status: `[x]` shipped · `[ ]` open.
 
 - [x] **B46: FlightAware scheduled departures and arrivals** on the airport board (times, gates, terminals, delays, cancellations), joined by callsign to live aircraft for live progress and arrival estimates, with a per-instance page budget and ten-minute CDN caching. Live traffic the schedule page does not list stays below it.
 - [x] **B47: Gates and terminals from FlightAware now appear.** AeroAPI v4 names them `gate_origin`/`gate_destination` and `terminal_origin`/`terminal_destination`; the client read `gate_orig`/`gate_dest`, so they were always empty.
+
+## Airframe history and board polish (2026-10-09)
+
+- [x] **B48: Board rows redone.** Scheduled and observed flights share one row layout (time, destination and flight, status and gate). The status chip no longer stacks its live dot above the text, delays show the new time large with the old one struck through, the Departures/Arrivals control is no longer truncated (the Live/History switch moved beside the status line), and the status line no longer clips.
+- [x] **B49: Airframe history.** Owners, operators and registrations over time from OpenSky snapshots (all countries) and the FAA registry (US), the registered owner today from ADSBDB, serial number and age, and recent flights on demand.
+- [x] **B50: Search by registration.** `F-HBXA`, `N283VA` or a hex code opens an airframe anywhere; aircraft that are not flying show a clear "not in the live feed" state instead of an endless "Resolving…".
+- [ ] B51: Refresh `data/aircraft-history` and `data/faa-registry` on a schedule (the OpenSky snapshots end in August 2025).

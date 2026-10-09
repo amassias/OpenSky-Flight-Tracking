@@ -484,6 +484,11 @@ export function App() {
             recent={recent}
             popular={popular.data ?? []}
             onSelectAircraft={(aircraft) => selectFlight(liveAircraftToFlight(aircraft))}
+            onSelectAirframe={(icao24, registration, registry) => selectFlight({
+              icao24, callsign: registration || icao24.toUpperCase(), registration, primary_time: 0,
+              data_source: "live-nearby", status: "unknown", airline_name: "",
+              aircraft_owner: registry?.owner ?? null, aircraft_type: registry?.type_code ?? null, aircraft_description: registry?.type ?? null,
+            })}
             onSelectAirport={openAirport}
           />
         )}

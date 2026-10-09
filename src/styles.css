@@ -655,63 +655,109 @@ input { caret-color: var(--accent); }
 .delay-alert small { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
 .delay-clear { margin: 0; padding: 0 2px; color: var(--quiet); font-size: 11px; }
 
-.board-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px 12px 8px; }
+.board-controls { padding: 12px 12px 8px; }
 .board-controls .mode-switch { border-radius: var(--r-md); }
 .board-controls .mode-switch button, .board-controls .mode-switch-thumb { border-radius: var(--r-sm); }
-.board-controls .mode-switch button { min-width: 0; min-height: 28px; padding: 0 6px; font-size: 12px; }
-.board-controls .mode-switch button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.board-view button { min-width: 50px; padding: 0 10px; }
-@container traffic (max-width: 340px) {
-  .board-controls .mode-switch svg { display: none; }
-}
+.board-controls .mode-switch button { min-height: 30px; font-size: 13px; }
+.view-toggle { flex: 0 0 auto; }
+.view-toggle button { height: 24px; padding: 0 10px; font-size: 12px; }
 .history-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px 6px; }
 .history-controls .date-control { flex: 1; min-width: 0; max-width: 180px; }
 .history-controls .control-shell { min-height: 32px; }
 .history-controls .control-shell input { font-size: 13px; }
-.board-heading { padding: 4px 14px 0; }
+.board-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 4px 14px 0; }
+.board-heading > div { min-width: 0; }
 .board-heading h3 { margin: 0; overflow: hidden; font: 600 15px/1.2 var(--display); letter-spacing: -0.015em; text-overflow: ellipsis; white-space: nowrap; }
 .board-heading p { margin: 2px 0 0; overflow: hidden; color: var(--quiet); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
+/* The airport board: one row layout for scheduled and observed flights ---- */
 .live-board { display: grid; padding: 0 6px 12px; }
-.live-board-meta { display: flex; align-items: center; gap: 8px; min-height: 20px; padding: 0 8px 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.list-spinner { width: 10px; height: 10px; margin-left: auto; border: 1.5px solid var(--fill-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
-.live-board-rows { display: grid; gap: 2px; animation: list-in .24s var(--ease-out); }
-.board-row { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 8px 10px; text-align: left; color: var(--text); border: 0; border-radius: var(--r-md); background: transparent; cursor: pointer; transition: background .2s var(--ease-out); content-visibility: auto; contain-intrinsic-size: auto 54px; }
+.live-board-meta { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 6px 6px 8px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.live-board-meta-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pulse-dot.warn { background: var(--warn); }
+.meta-flag { flex: 0 0 auto; padding: 1px 6px; color: var(--warn); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 14%, transparent); font-size: 11px; font-weight: 600; cursor: help; }
+.list-spinner { flex: 0 0 auto; width: 10px; height: 10px; border: 1.5px solid var(--fill-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
+.live-board-rows { display: grid; gap: 1px; animation: list-in .24s var(--ease-out); }
+.board-section { margin: 10px 8px 4px; color: var(--quiet); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.board-section:first-child { margin-top: 2px; }
+.board-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 8px 10px; text-align: left; color: var(--text); border: 0; border-radius: var(--r-md); background: transparent; cursor: pointer; transition: background .2s var(--ease-out); content-visibility: auto; contain-intrinsic-size: auto 60px; }
 .board-row:hover { background: var(--fill); }
 .board-row.selected { background: var(--accent-soft); }
-.board-row.skeleton { min-height: 50px; cursor: default; }
-.board-time { display: grid; gap: 1px; }
-.board-time strong { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.board-time small { color: var(--quiet); font-size: 11px; }
-.board-time .board-phase { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0; }
-.phase-taxiing .board-phase, .phase-departed .board-phase { color: var(--ok); }
-.phase-landed .board-phase { color: var(--accent); }
-.board-main { display: grid; gap: 2px; min-width: 0; }
-.board-main strong { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 14px; font-weight: 600; }
-.board-place { overflow: hidden; color: var(--text); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.board-ident { overflow: hidden; color: var(--quiet); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.board-ident .mono { color: var(--muted); font-weight: 600; }
-.board-aside { display: grid; justify-items: end; gap: 3px; color: var(--muted); font-size: 12px; }
-.board-aside small { color: var(--quiet); font-size: 11px; }
-.board-chip { display: inline-grid; place-items: center; height: 18px; padding: 0 6px; color: var(--muted); border-radius: var(--r-sm); background: var(--fill-strong); font-size: 11px; font-weight: 600; }
-.board-chip.phase-final { color: var(--ok); }
-.board-chip.phase-approach { color: var(--accent); }
-.live-board-source { margin: 8px 8px 0; color: var(--quiet); font-size: 11px; line-height: 1.45; }
-
-/* Scheduled board (FlightAware) joined to live aircraft */
-.board-section { margin: 8px 8px 4px; color: var(--quiet); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-.board-section:first-child { margin-top: 0; }
+.board-row.skeleton { min-height: 56px; cursor: default; }
 .board-row.is-static { cursor: default; }
 .board-row.is-static:hover { background: transparent; }
-.board-row.tone-alert .board-place, .board-row.tone-alert .board-time strong { color: var(--muted); text-decoration: line-through; }
-.board-time strong.is-changed { color: var(--quiet); font-size: 13px; text-decoration: line-through; }
-.board-time .tone-warn { color: var(--warn); font-size: 13px; font-weight: 600; }
-.board-time .tone-ok { color: var(--ok); font-size: 13px; font-weight: 600; }
-.board-chip { gap: 5px; }
-.board-chip.tone-live { color: var(--accent); }
-.board-chip.tone-ok { color: var(--ok); }
-.board-chip.tone-warn { color: var(--warn); }
+.board-time { display: grid; justify-items: start; gap: 1px; }
+.board-time strong { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; white-space: nowrap; }
+.board-time small { color: var(--quiet); font-size: 11px; line-height: 1.2; white-space: nowrap; }
+.board-time .board-time-old { text-decoration: line-through; }
+.board-time .tone-warn { color: var(--warn); }
+.board-time .tone-ok { color: var(--ok); }
+.board-main { display: grid; gap: 2px; min-width: 0; }
+.board-dest { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.board-code { flex: 0 0 auto; font-size: 14px; font-weight: 700; letter-spacing: .01em; }
+.board-place { overflow: hidden; color: var(--text); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.board-ident { display: flex; align-items: baseline; gap: 5px; min-width: 0; overflow: hidden; color: var(--quiet); font-size: 12px; white-space: nowrap; }
+.board-ident .mono { flex: 0 0 auto; color: var(--muted); font-weight: 600; }
+.board-airline { overflow: hidden; text-overflow: ellipsis; }
+.board-airline::before { content: "·"; margin-right: 5px; }
+.is-cancelled { color: var(--quiet); text-decoration: line-through; }
+.board-progress { display: flex; align-items: center; gap: 7px; margin-top: 3px; color: var(--quiet); font-size: 11px; }
+.board-progress-track { position: relative; flex: 1; height: 3px; overflow: hidden; border-radius: 2px; background: var(--fill-strong); }
+.board-progress-track > span { position: absolute; inset: 0; transform-origin: left; border-radius: inherit; background: var(--accent); transition: transform .6s var(--ease-out); }
+.board-progress .mono { flex: 0 0 auto; min-width: 28px; text-align: right; }
+.board-aside { display: grid; justify-items: end; gap: 4px; min-width: 0; }
+.board-aside small { color: var(--quiet); font-size: 11px; line-height: 1.2; white-space: nowrap; }
+.board-chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; color: var(--muted); border-radius: var(--r-sm); background: var(--fill-strong); font-size: 11.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
+.board-chip.tone-live { color: var(--accent); background: var(--accent-soft); }
+.board-chip.tone-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.board-chip.tone-warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
 .board-chip.tone-alert { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
-.board-progress { display: block; height: 3px; margin-top: 3px; overflow: hidden; border-radius: 2px; background: var(--fill-strong); }
-.board-progress span { display: block; height: 100%; transform-origin: left; border-radius: inherit; background: var(--accent); transition: transform .6s var(--ease-out); }
+.live-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.live-board-source { margin: 8px 8px 0; color: var(--quiet); font-size: 11px; line-height: 1.45; }
+
+/* Airframe history ------------------------------------------------------- */
+.airframe { display: grid; gap: 12px; }
+.airframe-skeleton { height: 140px; }
+.airframe-hero { display: grid; gap: 2px; }
+.airframe-registration { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+.airframe-model { color: var(--muted); font-size: 13px; }
+.airframe-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin: 0; }
+.airframe-facts > div { display: grid; align-content: start; gap: 2px; min-width: 0; padding: 8px 0; border-top: 1px solid var(--line); }
+.airframe-facts .airframe-wide { grid-column: 1 / -1; }
+.airframe-facts dt { color: var(--quiet); font-size: 12px; }
+.airframe-facts dd { display: grid; gap: 1px; margin: 0; color: var(--text); font-size: 13px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.airframe-facts dd small { color: var(--quiet); font-size: 12px; font-weight: 400; }
+.airframe-subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 4px 0 0; color: var(--text); font-size: 13px; font-weight: 600; }
+.airframe-subhead small { color: var(--quiet); font-size: 12px; font-weight: 400; }
+.airframe-timeline { position: relative; display: grid; margin: 0; padding: 0; list-style: none; }
+.airframe-timeline li { position: relative; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; padding-bottom: 14px; }
+.airframe-timeline li:last-child { padding-bottom: 0; }
+/* The rail runs through the dots and stops at the last entry. */
+.airframe-timeline li::before { content: ""; position: absolute; left: 6px; top: 14px; bottom: -2px; width: 2px; border-radius: 1px; background: var(--line-strong); }
+.airframe-timeline li:last-child::before { display: none; }
+.timeline-dot { z-index: 1; width: 10px; height: 10px; margin: 5px 0 0 2px; border: 2px solid var(--line-strong); border-radius: 50%; background: var(--panel-solid); }
+.is-current .timeline-dot { border-color: var(--accent); background: var(--accent); }
+.timeline-body { display: grid; gap: 2px; min-width: 0; }
+.timeline-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.timeline-head strong { min-width: 0; overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-head strong.is-muted { color: var(--quiet); font-weight: 500; }
+.reg-chip { flex: 0 0 auto; padding: 1px 7px; color: var(--muted); border-radius: var(--r-sm); background: var(--fill-strong); font-size: 11.5px; font-weight: 600; }
+.timeline-meta { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.timeline-period { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--quiet); font-size: 12px; }
+.source-tag { padding: 0 6px; border-radius: var(--r-sm); background: var(--fill); font-size: 11px; font-weight: 600; }
+.source-faa { color: var(--ok); }
+.source-opensky { color: var(--accent); }
+.airframe-flights { display: grid; gap: 8px; }
+.airframe-flights .secondary-button { justify-self: start; margin-top: 0; }
+.airframe-flights .secondary-button:disabled { opacity: .4; cursor: not-allowed; }
+.airframe-flight-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.airframe-flight-list li { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; grid-template-areas: "time route state" "time ident state"; align-items: center; gap: 1px 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 12px; }
+.airframe-flight-list li > span:nth-child(1) { grid-area: time; color: var(--quiet); }
+.airframe-route { grid-area: route; color: var(--text); font-size: 13px; font-weight: 600; }
+.airframe-flight-ident { grid-area: ident; color: var(--quiet); }
+.flight-state { grid-area: state; color: var(--muted); font-size: 12px; text-align: right; white-space: nowrap; }
+.flight-state.is-alert { color: var(--danger); }
+.airframe-offline { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; margin-top: 14px; padding: 14px; color: var(--muted); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--fill); }
+.airframe-offline svg { margin-top: 2px; color: var(--quiet); }
+.airframe-offline strong { color: var(--text); font-size: 14px; font-weight: 600; }
+.airframe-offline p { margin: 3px 0 0; font-size: 12px; line-height: 1.45; }

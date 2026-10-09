@@ -57,6 +57,8 @@ class OpenSkyClient:
         # number of instances that actually reach AeroAPI small.
         self._flightaware_pages: Dict[str, int] = {}
         self._flightaware_schedule_cache: Dict[str, Dict[str, Any]] = {}
+        self._aircraft_flights_cache: Dict[str, Dict[str, Any]] = {}
+        self._aircraft_registry_cache: Dict[str, tuple[float, Optional[Dict[str, Any]]]] = {}
         self._track_cache: Dict[str, Dict[str, Any]] = {}
 
         if not self.client_id or not self.client_secret:
@@ -1057,6 +1059,99 @@ class OpenSkyClient:
             "hour_pages": self._flightaware_pages.get(now.strftime("h%Y-%m-%dT%H"), 0),
             "hour_limit": self._budget_setting("SKYTRACE_AEROAPI_HOURLY_PAGES", 60),
         }
+
+    def get_aircraft_registry(self, query: str) -> Optional[Dict[str, Any]]:
+        """Current registry entry for an ICAO24 hex code or a registration (ADSBDB, free, keyless).
+
+        Gives the registered owner and operator code today; the bundled
+        snapshots supply the history. Cached for a day, misses for six hours.
+        """
+        key = "".join(str(query or "").upper().split())
+        if not key or len(key) > 12 or not all(character.isalnum() or character == "-" for character in key):
+            return None
+        now = time.time()
+        cached = self._aircraft_registry_cache.get(key)
+        if cached and cached[0] > now:
+            return cached[1]
+        result: Optional[Dict[str, Any]] = None
+        try:
+            response = self.session.get(
+                f"https://api.adsbdb.com/v0/aircraft/{quote(key, safe='')}",
+                headers={"Accept": "application/json", "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; registry lookup)"},
+                timeout=5,
+            )
+            payload = response.json() if response.status_code == 200 else None
+            body = payload.get("response") if isinstance(payload, dict) else None
+            # An unknown aircraft answers {"response": "unknown aircraft"}: a string, not an object.
+            aircraft = body.get("aircraft") if isinstance(body, dict) else None
+            if isinstance(aircraft, dict):
+                result = {
+                    "icao24": str(aircraft.get("mode_s") or "").lower() or None,
+                    "registration": aircraft.get("registration"),
+                    "type": aircraft.get("type"), "type_code": aircraft.get("icao_type"),
+                    "manufacturer": aircraft.get("manufacturer"),
+                    "owner": aircraft.get("registered_owner"),
+                    "owner_country": aircraft.get("registered_owner_country_name"),
+                    "operator_code": aircraft.get("registered_owner_operator_flag_code"),
+                }
+                result = {name: value for name, value in result.items() if value}
+        except (requests.RequestException, ValueError, TypeError):
+            result = None
+        if len(self._aircraft_registry_cache) >= 512:
+            self._aircraft_registry_cache.pop(min(self._aircraft_registry_cache, key=lambda item: self._aircraft_registry_cache[item][0]), None)
+        self._aircraft_registry_cache[key] = (now + (86_400 if result else 21_600), result)
+        return result
+
+    def get_flightaware_aircraft_flights(self, registration: str) -> Dict[str, Any]:
+        """Recent flights of one airframe (about the last ten days), newest first.
+
+        One AeroAPI result set (15 flights, $0.005), cached an hour per tail and
+        counted against the same page budget as the airport boards.
+        """
+        ident = self._flightaware_ident(registration)
+        if not ident:
+            return {"available": False, "reason": "invalid", "flights": []}
+        now = time.time()
+        cached = self._aircraft_flights_cache.get(ident)
+        if cached and now - cached["fetched_at"] < 3600:
+            return cached["result"]
+
+        def stale_or(reason: str) -> Dict[str, Any]:
+            if cached and now - cached["fetched_at"] < 6 * 3600:
+                return {**cached["result"], "stale": True}
+            return {"available": False, "reason": reason, "flights": []}
+
+        api_key = self._flightaware_api_key()
+        if not api_key:
+            return {"available": False, "reason": "unconfigured", "flights": []}
+        if not self._flightaware_budget_allows(1):
+            return stale_or("budget")
+        self._flightaware_spend(1)
+        try:
+            response = self.session.get(
+                f"https://aeroapi.flightaware.com/aeroapi/flights/{quote(ident, safe='')}",
+                params={"max_pages": 1},
+                headers={
+                    "Accept": "application/json", "x-apikey": api_key,
+                    "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; airframe flights)",
+                },
+                timeout=8,
+            )
+            if response.status_code >= 400:
+                return stale_or("error")
+            payload = response.json()
+        except (requests.RequestException, ValueError):
+            return stale_or("error")
+        flights = []
+        for item in (payload.get("flights") if isinstance(payload, dict) else None) or []:
+            if isinstance(item, dict):
+                flights.append(self._normalize_flightaware_flight(item, ident))
+        flights.sort(key=lambda flight: self._provider_timestamp(flight.get("actual_out") or flight.get("scheduled_out")) or 0, reverse=True)
+        result = {"available": True, "flights": flights, "fetched_at": int(now)}
+        if len(self._aircraft_flights_cache) >= 128:
+            self._aircraft_flights_cache.pop(min(self._aircraft_flights_cache, key=lambda item: self._aircraft_flights_cache[item]["fetched_at"]), None)
+        self._aircraft_flights_cache[ident] = {"fetched_at": now, "result": result}
+        return result
 
     def get_flightaware_airport_schedule(self, airport_icao: str, direction: str) -> Dict[str, Any]:
         """One page (15 airline flights) of an airport's scheduled departures or arrivals.

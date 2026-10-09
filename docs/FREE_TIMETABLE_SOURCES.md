@@ -27,6 +27,17 @@ No free worldwide timetable exists, so the airport tab shows what can be observe
 
 The board therefore lists aircraft taxiing out or climbing away (departures) and aircraft inbound, on approach or just landed (arrivals). It is labelled as an observation with estimated arrival times, never as a schedule.
 
+## Airframe history sources (9 October 2026)
+
+| Source | Used for | Access |
+| --- | --- | --- |
+| [OpenSky aircraft database snapshots](https://s3.opensky-network.org/data-samples/metadata/) | Registration, owner and operator changes over time, serial number, build year, engines, seats | Free public bucket (README.TXT: crowdsourced, provided as is). Eleven snapshots, 2020-11 to 2025-08, compared offline into `data/aircraft-history/` |
+| [FAA releasable aircraft database](https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download) | Current and earlier US registrations of an airframe with dates, location and export country | Public record, daily download; compacted into `data/faa-registry/` without addresses or individuals' names |
+| [ADSBDB](https://api.adsbdb.com/v0/aircraft/3986E0) | Registered owner today, operator code, country; registration to ICAO24 outside the US | Keyless; cached 24 h |
+| FlightAware AeroAPI `/flights/{registration}` | An airframe's recent flights (about ten days) | One $0.005 result set per tail, on demand, inside the shared page budget |
+
+Not available for free: a complete, dated ownership chain after August 2025 or for non-US registries (most national registers publish only the current owner). Dates from the OpenSky snapshots are accurate to the snapshot month. The OpenSky dumps use three layouts over the years; the build script reads all of them.
+
 ## Airport metadata provenance
 
 `data/airport-metadata.json` is reproducible using `node scripts/build-airport-metadata.mjs /path/to/airports.csv` and [OurAirports' CSV](https://github.com/davidmegginson/ourairports-data/blob/main/airports.csv), retrieved 8 October 2026. Fields are documented in the [data dictionary](https://ourairports.com/help/data-dictionary.html). 7,640 of the existing 7,895 airports match by ICAO; unmatched records retain existing information. Military designation is only a heuristic for explicit name/keyword wording, not an authoritative classification.

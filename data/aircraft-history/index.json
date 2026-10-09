@@ -1,0 +1,20 @@
+{
+ "built_at": "2026-10-09",
+ "source": "https://s3.opensky-network.org/data-samples/metadata/",
+ "license_note": "OpenSky Network crowdsourced aircraft database, provided as is.",
+ "snapshots": [
+  "2020-11",
+  "2021-06",
+  "2021-12",
+  "2022-06",
+  "2022-11",
+  "2023-04",
+  "2023-10",
+  "2024-04",
+  "2024-10",
+  "2025-02",
+  "2025-08"
+ ],
+ "airframes": 582525,
+ "with_changes_or_siblings": 125277
+}

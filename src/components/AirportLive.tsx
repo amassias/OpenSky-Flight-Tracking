@@ -1,9 +1,9 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Moon, PlaneLanding, PlaneTakeoff, Radio, Sun, TriangleAlert } from "./icons";
 import { RunwayIcon, WindArrow } from "./customIcons";
 import { api, readableApiError } from "../api";
-import { PHASE_LABEL, boardRowToFlight, localTime, mergeSchedule, minutesUntil, relativeAge, runwayLength, scheduleEntryToFlight, sunTimes, surfaceName, utcOffsetLabel, visibilityText, type ScheduleEntry } from "../airportLive";
+import { PHASE_LABEL, boardRowToFlight, localTime, mergeSchedule, minutesUntil, relativeAge, runwayLength, scheduleEntryToFlight, sunTimes, surfaceName, utcOffsetLabel, visibilityText, type ScheduleEntry, type ScheduleTone } from "../airportLive";
 import { useNow } from "../hooks/useNow";
 import type { Airport, AirportConditionsResponse, BoardFlight, Flight, FlightMode, LiveAircraft } from "../types";
 import { formatAltitude, formatSpeed } from "../utils";
@@ -168,6 +168,55 @@ export function AirportConditions({ airport }: { airport: Airport }) {
   );
 }
 
+interface RowViewProps {
+  /** Struck-through original time above the expected one when a flight moved. */
+  timeOld?: string | null;
+  time: string;
+  timeTone?: "warn" | "ok";
+  timeNote?: string | null;
+  code: string;
+  place: string;
+  ident: string;
+  airline?: string | null;
+  /** Share of the route flown, 0 to 1. */
+  progress?: number | null;
+  chip: string;
+  tone: ScheduleTone;
+  live?: boolean;
+  aside?: string | null;
+  cancelled?: boolean;
+}
+
+/** The one row layout of the board: time, destination and flight, status and gate. */
+function RowView({ timeOld, time, timeTone, timeNote, code, place, ident, airline, progress, chip, tone, live, aside, cancelled }: RowViewProps) {
+  return (
+    <>
+      <span className="board-time">
+        {timeOld && <small className="board-time-old mono">{timeOld}</small>}
+        <strong className={`mono ${timeTone ? `tone-${timeTone}` : ""} ${cancelled ? "is-cancelled" : ""}`}>{time}</strong>
+        {timeNote && <small className="mono">{timeNote}</small>}
+      </span>
+      <span className="board-main">
+        <span className="board-dest">
+          <span className="board-code mono">{code}</span>
+          <span className={`board-place ${cancelled ? "is-cancelled" : ""}`}>{place}</span>
+        </span>
+        <span className="board-ident"><span className="mono">{ident}</span>{airline ? <span className="board-airline">{airline}</span> : null}</span>
+        {progress != null && (
+          <span className="board-progress" role="img" aria-label={`${Math.round(progress * 100)}% of the route flown`}>
+            <span className="board-progress-track"><span style={{ transform: `scaleX(${Math.min(1, Math.max(0, progress))})` }} /></span>
+            <span className="mono">{Math.round(progress * 100)}%</span>
+          </span>
+        )}
+      </span>
+      <span className="board-aside">
+        <span className={`board-chip tone-${tone}`}>{live && <span className="live-dot" aria-hidden="true" />}{chip}</span>
+        {aside ? <small className="mono">{aside}</small> : null}
+      </span>
+    </>
+  );
+}
+
 interface BoardRowProps {
   row: BoardFlight;
   mode: FlightMode;
@@ -178,16 +227,23 @@ interface BoardRowProps {
   onPreview?: (flight: Flight | null) => void;
 }
 
+const PHASE_TONE: Record<BoardFlight["phase"], ScheduleTone> = {
+  parked: "neutral", taxiing: "live", departed: "live", inbound: "neutral", approach: "live", final: "ok", landed: "ok",
+};
+
+/** An aircraft seen live around the airport that the schedule page does not list. */
 const BoardRow = memo(function BoardRow({ row, mode, airport, now, selected, onSelect, onPreview }: BoardRowProps) {
   useUnits();
   const other = mode === "departure" ? row.destination : row.origin;
   const flight = useMemo(() => boardRowToFlight(row, airport, mode), [airport, mode, row]);
   const eta = row.eta && row.phase !== "landed" ? row.eta : null;
   const airline = row.airline_name || [row.registration, row.aircraft_type].filter(Boolean).join(" · ");
+  const minutes = eta ? minutesUntil(eta, now) : null;
+  const motion = row.on_ground ? ((row.velocity ?? 0) >= 2 ? formatSpeed(row.velocity) : "") : formatAltitude(row.baro_altitude);
   return (
     <button
       type="button"
-      className={`board-row phase-${row.phase} ${selected ? "selected" : ""}`}
+      className={`board-row ${selected ? "selected" : ""}`}
       aria-pressed={selected}
       onClick={() => onSelect(flight)}
       onMouseEnter={() => onPreview?.(flight)}
@@ -195,27 +251,17 @@ const BoardRow = memo(function BoardRow({ row, mode, airport, now, selected, onS
       onFocus={() => onPreview?.(flight)}
       onBlur={() => onPreview?.(null)}
     >
-      <span className="board-time">
-        {eta ? (
-          <>
-            <strong className="mono">{localTime(eta * 1000, airport.timezone)}</strong>
-            <small className="mono">{minutesUntil(eta, now) === 0 ? "now" : `in ${minutesUntil(eta, now)} min`}</small>
-          </>
-        ) : (
-          <strong className="board-phase">{PHASE_LABEL[row.phase]}</strong>
-        )}
-      </span>
-      <span className="board-main">
-        <strong>
-          <span className="mono">{other?.iata || other?.icao || "—"}</span>
-          <span className="board-place">{other ? other.city || other.name : row.route_known ? "Route elsewhere" : "Route unknown"}</span>
-        </strong>
-        <span className="board-ident"><span className="mono">{row.callsign || row.icao24.toUpperCase()}</span>{airline ? ` · ${airline}` : ""}</span>
-      </span>
-      <span className="board-aside">
-        {eta ? <span className={`board-chip phase-${row.phase}`}>{PHASE_LABEL[row.phase]}</span> : <span className="mono">{row.aircraft_type || ""}</span>}
-        <small className="mono">{row.on_ground ? (row.velocity ?? 0) >= 2 ? formatSpeed(row.velocity) : "" : formatAltitude(row.baro_altitude)}</small>
-      </span>
+      <RowView
+        time={eta ? localTime(eta * 1000, airport.timezone) : row.phase === "parked" ? "—" : "Now"}
+        timeNote={minutes == null ? null : minutes === 0 ? "now" : `in ${minutes} min`}
+        code={other?.iata || other?.icao || "—"}
+        place={other ? other.city || other.name || "" : row.route_known ? "Route elsewhere" : "Route unknown"}
+        ident={row.callsign || row.icao24.toUpperCase()}
+        airline={airline}
+        chip={PHASE_LABEL[row.phase]}
+        tone={PHASE_TONE[row.phase]}
+        aside={motion}
+      />
     </button>
   );
 });
@@ -238,34 +284,28 @@ const ScheduleRow = memo(function ScheduleRow({ entry, mode, airport, now, selec
   const selectable = useMemo(() => scheduleEntryToFlight(entry), [entry]);
   const changed = entry.expectedMs != null && entry.scheduledMs != null && Math.abs(entry.delayMinutes) >= 5;
   const gate = mode === "departure" ? flight.gate_orig : flight.gate_dest;
-  const terminal = mode === "departure" ? flight.terminal_orig : flight.terminal_dest;
-  const eta = mode === "arrival" && live && live.on_ground === false ? entry.liveEtaMs : null;
+  const terminal = (mode === "departure" ? flight.terminal_orig : flight.terminal_dest)?.replace(/^(T|Terminal)\s*/i, "");
+  const airborneArrival = mode === "arrival" && Boolean(live) && live!.on_ground === false;
+  const eta = airborneArrival ? entry.liveEtaMs : null;
+  const minutes = eta != null ? minutesUntil(eta / 1000, now) : null;
+  const shown = changed ? entry.expectedMs : entry.scheduledMs;
   const content = (
-    <>
-      <span className="board-time">
-        <strong className={`mono ${changed ? "is-changed" : ""}`}>{entry.scheduledMs != null ? localTime(entry.scheduledMs, airport.timezone) : "—"}</strong>
-        {changed && entry.expectedMs != null && <small className={`mono tone-${entry.delayMinutes > 0 ? "warn" : "ok"}`}>{localTime(entry.expectedMs, airport.timezone)}</small>}
-        {!changed && eta != null && <small className="mono">in {minutesUntil(eta / 1000, now)} min</small>}
-      </span>
-      <span className="board-main">
-        <strong>
-          <span className="mono">{other?.code_iata || other?.code_icao || other?.code || "—"}</span>
-          <span className="board-place">{other?.city || other?.name || "Unknown"}</span>
-        </strong>
-        <span className="board-ident">
-          <span className="mono">{flight.ident_iata || flight.ident}</span>
-          {flight.airline_name ? ` · ${flight.airline_name}` : ""}
-          {flight.aircraft_type ? ` · ${flight.aircraft_type}` : ""}
-        </span>
-        {entry.progress != null && mode === "arrival" && live && live.on_ground === false && (
-          <span className="board-progress" aria-label={`${Math.round(entry.progress * 100)}% flown`}><span style={{ transform: `scaleX(${entry.progress})` }} /></span>
-        )}
-      </span>
-      <span className="board-aside">
-        <span className={`board-chip tone-${entry.tone}`}>{live && <span className="live-dot" aria-hidden="true" />}{entry.status}</span>
-        <small className="mono">{gate ? `Gate ${gate}` : terminal ? `Terminal ${terminal}` : ""}{gate && terminal ? ` · T${terminal.replace(/^T/i, "")}` : ""}</small>
-      </span>
-    </>
+    <RowView
+      timeOld={changed && entry.scheduledMs != null ? localTime(entry.scheduledMs, airport.timezone) : null}
+      time={shown != null ? localTime(shown, airport.timezone) : "—"}
+      timeTone={changed ? (entry.delayMinutes > 0 ? "warn" : "ok") : undefined}
+      timeNote={minutes == null ? null : minutes === 0 ? "now" : `in ${minutes} min`}
+      code={other?.code_iata || other?.code_icao || other?.code || "—"}
+      place={other?.city || other?.name || "Unknown"}
+      ident={flight.ident_iata || flight.ident || ""}
+      airline={flight.airline_name}
+      progress={airborneArrival ? entry.progress : null}
+      chip={entry.status}
+      tone={entry.tone}
+      live={Boolean(live)}
+      aside={[gate ? `Gate ${gate}` : null, terminal ? `T${terminal}` : null].filter(Boolean).join(" · ") || null}
+      cancelled={Boolean(flight.cancelled)}
+    />
   );
   if (!selectable) return <div className={`board-row is-static tone-${entry.tone}`} title="Not in live view yet">{content}</div>;
   return (
@@ -290,6 +330,8 @@ interface LiveBoardProps {
   selectedIcao24: string | null;
   /** Aircraft on the map, matched to scheduled flights by callsign. */
   liveAircraft?: readonly LiveAircraft[];
+  /** Rendered at the right end of the status line (the Live/History switch). */
+  toolbar?: ReactNode;
   onSelect: (flight: Flight) => void;
   onPreview?: (flight: Flight | null) => void;
 }
@@ -301,7 +343,7 @@ const NO_AIRCRAFT: readonly LiveAircraft[] = [];
  * joined to the aircraft seen live, then any live traffic the schedule page
  * does not list, observed by ADS-B around the airport.
  */
-export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIRCRAFT, onSelect, onPreview }: LiveBoardProps) {
+export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIRCRAFT, toolbar, onSelect, onPreview }: LiveBoardProps) {
   const units = useUnits();
   const now = useNow(15_000);
   const board = useQuery({
@@ -333,15 +375,23 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
   const age = board.data ? relativeAge(board.data.time, now) : null;
   // A failed refresh keeps the last board on screen and says it is delayed.
   const delayed = Boolean(board.data && (board.isError || board.data.degraded));
+  const summary = [
+    scheduledCount ? `${scheduledCount} scheduled` : `${rows.length} ${mode === "departure" ? "departing" : "arriving"}`,
+    scheduledCount && rows.length ? `${rows.length} also live` : null,
+    // "Just now" is the normal case and not worth the room next to the toggle.
+    age && age !== "just now" ? age : null,
+  ].filter(Boolean).join(" · ");
 
   return (
     <section className="live-board" aria-label={`Live ${mode === "departure" ? "departures" : "arrivals"}`}>
       <div className="live-board-meta">
-        <span className={`pulse-dot ${board.isError || delayed ? "" : "active"}`} aria-hidden="true" />
-        <span>
-          {board.isPending ? "Scanning the airport area…" : !board.data ? "Live board unavailable" : `${scheduledCount ? `${scheduledCount} scheduled · ` : ""}${rows.length} ${scheduledCount ? "more live" : mode === "departure" ? "departing" : "arriving"} · ${delayed ? "refresh delayed, data from" : "updated"} ${age}`}
+        <span className={`pulse-dot ${board.isError || delayed ? "warn" : "active"}`} aria-hidden="true" />
+        <span className="live-board-meta-text">
+          {board.isPending ? "Scanning the airport area…" : !board.data ? "Live board unavailable" : summary}
         </span>
+        {delayed && <span className="meta-flag" title="The live feed is rate limited; the last result is shown">Live feed limited</span>}
         {board.isFetching && !board.isPending && <span className="list-spinner" aria-hidden="true" />}
+        {toolbar}
       </div>
 
       <div className="live-board-rows" aria-busy={board.isFetching}>

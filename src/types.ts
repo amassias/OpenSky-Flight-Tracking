@@ -382,3 +382,64 @@ export interface AirportScheduleResponse {
   fetched_at?: number;
   flights: FlightAwareDetails[];
 }
+
+export interface AirframeEntry {
+  source: "opensky" | "faa";
+  /** The ICAO24 code the airframe carried under this registration. */
+  icao24: string;
+  registration: string | null;
+  /** "YYYY-MM" (OpenSky snapshots) or "YYYY-MM-DD" (FAA). */
+  from: string | null;
+  to: string | null;
+  precision: "month" | "day";
+  owner: string | null;
+  operator: string | null;
+  /** The registrant looks like a person, so no name is shown. */
+  private: boolean;
+  location?: string | null;
+  event?: string | null;
+  model?: string | null;
+  current: boolean;
+}
+
+export interface AirframeRegistry {
+  icao24?: string;
+  registration?: string;
+  type?: string;
+  type_code?: string;
+  manufacturer?: string;
+  owner?: string;
+  owner_country?: string;
+  operator_code?: string;
+}
+
+export interface AirframeHistoryResponse {
+  success: boolean;
+  icao24: string;
+  found: boolean;
+  registration: string | null;
+  airframe: { manufacturer?: string; model?: string; type_code?: string; serial?: string; built?: string; engines?: string; seats?: string; country?: string };
+  history: AirframeEntry[];
+  linked_icao24: string[];
+  snapshots: { first: string; last: string; count: number } | null;
+  registry: AirframeRegistry | null;
+  sources: string[];
+}
+
+export interface AircraftFlightsResponse {
+  success: boolean;
+  registration: string;
+  provider: string;
+  available: boolean;
+  reason?: "unconfigured" | "budget" | "error" | "invalid";
+  stale?: boolean;
+  fetched_at?: number;
+  flights: FlightAwareDetails[];
+}
+
+export interface AircraftLookupResponse {
+  success: boolean;
+  icao24: string;
+  registration: string | null;
+  registry: AirframeRegistry | null;
+}
