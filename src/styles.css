@@ -671,13 +671,13 @@ input { caret-color: var(--accent); }
 .board-heading p { margin: 2px 0 0; overflow: hidden; color: var(--quiet); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
 /* The airport board: one row layout for scheduled and observed flights ---- */
-.live-board { display: grid; padding: 0 6px 12px; }
+.live-board { display: grid; grid-template-columns: minmax(0, 1fr); padding: 0 6px 12px; }
 .live-board-meta { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 6px 6px 8px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .live-board-meta-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pulse-dot.warn { background: var(--warn); }
 .meta-flag { flex: 0 0 auto; padding: 1px 6px; color: var(--warn); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 14%, transparent); font-size: 11px; font-weight: 600; cursor: help; }
 .list-spinner { flex: 0 0 auto; width: 10px; height: 10px; border: 1.5px solid var(--fill-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
-.live-board-rows { display: grid; gap: 1px; animation: list-in .24s var(--ease-out); }
+.live-board-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; animation: list-in .24s var(--ease-out); }
 .board-section { margin: 10px 8px 4px; color: var(--quiet); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .board-section:first-child { margin-top: 2px; }
 .board-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 8px 10px; text-align: left; color: var(--text); border: 0; border-radius: var(--r-md); background: transparent; cursor: pointer; transition: background .2s var(--ease-out); content-visibility: auto; contain-intrinsic-size: auto 60px; }
