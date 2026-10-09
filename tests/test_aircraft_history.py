@@ -118,6 +118,7 @@ def test_server_handlers_resolve_and_validate():
     ("Kellar Robert J Trustee", True, False),
     ("Smith John A", True, False),
     ("Allegiant Air LLC", True, True),
+    ("Virgin America", True, True),
     ("Private", True, False),
     ("Air France HOP", False, True),
     ("Jean Dupont", False, True),

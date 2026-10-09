@@ -33,10 +33,9 @@ ORGANISATION = re.compile(
     r"SKY\w*|HAWAIIAN|VIRGIN|FEDEX|FEDERAL|UPS|BOEING|AIRBUS|TEXTRON|CESSNA|GULFSTREAM|BOMBARDIER|EMBRAER|PIPER|NETJETS|FLEXJET)\b",
     re.IGNORECASE,
 )
-# A trustee is a person unless a bank or company is named too; "Smith John A" is a person.
+# A trustee is a person unless a bank or company is named too.
 INSTITUTION = re.compile(r"\b(BANK|NATIONAL|COMPANY|CORP|CORPORATION|INC|LLC|LTD|LEASING|FINANCIAL|CAPITAL|AVIATION|AIRCRAFT|AIR|SERVICES?)\b", re.IGNORECASE)
 PERSONAL = re.compile(r"\b(TRUSTEE|TRUST|ESTATE|REVOCABLE|FAMILY|LIVING)\b", re.IGNORECASE)
-PERSON_SHAPED = re.compile(r"^[A-Z][A-Za-z'\-]+ [A-Z][A-Za-z'\-]+( [A-Z]\.?)?( (JR|SR|II|III|IV)\.?)?( TRUSTEE)?$", re.IGNORECASE)
 NO_OWNER = {"", "private", "unknown", "n/a"}
 
 
@@ -72,7 +71,8 @@ def _shown_owner(name: str, us: bool) -> Optional[str]:
     if us:
         if not ORGANISATION.search(name):
             return None
-        if (PERSON_SHAPED.match(name) or PERSONAL.search(name)) and not INSTITUTION.search(name):
+        # A trustee is a person unless a bank or company is named too.
+        if PERSONAL.search(name) and not INSTITUTION.search(name):
             return None
     return name
 
