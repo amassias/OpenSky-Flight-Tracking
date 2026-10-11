@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, callsignsForFlightNumber, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, callsignsForFlightNumber, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -180,5 +180,19 @@ describe("callsignsForFlightNumber", () => {
   it("ignores terms that are not flight numbers", () => {
     expect(callsignsForFlightNumber("AFR1234")).toEqual([]);
     expect(callsignsForFlightNumber("Paris")).toEqual([]);
+  });
+});
+
+describe("flightNumberForCallsign", () => {
+  it("turns an airline callsign into its ticket flight number", () => {
+    expect(flightNumberForCallsign("AFR1234")).toBe("AF1234");
+    expect(flightNumberForCallsign("BAW9")).toBe("BA9");
+  });
+
+  it("leaves registrations and unknown prefixes alone", () => {
+    expect(flightNumberForCallsign("FGIKP")).toBeNull();
+    expect(flightNumberForCallsign("RYR4EB")).toBeNull();
+    expect(flightNumberForCallsign("QQQ123")).toBeNull();
+    expect(flightNumberForCallsign(null)).toBeNull();
   });
 });

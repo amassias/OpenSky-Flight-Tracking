@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ChevronDown, Copy, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
-import { compassPoint, emergencyInfo, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
+import { compassPoint, emergencyInfo, flightNumberForCallsign, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
 import { distanceText, useUnits, verticalRateText } from "../units";
 import { AirframeHistory } from "./AirframeHistory";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
@@ -134,6 +134,7 @@ function Section({ title, aside, open = false, children }: { title: string; asid
 
 export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   useUnits();
+  const flightNumber = flightNumberForCallsign(liveFlight.callsign);
   // The registry fills what the live feed did not say, such as the tail and
   // type of an airframe opened from a registration search.
   const airframe = useAirframeHistory(liveFlight.icao24).data;
@@ -212,6 +213,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       <div className="details-chips">
         <span className={`details-status status-${statusKey}`}><span className={`status-dot status-${statusKey}`} />{offline ? "No live position" : statusLabel(flight.status, flight.on_ground)}</span>
         {emergency && <span className="details-emergency"><TriangleAlert size={12} aria-hidden="true" /> {/^[0-9]+$/.test(emergency.code) ? `Squawk ${emergency.code}` : "Emergency"} · {emergency.label}</span>}
+        {flightNumber && <span className="details-chip mono" title="Flight number on tickets">{flightNumber}</span>}
         {flight.aircraft_type && <span className="details-chip mono">{flight.aircraft_type}</span>}
         {flight.registration && flight.registration_source !== "schedule" && <span className="details-chip mono">{flight.registration}</span>}
       </div>

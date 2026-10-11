@@ -308,3 +308,20 @@ export function callsignsForFlightNumber(term: string): string[] {
   const icaoCodes = AIRLINE_ICAO_BY_IATA[match[1].toUpperCase()] ?? [];
   return icaoCodes.map((icao) => `${icao}${match[2]}`.toLowerCase());
 }
+
+let iataByIcao: Map<string, string> | null = null;
+
+/** The ticket flight number for a numeric airline callsign: AFR1234 → AF1234. */
+export function flightNumberForCallsign(callsign?: string | null): string | null {
+  const match = /^([A-Z]{3})(\d{1,4}[A-Z]?)$/.exec((callsign ?? "").trim().toUpperCase());
+  if (!match) return null;
+  if (!iataByIcao) {
+    iataByIcao = new Map();
+    for (const [iata, icaoCodes] of Object.entries(AIRLINE_ICAO_BY_IATA)) {
+      // Keep the first designator when an ICAO code is listed under several.
+      for (const icao of icaoCodes) if (!iataByIcao.has(icao)) iataByIcao.set(icao, iata);
+    }
+  }
+  const iata = iataByIcao.get(match[1]);
+  return iata ? `${iata}${match[2]}` : null;
+}
