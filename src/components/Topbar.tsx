@@ -41,7 +41,7 @@ export function Topbar({ health, healthPending, theme, search, onToggleTheme, on
   const channel = !online ? "Offline" : healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
   return (
     <header className="topbar">
-      <div className="brand" aria-label="SkyTrace">
+      <div className="brand">
         <span className="brand-mark"><Plane size={16} aria-hidden="true" /></span>
         <strong>SkyTrace</strong>
       </div>
