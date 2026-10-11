@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Moon, Plane, Sun } from "./icons";
-import { CircleHelp } from "./customIcons";
+import { CircleHelp, KeyboardIcon } from "./customIcons";
 import type { HealthResponse, MapTheme } from "../types";
 
 interface TopbarProps {
@@ -12,6 +12,7 @@ interface TopbarProps {
   onToggleTheme: (origin?: { x: number; y: number }) => void;
   onToggleControls?: () => void;
   onShowTour?: () => void;
+  onShowShortcuts?: () => void;
 }
 
 function UtcClock() {
@@ -23,7 +24,7 @@ function UtcClock() {
   return <span className="mono">{time} UTC</span>;
 }
 
-export function Topbar({ health, healthPending, theme, search, onToggleTheme, onShowTour }: TopbarProps) {
+export function Topbar({ health, healthPending, theme, search, onToggleTheme, onShowTour, onShowShortcuts }: TopbarProps) {
   const liveAvailable = health?.live_available ?? health?.credentials_configured;
   const channel = healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
   return (
@@ -42,11 +43,12 @@ export function Topbar({ health, healthPending, theme, search, onToggleTheme, on
           <span className="separator" />
           <UtcClock />
         </div>
+        {onShowShortcuts && <button className="icon-button topbar-shortcuts" type="button" onClick={onShowShortcuts} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" aria-keyshortcuts="?"><KeyboardIcon size={17} /></button>}
         {onShowTour && <button className="icon-button" type="button" onClick={onShowTour} aria-label="Show the tour" title="Show the tour"><CircleHelp size={17} /></button>}
         <button className="icon-button" type="button" onClick={(event) => {
           const box = event.currentTarget.getBoundingClientRect();
           onToggleTheme({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
-        }} aria-label={`Use ${theme === "dark" ? "light" : "dark"} map`} title={`Use ${theme === "dark" ? "light" : "dark"} map`}>
+        }} aria-label={`Use ${theme === "dark" ? "light" : "dark"} map`} title={`Use ${theme === "dark" ? "light" : "dark"} map (T)`}>
           {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
       </div>

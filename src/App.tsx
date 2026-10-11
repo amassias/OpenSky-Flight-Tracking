@@ -12,6 +12,7 @@ import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
 import { Onboarding } from "./components/Onboarding";
 import { OmniSearch } from "./components/OmniSearch";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Topbar } from "./components/Topbar";
 import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
@@ -58,9 +59,22 @@ function withLiveKinematics(flight: Flight, live: LiveAircraft): Flight {
   };
 }
 
+const FAVORITE_LIMIT = 8;
+const THEME_COLORS: Record<MapTheme, string> = { dark: "#0b0b0c", light: "#f5f5f7" };
+
+/** First visit follows the operating system; a choice made in the app wins afterwards. */
+function systemTheme(): MapTheme {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function isTyping(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
 export function App() {
+  const [initialTheme] = useState(systemTheme);
   const [initialParams] = useState(() => new URLSearchParams(window.location.search));
-  const [theme, setTheme] = usePersistentState<MapTheme>("skytrace-theme", "dark");
+  const [theme, setTheme] = usePersistentState<MapTheme>("skytrace-theme", initialTheme);
   const [favorites, setFavorites] = usePersistentState<Airport[]>("skytrace-favorites", []);
   const [recent, setRecent] = usePersistentState<Airport[]>("skytrace-recent", []);
   const [liveEnabled, setLiveEnabled] = usePersistentState("skytrace-live", true);
@@ -72,7 +86,11 @@ export function App() {
   // A shared link opens straight onto its flight or airport; the tour waits.
   const [tourOpen, setTourOpen] = useState(() => !tourSeen && !new URLSearchParams(window.location.search).has("icao24") && !new URLSearchParams(window.location.search).has("airport"));
   const closeTour = useCallback(() => { setTourOpen(false); setTourSeen(true); }, [setTourSeen]);
-  const [filters, setFilters] = useState<MapFilters>(NO_FILTERS);
+  const [storedFilters, setFilters] = usePersistentState<MapFilters>("skytrace-filters", NO_FILTERS);
+  // Stored filters from an older release may lack newer fields.
+  const filters = useMemo(() => ({ ...NO_FILTERS, ...storedFilters }), [storedFilters]);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
   const [tab, setTab] = useState<TrafficTab>(initialParams.get("airport") ? "airport" : "live");
   const [homeAirport, setHomeAirport] = useState<Airport | null>(null);
   const [date, setDate] = useState(initialParams.get("date") || todayUtc());
@@ -295,9 +313,16 @@ export function App() {
     window.history.replaceState(null, "", next);
   }, [airportView, request, selectedFlight]);
 
+  const titleAirport = request ? request.airport.iata || request.airport.icao : null;
   useEffect(() => {
-    document.title = detailsFlight ? `${detailsFlight.callsign || detailsFlight.icao24.toUpperCase()} · SkyTrace` : "SkyTrace · Live flight tracker";
-  }, [detailsFlight?.callsign, detailsFlight?.icao24]); // eslint-disable-line react-hooks/exhaustive-deps
+    document.title = detailsFlight ? `${detailsFlight.callsign || detailsFlight.icao24.toUpperCase()} · SkyTrace`
+      : titleAirport ? `${titleAirport} · SkyTrace` : "SkyTrace · Live flight tracker";
+  }, [detailsFlight?.callsign, detailsFlight?.icao24, titleAirport]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keeps the mobile browser chrome in step with the map theme.
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme] ?? THEME_COLORS.dark);
+  }, [theme]);
 
   useEffect(() => {
     if (!toast) return;
@@ -317,8 +342,7 @@ export function App() {
 
   useEffect(() => {
     function focusSearch(event: KeyboardEvent) {
-      const typing = event.target instanceof Element
-        && event.target.closest("input, textarea, select, [contenteditable='true']");
+      const typing = isTyping(event.target);
       const shortcut = event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey);
       if (!shortcut && (event.key !== "/" || typing)) return;
       event.preventDefault();
@@ -327,6 +351,17 @@ export function App() {
     window.addEventListener("keydown", focusSearch);
     return () => window.removeEventListener("keydown", focusSearch);
   }, []);
+
+  const toggleThemeRef = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    function handleGlobalKeys(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target) || tourOpen) return;
+      if (event.key === "?") { event.preventDefault(); setShortcutsOpen(true); }
+      else if (event.key.toLowerCase() === "t" && !event.shiftKey) toggleThemeRef.current();
+    }
+    window.addEventListener("keydown", handleGlobalKeys);
+    return () => window.removeEventListener("keydown", handleGlobalKeys);
+  }, [tourOpen]);
 
   const liveStates = useMemo(() => liveFallbackSnapshot?.data.states ?? [], [liveFallbackSnapshot]);
   const filteredLive = useMemo(
@@ -440,7 +475,7 @@ export function App() {
   // where the browser has it; elsewhere the theme simply swaps.
   function toggleTheme(origin?: { x: number; y: number }) {
     const next = theme === "dark" ? "light" : "dark";
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (!document.startViewTransition || reduced || !origin) {
       setTheme(next);
       return;
@@ -455,15 +490,36 @@ export function App() {
     }).catch(() => undefined);
   }
 
+  toggleThemeRef.current = () => toggleTheme();
+
   function toggleFavorite(airport: Airport) {
-    setFavorites(favoriteCodes.has(airport.icao)
-      ? favorites.filter((item) => item.icao !== airport.icao)
-      : [airport, ...favorites].slice(0, 8));
+    const code = airport.iata || airport.icao;
+    if (favoriteCodes.has(airport.icao)) {
+      setFavorites(favorites.filter((item) => item.icao !== airport.icao));
+      setToast(`${code} removed from favourites.`);
+    } else if (favorites.length >= FAVORITE_LIMIT) {
+      // Dropping the oldest favourite without a word would lose a saved airport.
+      setToast(`You can keep ${FAVORITE_LIMIT} favourites. Remove one to add ${code}.`);
+    } else {
+      setFavorites([airport, ...favorites]);
+      setToast(`${code} added to favourites.`);
+    }
   }
 
   async function shareFlight() {
+    const url = window.location.href;
+    // Phones get the native share sheet; desktops keep the quick copy.
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
+    if (coarse && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: document.title, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(url);
       setToast("Share link copied to clipboard.");
     } catch {
       setToast("Copy this page URL to share the selected flight.");
@@ -481,6 +537,7 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onShowTour={() => setTourOpen(true)}
+        onShowShortcuts={() => setShortcutsOpen(true)}
         search={(
           <OmniSearch
             focusRequest={searchFocusRequest}
@@ -672,6 +729,7 @@ export function App() {
       </main>
 
       {tourOpen && <Onboarding onClose={closeTour} />}
+      <AnimatePresence>{shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}</AnimatePresence>
 
       <AnimatePresence>
         {toast && (

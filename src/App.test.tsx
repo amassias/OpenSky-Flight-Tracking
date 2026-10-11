@@ -193,4 +193,36 @@ describe("App", () => {
     await waitFor(() => expect(screen.getAllByText("F-HBQE").length).toBeGreaterThan(0));
     expect(screen.queryByText(/F-HBQD/)).not.toBeInTheDocument();
   });
+
+  it("opens the keyboard shortcuts with ? and switches the map theme with T", async () => {
+    mockApi();
+    const { container } = renderApp();
+    await screen.findByRole("combobox", { name: /search flights and airports/i });
+    await userEvent.keyboard("?");
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument());
+
+    const before = container.querySelector(".app")!.className.includes("theme-light");
+    await userEvent.keyboard("t");
+    expect(container.querySelector(".app")!.className.includes("theme-light")).toBe(!before);
+  });
+
+  it("keeps map filters for the next visit", async () => {
+    window.localStorage.setItem("skytrace-filters", JSON.stringify({ hideGround: true }));
+    mockApi();
+    renderApp();
+    expect(await screen.findByRole("button", { name: /Filters/ })).toHaveTextContent("1");
+  });
+
+  it("refuses a ninth favourite instead of silently dropping the oldest", async () => {
+    const saved = Array.from({ length: 8 }, (_, index) => ({ ...airport, icao: `KZZ${index}`, iata: `Z${index}A` }));
+    window.localStorage.setItem("skytrace-favorites", JSON.stringify(saved));
+    mockApi();
+    renderApp();
+    await openAirportFromSearch();
+    await userEvent.click(await screen.findByRole("button", { name: "Add airport to favourites" }));
+    expect(await screen.findByText(/You can keep 8 favourites/)).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem("skytrace-favorites")!)).toHaveLength(8);
+  });
 });

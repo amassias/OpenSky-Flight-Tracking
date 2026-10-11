@@ -14,7 +14,7 @@ Explore the aircraft above you, follow a flight across the map, or inspect traff
 - **Explore an airport live.** Opening an airport shows its local time, sunrise and sunset, the latest METAR and TAF (flight category, wind, visibility, ceiling, QNH), the runways the wind favours, its runways and radio frequencies, and FAA delay programmes or ground stops for US airports. The board starts with FlightAware's next scheduled airline departures or arrivals (scheduled and expected gate times, gate, terminal, delays, cancellations), each joined by callsign to the aircraft seen live so arrivals show their live share of the route flown and an arrival estimate from their position. Below it, other live traffic: aircraft taxiing out or climbing away with their destination, and aircraft inbound, on approach or just landed with their origin and an estimated arrival time in airport-local time. Pick a row seen live to follow that flight on the map.
 - **Know the airframe.** A selected aircraft has an **Airframe history** section: registration, manufacturer and model, serial number (MSN), year built and age, the registered owner today, and a timeline of every owner, operator and registration the aircraft has had, with the registry or snapshot each entry comes from. A registration or hex code typed in the search field (`F-HBXA`, `N283VA`, `3986E0`) opens any airframe, even one that is not flying. A button loads the aircraft's recent flights on demand.
 - **Review recorded movements.** Switch the airport board to **History** for OpenSky's UTC departures and arrivals on a given date, then filter or sort the list. When recorded movements are unavailable, SkyTrace labels the live airport snapshot clearly.
-- **Keep your context.** Share a selected flight by URL. Recent airports, favourites and display preferences stay in your browser.
+- **Keep your context.** Share a selected flight by URL (the native share sheet on phones). Recent airports, up to eight favourites, map filters and display preferences stay in your browser; the first visit follows your system light or dark setting.
 
 The same workflows are available on desktop and phone. Data coverage and enrichment depend on the providers; unknown routes and delayed feeds are labelled in the interface.
 
@@ -50,6 +50,8 @@ These are **browser screenshots of the running site**, captured on 5 October 202
 | `↑`, `↓`, `Enter` | Navigate and select search or flight results |
 | `F` | Toggle following the selected aircraft |
 | `R` | Frame the selected route |
+| `T` | Switch between the dark and light map |
+| `?` | Show the keyboard shortcuts |
 | `Esc` | Close the active search, menu, full map or flight detail |
 
 ## Architecture
