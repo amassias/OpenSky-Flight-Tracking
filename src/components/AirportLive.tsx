@@ -428,7 +428,9 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
 
       <div className="live-board-rows" aria-busy={board.isFetching}>
         {resolveNotice && <p className="board-resolve-notice" role="status">{resolveNotice}</p>}
-        {board.isPending && Array.from({ length: 5 }, (_, index) => <div key={index} className="board-row skeleton" aria-hidden="true" />)}
+        {/* Placeholders only while there is nothing real to show: scheduled
+            flights that arrive first must not sit below five empty rows. */}
+        {board.isPending && !merged?.entries.length && Array.from({ length: 5 }, (_, index) => <div key={index} className="board-row skeleton" aria-hidden="true" />)}
         {board.isError && !board.data && (
           <div className="message-state compact">
             <h3>Live board unavailable</h3>

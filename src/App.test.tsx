@@ -144,6 +144,23 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "AFR1234" })).toBeInTheDocument();
   });
 
+  it("shows scheduled flights straight away while the live scan is still running", async () => {
+    window.history.replaceState(null, "", "/");
+    const soon = new Date(Date.now() + 20 * 60_000).toISOString();
+    mockApi({
+      "/api/airport-board": () => new Promise<Response>(() => undefined),
+      "/api/airport-schedule": () => json({
+        success: true, airport: "LFPG", direction: "departure", provider: "FlightAware AeroAPI", available: true, fetched_at: Math.floor(Date.now() / 1000),
+        flights: [{ provider: "FlightAware", ident: "AFR990", ident_icao: "AFR990", ident_iata: "AF990", atc_ident: "AFR990", destination: { code_icao: "FAOR", code_iata: "JNB", city: "Johannesburg" }, scheduled_out: soon, estimated_out: soon, gate_orig: "M30" }],
+      }),
+    });
+    const { container } = renderApp();
+    await openAirportFromSearch();
+    expect(await screen.findByText("Scheduled departures")).toBeInTheDocument();
+    expect(screen.getByText("Scanning the airport area…")).toBeInTheDocument();
+    expect(container.querySelectorAll(".board-row.skeleton")).toHaveLength(0);
+  });
+
   it("loads recorded flights in the history view", async () => {
     window.history.replaceState(null, "", "/");
     mockApi();
