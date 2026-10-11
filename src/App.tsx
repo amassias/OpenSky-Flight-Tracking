@@ -385,10 +385,11 @@ export function App() {
       if (event.key === "?") { event.preventDefault(); setShortcutsOpen(true); }
       else if (event.key.toLowerCase() === "t" && !event.shiftKey) toggleThemeRef.current();
       else if (event.key.toLowerCase() === "l" && !event.shiftKey) setLabelsEnabled((current) => !current);
+      else if (event.key.toLowerCase() === "p" && !event.shiftKey) setTrailsEnabled((current) => !current);
     }
     window.addEventListener("keydown", handleGlobalKeys);
     return () => window.removeEventListener("keydown", handleGlobalKeys);
-  }, [setLabelsEnabled, tourOpen]);
+  }, [setLabelsEnabled, setTrailsEnabled, tourOpen]);
 
   const liveStates = useMemo(() => liveFallbackSnapshot?.data.states ?? [], [liveFallbackSnapshot]);
   const filteredLive = useMemo(

@@ -52,6 +52,7 @@ These are **browser screenshots of the running site**, captured on 5 October 202
 | `R` | Frame the selected route |
 | `T` | Switch between the dark and light map |
 | `L` | Show or hide aircraft labels |
+| `P` | Show or hide aircraft trails |
 | `?` | Show the keyboard shortcuts |
 | `Esc` | Close the active search, menu, full map or flight detail |
 
