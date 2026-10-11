@@ -860,6 +860,16 @@ interface FlightMapProps {
   onSelectAirport?: (airport: Airport) => void;
   onLiveSnapshot?: (data: LiveFlightsResponse, airportIcao: string | null) => void;
   onViewportCenter?: (center: [number, number]) => void;
+  /** A shared map position to open on instead of the home airport. */
+  initialView?: MapView | null;
+  /** Reports the settled centre and zoom after every pan or zoom. */
+  onViewChange?: (view: MapView) => void;
+}
+
+export interface MapView {
+  latitude: number;
+  longitude: number;
+  zoom: number;
 }
 
 interface ProgressiveLiveState {
@@ -894,8 +904,25 @@ export function FlightMap({
   onSelectAirport,
   onLiveSnapshot,
   onViewportCenter,
+  initialView = null,
+  onViewChange,
 }: FlightMapProps) {
   const [map, setMap] = useState<L.Map | null>(null);
+  const appliedInitialView = useRef(false);
+  useEffect(() => {
+    if (!map || !initialView || appliedInitialView.current) return;
+    appliedInitialView.current = true;
+    map.setView([initialView.latitude, initialView.longitude], initialView.zoom, { animate: false });
+  }, [initialView, map]);
+  useEffect(() => {
+    if (!map || !onViewChange) return;
+    const report = () => {
+      const center = map.getCenter();
+      onViewChange({ latitude: center.lat, longitude: center.lng, zoom: map.getZoom() });
+    };
+    map.on("moveend", report);
+    return () => { map.off("moveend", report); };
+  }, [map, onViewChange]);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   // What the visitor actually sees, as opposed to the padded box requested.
   const visibleBoundsRef = useRef<Bounds | null>(null);

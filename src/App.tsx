@@ -8,7 +8,7 @@ import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportTab, type AirportView } from "./components/AirportTab";
 import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
-import { FlightMap } from "./components/FlightMap";
+import { FlightMap, type MapView } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
 import { Onboarding } from "./components/Onboarding";
 import { OmniSearch } from "./components/OmniSearch";
@@ -67,6 +67,14 @@ function systemTheme(): MapTheme {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
+/** `?at=lat,lon,zoom`, the shareable map position when no airport or flight is open. */
+function parseMapView(value: string | null): MapView | null {
+  const [latitude, longitude, zoom] = (value ?? "").split(",").map(Number);
+  if (![latitude, longitude, zoom].every(Number.isFinite)) return null;
+  if (Math.abs(latitude) > 85 || Math.abs(longitude) > 180 || zoom < 2 || zoom > 18) return null;
+  return { latitude, longitude, zoom: Math.round(zoom) };
+}
+
 function isTyping(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
@@ -110,6 +118,8 @@ export function App() {
   const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
   const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [sharedView] = useState(() => initialParams.get("airport") || initialParams.get("icao24") ? null : parseMapView(initialParams.get("at")));
+  const [mapView, setMapView] = useState<MapView | null>(sharedView);
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
 
@@ -304,6 +314,9 @@ export function App() {
         params.set("date", request.date);
       }
     }
+    if (!request && !selectedFlight && mapView) {
+      params.set("at", `${mapView.latitude.toFixed(3)},${mapView.longitude.toFixed(3)},${mapView.zoom}`);
+    }
     if (selectedFlight) {
       params.set("icao24", selectedFlight.icao24);
       const time = selectedFlight.primary_time ?? selectedFlight.first_seen;
@@ -311,7 +324,7 @@ export function App() {
     }
     const next = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
     window.history.replaceState(null, "", next);
-  }, [airportView, request, selectedFlight]);
+  }, [airportView, mapView, request, selectedFlight]);
 
   const titleAirport = request ? request.airport.iata || request.airport.icao : null;
   useEffect(() => {
@@ -569,7 +582,10 @@ export function App() {
 
       <main className={`workspace ${dockOpen ? "has-dock" : ""} ${trafficOpen ? "traffic-open" : ""}`}>
         <FlightMap
-          airport={request?.airport ?? homeAirport}
+          // A shared map position wins over the home airport until one is opened.
+          airport={request?.airport ?? (sharedView ? null : homeAirport)}
+          initialView={sharedView}
+          onViewChange={setMapView}
           airports={airportPinsEnabled ? favoriteAirportsOnly ? favorites : mapAirports : []}
           nearbyAirports={mapAirports}
           airportCatalogLoading={airportCatalog.isPending}
