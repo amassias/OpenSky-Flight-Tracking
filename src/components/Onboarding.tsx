@@ -40,7 +40,8 @@ const STEPS: TourStep[] = [
   {
     target: ".map-controls",
     title: "Make it yours",
-    body: "Zoom, find your location, pause live updates or go full screen. Filters, labels and units live in the toolbar on the left.",
+    body: "Zoom, find your location, pause live updates or go full screen. Filters, labels and units live in the toolbar on the left, and they stay as you leave them.",
+    keys: ["T theme", "? all shortcuts"],
   },
 ];
 
