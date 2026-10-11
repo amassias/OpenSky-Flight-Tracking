@@ -21,3 +21,11 @@ describe("api.airframeHistory", () => {
     expect(response.registry).toBeNull();
   });
 });
+
+describe("api list answers", () => {
+  it("read a non-array body as an empty list", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } })));
+    expect(await api.searchAirports("CDG")).toEqual([]);
+    expect((await api.liveFlights({ lamin: 48, lomin: 2, lamax: 49, lomax: 3 }, undefined, true)).states).toEqual([]);
+  });
+});

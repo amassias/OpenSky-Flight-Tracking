@@ -84,13 +84,20 @@ async function reserveLiveRequestSlot(signal?: AbortSignal): Promise<void> {
   }
 }
 
+/** An array from a body that should be one; anything else reads as empty. */
+function listOf<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>("/api/health", undefined, signal),
-  mapAirports: (signal?: AbortSignal) => request<Airport[]>("/api/map-airports", undefined, signal),
-  popularAirports: (signal?: AbortSignal) => request<Airport[]>("/api/airports", undefined, signal),
-  searchAirports: (query: string, signal?: AbortSignal) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal),
-  flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
-    request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
+  mapAirports: async (signal?: AbortSignal) => listOf(await request<Airport[]>("/api/map-airports", undefined, signal)),
+  popularAirports: async (signal?: AbortSignal) => listOf(await request<Airport[]>("/api/airports", undefined, signal)),
+  searchAirports: async (query: string, signal?: AbortSignal) => listOf(await request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal)),
+  flights: async (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) => {
+    const response = await request<FlightsResponse>("/api/flights", { airport, date, mode }, signal);
+    return { ...response, flights: listOf(response.flights) };
+  },
   airportConditions: async (airport: string, signal?: AbortSignal) => {
     const response = await request<AirportConditionsResponse>("/api/airport-conditions", { airport }, signal);
     return {
@@ -113,7 +120,10 @@ export const api = {
       registry: response.registry ?? null,
     };
   },
-  aircraftFlights: (registration: string, signal?: AbortSignal) => request<AircraftFlightsResponse>("/api/aircraft-flights", { registration }, signal),
+  aircraftFlights: async (registration: string, signal?: AbortSignal) => {
+    const response = await request<AircraftFlightsResponse>("/api/aircraft-flights", { registration }, signal);
+    return { ...response, flights: listOf(response.flights) };
+  },
   aircraftLookup: (query: string, signal?: AbortSignal) => request<AircraftLookupResponse>("/api/aircraft-lookup", { q: query }, signal),
   airportSchedule: async (airport: string, direction: FlightMode, signal?: AbortSignal) => {
     const response = await request<AirportScheduleResponse>("/api/airport-schedule", { airport, direction }, signal);
@@ -131,7 +141,9 @@ export const api = {
     // The public-feed tile answers from another provider and is never the
     // one being rate limited, so it skips the queue.
     if (!fallbackOnly) await reserveLiveRequestSlot(signal);
-    return request<LiveFlightsResponse>("/api/live-flights", { ...bounds, fallback: fallbackOnly ? 1 : undefined }, signal);
+    const response = await request<LiveFlightsResponse>("/api/live-flights", { ...bounds, fallback: fallbackOnly ? 1 : undefined }, signal);
+    // The map iterates `states` outside any error boundary.
+    return { ...response, states: listOf(response.states) };
   },
   callsignLookup: (callsign: string, signal?: AbortSignal) => request<CallsignLookupResponse>("/api/callsign-lookup", { callsign }, signal),
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
