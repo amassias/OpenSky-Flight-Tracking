@@ -587,7 +587,11 @@ input { caret-color: var(--accent); }
   /* Controls clear the Traffic button, and lift above a sheet only while one is open. */
   .map-controls { bottom: 64px; }
   .location-status { bottom: 244px; }
-  .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .map-controls { bottom: calc(50% + 12px); }
+  /* Above the sheet and clear of the map attribution (18 px) under it. */
+  .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .map-controls { bottom: calc(50% + 26px); }
+  /* With a sheet open there is no room for every group under the top bar;
+     phones zoom with a pinch, so the +/- buttons give way. */
+  .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .map-zoom-group { display: none; }
   .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .leaflet-bottom { bottom: 50%; }
   .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .location-status { bottom: calc(50% + 160px); }
   .map-altitude-legend { display: none; }

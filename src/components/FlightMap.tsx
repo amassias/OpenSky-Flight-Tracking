@@ -1406,7 +1406,7 @@ export function FlightMap({
       </div>
 
       <div className="map-controls" role="group" aria-label="Map controls">
-        <div className="map-control-group">
+        <div className="map-control-group map-zoom-group">
           <button type="button" onClick={() => map?.zoomIn()} aria-label="Zoom in" title="Zoom in"><Plus size={17} /></button>
           <button type="button" onClick={() => map?.zoomOut()} aria-label="Zoom out" title="Zoom out"><Minus size={17} /></button>
         </div>
