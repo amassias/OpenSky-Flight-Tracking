@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { CalendarDays, Heart, PlaneLanding, PlaneTakeoff } from "./icons";
+import { CalendarDays, Heart, PlaneLanding, PlaneTakeoff, Share2 } from "./icons";
 import { AirportSearch } from "./AirportSearch";
 import { AirportConditions, LiveBoard } from "./AirportLive";
 import type { Airport, Flight, FlightMode, LiveAircraft } from "../types";
@@ -22,6 +22,8 @@ interface AirportTabProps {
   onSelect: (airport: Airport) => void;
   onClear: () => void;
   onToggleFavorite: (airport: Airport) => void;
+  /** Shares the current URL, which already names the open airport. */
+  onShare?: () => void;
   selectedIcao24: string | null;
   liveAircraft?: readonly LiveAircraft[];
   onSelectFlight: (flight: Flight) => void;
@@ -56,7 +58,7 @@ function ViewToggle({ view, onChange }: { view: AirportView; onChange: (view: Ai
 
 export function AirportTab({
   selected, popular, recent, favorites, date, mode, view, onDateChange, onModeChange, onViewChange, onSelect, onClear,
-  onToggleFavorite, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
+  onToggleFavorite, onShare, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
 }: AirportTabProps) {
   const favoriteCodes = new Set(favorites.map((airport) => airport.icao));
   const recentOnly = recent.filter((airport) => !favoriteCodes.has(airport.icao));
@@ -82,7 +84,10 @@ export function AirportTab({
               <h2><span className="mono">{selected.iata || selected.icao}</span> {selected.name}</h2>
               <p>{[selected.city, selected.country].filter(Boolean).join(" · ")}</p>
             </div>
+            <div className="airport-identity-actions">
+            {onShare && <button type="button" className="icon-button" aria-label="Share this airport" title="Share this airport" onClick={onShare}><Share2 size={14} /></button>}
             <button type="button" className={`icon-button favorite-toggle ${favorite ? "selected" : ""}`} aria-label={favorite ? "Remove airport from favourites" : "Add airport to favourites"} aria-pressed={favorite} onClick={() => onToggleFavorite(selected)}><Heart size={14} /></button>
+            </div>
           </header>
 
           <AirportConditions key={selected.icao} airport={selected} />

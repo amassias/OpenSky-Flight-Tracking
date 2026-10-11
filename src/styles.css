@@ -613,7 +613,8 @@ input { caret-color: var(--accent); }
 .airport-identity h2 { margin: 0; overflow: hidden; font: 600 16px/1.25 var(--display); letter-spacing: -0.015em; text-overflow: ellipsis; white-space: nowrap; }
 .airport-identity h2 .mono { margin-right: 4px; color: var(--accent); }
 .airport-identity p { margin: 2px 0 0; overflow: hidden; color: var(--quiet); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.airport-identity .icon-button { width: 30px; height: 30px; margin: -4px -4px 0 0; }
+.airport-identity-actions { display: flex; flex: none; gap: 2px; margin: -4px -4px 0 0; }
+.airport-identity .icon-button { width: 30px; height: 30px; }
 .favorite-toggle.selected { color: var(--danger); }
 
 .airport-conditions { display: grid; gap: 8px; padding: 8px 12px 0; }

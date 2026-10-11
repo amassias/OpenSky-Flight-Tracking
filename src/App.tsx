@@ -518,7 +518,7 @@ export function App() {
     }
   }
 
-  async function shareFlight() {
+  async function shareView() {
     const url = window.location.href;
     // Phones get the native share sheet; desktops keep the quick copy.
     const coarse = window.matchMedia?.("(pointer: coarse)").matches;
@@ -534,7 +534,7 @@ export function App() {
       await navigator.clipboard.writeText(url);
       setToast("Share link copied to clipboard.");
     } catch {
-      setToast("Copy this page URL to share the selected flight.");
+      setToast("Copy this page URL to share this view.");
     }
   }
 
@@ -640,7 +640,7 @@ export function App() {
               airports={knownAirports}
               onRetryTrack={() => track.refetch()}
               onClose={() => setSelectedFlight(null)}
-              onShare={shareFlight}
+              onShare={shareView}
             />
           )}
         </AnimatePresence>
@@ -706,6 +706,7 @@ export function App() {
                     onSelect={openAirport}
                     onClear={() => undefined}
                     onToggleFavorite={toggleFavorite}
+                    onShare={shareView}
                     heading={boardHeading}
                   >
                     <div className="stats-row">
