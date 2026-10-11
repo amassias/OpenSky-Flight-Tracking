@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Share2 } from "./icons";
 import { AirportSearch } from "./AirportSearch";
+import { PanelBoundary } from "./PanelBoundary";
 import { AirportConditions, LiveBoard } from "./AirportLive";
 import type { Airport, Flight, FlightMode, LiveAircraft } from "../types";
 import { todayUtc } from "../utils";
@@ -99,7 +100,9 @@ export function AirportTab({
             </div>
           </header>
 
-          <AirportConditions key={selected.icao} airport={selected} />
+          <PanelBoundary label="current conditions" resetKey={selected.icao}>
+            <AirportConditions key={selected.icao} airport={selected} />
+          </PanelBoundary>
 
           <div className="board-controls">
             <div className="mode-switch" role="group" aria-label="Movement type">

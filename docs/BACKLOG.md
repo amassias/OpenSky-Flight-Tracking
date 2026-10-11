@@ -96,4 +96,6 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] Flight detail: working ICAO24 copy, links to other trackers.
 - [x] Hidden tabs skip live refresh rounds; offline state is announced and live traffic refreshes on reconnect.
 - [x] Favicon, home-screen icons, manifest, link previews, security headers, CDN caching of airport catalogue answers.
+- [x] Accessibility audit (axe, WCAG 2 A/AA) in e2e for the live view, the shortcuts sheet, a selected flight and an airport board; the light theme's green status text was darkened to pass contrast.
+- [x] A partial API body can no longer blank the page: track, airframe, conditions, board and schedule answers are normalised in `src/api.ts`, and the flight details, airport board and conditions card sit behind error boundaries with a retry.
 

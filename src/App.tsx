@@ -12,6 +12,7 @@ import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
 import { Onboarding } from "./components/Onboarding";
 import { OmniSearch } from "./components/OmniSearch";
+import { PanelBoundary } from "./components/PanelBoundary";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Topbar } from "./components/Topbar";
 import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
@@ -651,6 +652,7 @@ export function App() {
 
         <AnimatePresence>
           {detailsFlight && !mapExpanded && (
+            <PanelBoundary key="details" label="flight details" resetKey={detailsFlight.icao24} frameClassName="details-drawer dock-panel">
             <FlightDetails
               flight={detailsFlight}
               track={track.data}
@@ -665,6 +667,7 @@ export function App() {
               onClose={() => setSelectedFlight(null)}
               onShare={shareView}
             />
+            </PanelBoundary>
           )}
         </AnimatePresence>
 
@@ -711,6 +714,7 @@ export function App() {
                   </>
                 )}
                 airport={(
+                  <PanelBoundary label="airport board" resetKey={request?.airport.icao ?? null}>
                   <AirportTab
                     selected={request?.airport ?? null}
                     popular={popular.data ?? []}
@@ -751,6 +755,7 @@ export function App() {
                       referencePoint={mapCenter}
                     />
                   </AirportTab>
+                  </PanelBoundary>
                 )}
               />
             </motion.div>

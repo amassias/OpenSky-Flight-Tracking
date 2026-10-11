@@ -91,13 +91,38 @@ export const api = {
   searchAirports: (query: string, signal?: AbortSignal) => request<Airport[]>("/api/search-airports", { q: query, limit: 12 }, signal),
   flights: (airport: string, date: string, mode: FlightMode, signal?: AbortSignal) =>
     request<FlightsResponse>("/api/flights", { airport, date, mode }, signal),
-  airportConditions: (airport: string, signal?: AbortSignal) => request<AirportConditionsResponse>("/api/airport-conditions", { airport }, signal),
-  airframeHistory: (icao24: string, signal?: AbortSignal) => request<AirframeHistoryResponse>("/api/aircraft-history", { icao24 }, signal),
+  airportConditions: async (airport: string, signal?: AbortSignal) => {
+    const response = await request<AirportConditionsResponse>("/api/airport-conditions", { airport }, signal);
+    return {
+      ...response,
+      runways: response.runways ?? [],
+      favoured_runways: response.favoured_runways ?? [],
+      frequencies: response.frequencies ?? [],
+      unavailable: response.unavailable ?? [],
+    };
+  },
+  airframeHistory: async (icao24: string, signal?: AbortSignal) => {
+    const response = await request<AirframeHistoryResponse>("/api/aircraft-history", { icao24 }, signal);
+    // The drawer reads these unguarded; a partial body must not blank the page.
+    return {
+      ...response,
+      airframe: response.airframe ?? {},
+      history: response.history ?? [],
+      linked_icao24: response.linked_icao24 ?? [],
+      sources: response.sources ?? [],
+      registry: response.registry ?? null,
+    };
+  },
   aircraftFlights: (registration: string, signal?: AbortSignal) => request<AircraftFlightsResponse>("/api/aircraft-flights", { registration }, signal),
   aircraftLookup: (query: string, signal?: AbortSignal) => request<AircraftLookupResponse>("/api/aircraft-lookup", { q: query }, signal),
-  airportSchedule: (airport: string, direction: FlightMode, signal?: AbortSignal) =>
-    request<AirportScheduleResponse>("/api/airport-schedule", { airport, direction }, signal),
-  airportBoard: (airport: string, signal?: AbortSignal) => request<AirportBoardResponse>("/api/airport-board", { airport }, signal),
+  airportSchedule: async (airport: string, direction: FlightMode, signal?: AbortSignal) => {
+    const response = await request<AirportScheduleResponse>("/api/airport-schedule", { airport, direction }, signal);
+    return { ...response, flights: response.flights ?? [] };
+  },
+  airportBoard: async (airport: string, signal?: AbortSignal) => {
+    const response = await request<AirportBoardResponse>("/api/airport-board", { airport }, signal);
+    return { ...response, departures: response.departures ?? [], arrivals: response.arrivals ?? [] };
+  },
   liveFlights: async (bounds: Bounds, signal?: AbortSignal, fallbackOnly = false) => {
     // Zoom and pan can emit several different boxes in quick succession. A
     // small client-side spacing keeps those changes responsive while avoiding
@@ -110,7 +135,12 @@ export const api = {
   },
   callsignLookup: (callsign: string, signal?: AbortSignal) => request<CallsignLookupResponse>("/api/callsign-lookup", { callsign }, signal),
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
-  track: (icao24: string, time = 0, signal?: AbortSignal) => request<TrackResponse>("/api/track", { icao24, time }, signal),
+  // Every reader dereferences `track.track`; a body without it (a proxy or
+  // edge error answered with 200) would otherwise blank the whole page.
+  track: async (icao24: string, time = 0, signal?: AbortSignal) => {
+    const response = await request<TrackResponse>("/api/track", { icao24, time }, signal);
+    return { ...response, track: response.track ?? {} };
+  },
 };
 
 export interface AircraftPhoto {

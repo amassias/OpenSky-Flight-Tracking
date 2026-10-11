@@ -69,7 +69,7 @@
   --accent: #0066cc;
   --accent-press: #0058b0;
   --accent-soft: rgba(0, 102, 204, 0.1);
-  --ok: #248a3d;
+  --ok: #1f7a36;
   --warn: #b25000;
   --danger: #d70015;
   --halo: #ffffff;
@@ -225,6 +225,9 @@ input { caret-color: var(--accent); }
 .message-state p { max-width: 260px; margin: 0; font-size: 13px; line-height: 1.45; }
 .message-state.compact { min-height: 140px; }
 .message-icon { display: grid; place-items: center; width: 32px; height: 32px; color: var(--danger); border-radius: 50%; background: var(--fill-strong); font-weight: 700; }
+.panel-error { display: grid; justify-items: start; gap: 6px; padding: 18px 16px; color: var(--muted); font-size: 13px; }
+.panel-error svg { color: var(--warn); }
+.panel-error p { margin: 0; }
 .secondary-button { margin-top: 14px; padding: 7px 16px; color: var(--accent); border: 1px solid var(--accent); border-radius: var(--r-pill); background: transparent; font-size: 13px; cursor: pointer; transition: background .2s var(--ease-out), transform .15s var(--ease-out); }
 .secondary-button:hover { background: var(--accent-soft); }
 .radar-illustration { display: grid; place-items: center; width: 48px; height: 48px; color: var(--quiet); border-radius: 50%; background: var(--fill-strong); }
