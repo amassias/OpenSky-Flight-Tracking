@@ -26,7 +26,10 @@ test.beforeEach(async ({ page }) => {
 test('map controls remain clickable and map resizes in full map', async ({page}, testInfo) => {
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   await page.screenshot({path: testInfo.outputPath('map.png')});
-  await page.getByRole('button', {name: 'Hide panels', exact: true}).click({timeout: 3000});
+  // CI's software-rendered WebKit animates 300 markers slowly, so the
+  // button needs longer than 3 s to report a stable box; clickability is
+  // still what this asserts.
+  await page.getByRole('button', {name: 'Hide panels', exact: true}).click({timeout: 10_000});
   await expect(page.locator('.app')).toHaveClass(/map-expanded/);
   await page.screenshot({path: testInfo.outputPath('full-map.png')});
   await page.getByRole('button', {name: 'Pause live traffic'}).click();
