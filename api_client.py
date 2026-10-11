@@ -864,8 +864,9 @@ class OpenSkyClient:
         """Choose the current record from AeroAPI's list response.
 
         ``/flights/{ident}`` can contain a scheduled, en-route and completed
-        record at once. Prefer an exact identifier/tail match and records with
-        operational timestamps, then choose the one closest to now.
+        record at once. Prefer an exact identifier/tail match, then a record
+        in progress, then the one whose departure-to-arrival window is
+        closest to now.
         """
         flights = payload.get("flights")
         if not isinstance(flights, list):
@@ -875,35 +876,37 @@ class OpenSkyClient:
         now = int(time.time())
 
         def score(item: Dict[str, Any]):
-            score_value = 0
+            # Identity first: the record must be this flight (and airframe).
+            identity = 0
             atc_ident = cls._flightaware_ident(item.get("atc_ident"))
             ident = cls._flightaware_ident(item.get("ident"))
             item_registration = cls._flightaware_ident(item.get("registration") or item.get("tailnumber"))
             if target_callsign and atc_ident == target_callsign:
-                score_value += 150
+                identity += 150
             if target_callsign and ident == target_callsign:
-                score_value += 120
+                identity += 120
             if target_registration and item_registration == target_registration:
-                score_value += 90
-            if item.get("actual_out"):
-                score_value += 120
-            if item.get("actual_in"):
-                score_value += 100
+                identity += 90
+
+            # Then the instance happening now. The list mixes yesterday's
+            # completed leg with today's; ranking completed records higher
+            # (as before) showed a departing BAW33 as "Arrived, 100%".
             status = str(item.get("status") or "").lower()
-            if status.startswith("arriv") or status.startswith("land"):
-                score_value += 100
-            elif status.startswith("en route") or status.startswith("airborne"):
-                score_value += 80
-            elif status.startswith("scheduled"):
-                score_value += 20
-            scheduled_out = cls._provider_timestamp(item.get("scheduled_out"))
-            distance = abs(now - scheduled_out) if scheduled_out is not None else 86_400
-            progress = item.get("progress_percent")
-            try:
-                score_value += max(0, min(10, int(float(progress) // 10)))
-            except (TypeError, ValueError):
-                pass
-            return score_value, 1 if item.get("actual_out") else 0, -distance
+            active = bool(item.get("actual_out") or item.get("actual_off")) and not item.get("actual_in") \
+                and not item.get("cancelled") and not status.startswith(("arriv", "land", "cancel"))
+            start = next((value for value in (
+                cls._provider_timestamp(item.get(key)) for key in ("actual_out", "estimated_out", "scheduled_out")
+            ) if value is not None), None)
+            finish = next((value for value in (
+                cls._provider_timestamp(item.get(key)) for key in ("actual_in", "estimated_in", "scheduled_in")
+            ) if value is not None), None)
+            if start is None and finish is None:
+                distance = 86_400 * 7
+            elif start is not None and finish is not None and start <= now <= finish:
+                distance = 0
+            else:
+                distance = min(abs(now - edge) for edge in (start, finish) if edge is not None)
+            return identity, 1 if active else 0, -distance
 
         candidates = [item for item in flights if isinstance(item, dict)]
         return max(candidates, key=score) if candidates else None
@@ -1321,6 +1324,13 @@ class OpenSkyClient:
         status = str((result or {}).get("status") or "").lower()
         stable = bool((result or {}).get("actual_in")) or status.startswith(("arriv", "land", "cancel", "divert"))
         expires_at = now + (stable_ttl if stable else cache_ttl)
+        if stable:
+            # A finished leg stops being the current one when the next flight
+            # under the same callsign starts (daily flights, shuttles). Keep it
+            # two hours past its arrival at most, never less than the normal TTL.
+            arrived = self._provider_timestamp((result or {}).get("actual_in"))
+            if arrived is not None:
+                expires_at = max(now + cache_ttl, min(expires_at, arrived + 2 * 3600))
         if len(self._flightaware_cache) >= 256:
             oldest_key = min(self._flightaware_cache, key=lambda key: self._flightaware_cache[key].get("checked_at", 0))
             self._flightaware_cache.pop(oldest_key, None)

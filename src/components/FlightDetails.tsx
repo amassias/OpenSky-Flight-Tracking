@@ -162,7 +162,9 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
     };
   }, [airframe, liveFlight]);
   const path = track?.track.path ?? [];
-  const operations = flight.flightaware;
+  // An aircraft in the air cannot be on a leg that has already arrived: that
+  // record is the previous flight under the same callsign, so leave it out.
+  const operations = flight.on_ground === false && flight.flightaware?.actual_in ? null : flight.flightaware;
   const emergency = emergencyInfo(flight);
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);

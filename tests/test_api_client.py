@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from unittest.mock import Mock, patch
 
@@ -437,3 +439,29 @@ def test_aircraft_profile_ignores_stale_cache():
     row = ["398604", "AFR28VV", "France", 1, 1, 2.5, 49.0, 9000, False, 200, 90, 0, None, 9100, "1000", False, 0, 3, {"registration": "F-HBQE"}]
     client._live_cache["old"] = {"fetched_at": 0, "result": {"states": [row]}}
     assert client._recent_live_row("398604") is None
+
+
+def _iso(seconds_from_now: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + seconds_from_now))
+
+
+def test_flightaware_prefers_todays_leg_over_yesterdays_arrival():
+    # A real case: BAW33 had just taken off while FlightAware also listed
+    # yesterday's BAW33, arrived, which used to win and read "100% flown".
+    yesterday = {
+        "ident": "BAW33", "atc_ident": "BAW33", "status": "Arrived / Gate Arrival", "progress_percent": 100,
+        "scheduled_out": _iso(-24 * 3600), "actual_out": _iso(-24 * 3600), "actual_in": _iso(-12 * 3600),
+    }
+    today = {
+        "ident": "BAW33", "atc_ident": "BAW33", "status": "En Route / On Time", "progress_percent": 1,
+        "scheduled_out": _iso(-600), "actual_out": _iso(-900), "estimated_in": _iso(12 * 3600),
+    }
+    picked = OpenSkyClient._pick_flightaware_flight({"flights": [yesterday, today]}, "BAW33")
+    assert picked is today
+
+
+def test_flightaware_keeps_a_fresh_arrival_over_tomorrows_schedule():
+    arrived = {"ident": "BAW33", "atc_ident": "BAW33", "status": "Arrived", "actual_out": _iso(-13 * 3600), "actual_in": _iso(-600)}
+    tomorrow = {"ident": "BAW33", "atc_ident": "BAW33", "status": "Scheduled", "scheduled_out": _iso(20 * 3600)}
+    picked = OpenSkyClient._pick_flightaware_flight({"flights": [tomorrow, arrived]}, "BAW33")
+    assert picked is arrived

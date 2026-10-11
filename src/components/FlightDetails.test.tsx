@@ -47,4 +47,10 @@ describe("FlightDetails", () => {
     renderDetails({ latitude: 49, longitude: 2.5 }, [48, 2.5]);
     expect(screen.getByText(/N of you$/)).toBeInTheDocument();
   });
+
+  it("ignores an arrived FlightAware record while the aircraft is flying", () => {
+    renderDetails({ on_ground: false, flightaware: { provider: "FlightAware", status: "Arrived / Gate Arrival", progress_percent: 100, actual_in: "2026-10-11T09:11:00Z" } as Flight["flightaware"] });
+    expect(screen.queryByText("100% flown")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Arrived/)).not.toBeInTheDocument();
+  });
 });
