@@ -24,6 +24,8 @@ interface AirportTabProps {
   onToggleFavorite: (airport: Airport) => void;
   /** Shares the current URL, which already names the open airport. */
   onShare?: () => void;
+  /** Forgets the recently opened airports kept in this browser. */
+  onClearRecent?: () => void;
   selectedIcao24: string | null;
   liveAircraft?: readonly LiveAircraft[];
   onSelectFlight: (flight: Flight) => void;
@@ -65,7 +67,7 @@ function ViewToggle({ view, onChange }: { view: AirportView; onChange: (view: Ai
 
 export function AirportTab({
   selected, popular, recent, favorites, date, mode, view, onDateChange, onModeChange, onViewChange, onSelect, onClear,
-  onToggleFavorite, onShare, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
+  onToggleFavorite, onShare, onClearRecent, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
 }: AirportTabProps) {
   const favoriteCodes = new Set(favorites.map((airport) => airport.icao));
   const recentOnly = recent.filter((airport) => !favoriteCodes.has(airport.icao));
@@ -147,7 +149,7 @@ export function AirportTab({
             <ShortcutList airports={favorites} onSelect={onSelect} />
           </>}
           {recentOnly.length > 0 && <>
-            <h3>Recent</h3>
+            <h3>Recent{onClearRecent && <button type="button" className="shortcuts-clear" onClick={onClearRecent}>Clear</button>}</h3>
             <ShortcutList airports={recentOnly.slice(0, favorites.length ? 3 : 6)} onSelect={onSelect} />
           </>}
           <h3>Busy airports</h3>

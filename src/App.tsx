@@ -719,6 +719,7 @@ export function App() {
                     onClear={() => undefined}
                     onToggleFavorite={toggleFavorite}
                     onShare={shareView}
+                    onClearRecent={() => setRecent([])}
                     heading={boardHeading}
                   >
                     <div className="stats-row">
