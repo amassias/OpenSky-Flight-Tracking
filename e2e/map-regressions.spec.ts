@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const airport = { icao: 'LFPG', iata: 'CDG', name: 'Paris Charles de Gaulle', latitude: 49, longitude: 2.5 };
 let returnWideViewport = false;
@@ -23,23 +23,29 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+/**
+ * CI's software-rendered WebKit sometimes never reports a stable box for the
+ * map controls under 300 markers. What matters is that no marker covers a
+ * control: hit-test its centre explicitly, then click without that wait.
+ */
+async function clickUncovered(page: Page, name: string) {
+  const control = page.getByRole('button', {name, exact: true});
+  await expect(control).toBeVisible();
+  const box = (await control.boundingBox())!;
+  const onTop = await page.evaluate(({x, y}) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), {x: box.x + box.width / 2, y: box.y + box.height / 2});
+  expect(onTop).toBe(name);
+  await control.click({force: true});
+}
+
 test('map controls remain clickable and map resizes in full map', async ({page}, testInfo) => {
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   await page.screenshot({path: testInfo.outputPath('map.png')});
-  // CI's software-rendered WebKit sometimes never reports a stable box for
-  // this button under 300 markers. What matters is that no marker covers it:
-  // hit-test its centre explicitly, then click without the stability wait.
-  const hidePanels = page.getByRole('button', {name: 'Hide panels', exact: true});
-  await expect(hidePanels).toBeVisible();
-  const box = (await hidePanels.boundingBox())!;
-  const onTop = await page.evaluate(({x, y}) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), {x: box.x + box.width / 2, y: box.y + box.height / 2});
-  expect(onTop).toBe('Hide panels');
-  await hidePanels.click({force: true});
+  await clickUncovered(page, 'Hide panels');
   await expect(page.locator('.app')).toHaveClass(/map-expanded/);
   await page.screenshot({path: testInfo.outputPath('full-map.png')});
-  await page.getByRole('button', {name: 'Pause live traffic'}).click();
+  await clickUncovered(page, 'Pause live traffic');
   await expect(page.getByText('Live traffic paused')).toBeVisible();
-  await page.getByRole('button', {name: 'Show panels'}).click();
+  await clickUncovered(page, 'Show panels');
 });
 
 test('clock does not rewrite aircraft DOM', async ({page}) => {
