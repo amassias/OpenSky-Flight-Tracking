@@ -16,6 +16,7 @@ import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Topbar } from "./components/Topbar";
 import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
+import { getUnits, setUnits } from "./units";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
 import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme, MapView } from "./types";
 import { emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
@@ -420,6 +421,7 @@ export function App() {
       else if (event.key.toLowerCase() === "t" && !event.shiftKey) toggleThemeRef.current();
       else if (event.key.toLowerCase() === "l" && !event.shiftKey) setLabelsEnabled((current) => !current);
       else if (event.key.toLowerCase() === "p" && !event.shiftKey) setTrailsEnabled((current) => !current);
+      else if (event.key.toLowerCase() === "u" && !event.shiftKey) setUnits(getUnits() === "metric" ? "aviation" : "metric");
     }
     window.addEventListener("keydown", handleGlobalKeys);
     return () => window.removeEventListener("keydown", handleGlobalKeys);

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { getUnits } from "./units";
 
 vi.mock("./components/FlightMap", () => ({
   FlightMap: () => <div aria-label="Live flight map">Map</div>,
@@ -221,6 +222,12 @@ describe("App", () => {
     const before = container.querySelector(".app")!.className.includes("theme-light");
     await userEvent.keyboard("t");
     expect(container.querySelector(".app")!.className.includes("theme-light")).toBe(!before);
+
+    const unitsBefore = getUnits();
+    await userEvent.keyboard("u");
+    expect(getUnits()).not.toBe(unitsBefore);
+    await userEvent.keyboard("u");
+    expect(getUnits()).toBe(unitsBefore);
   });
 
   it("keeps map filters for the next visit", async () => {

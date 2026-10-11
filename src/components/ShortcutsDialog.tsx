@@ -10,6 +10,7 @@ const SHORTCUTS: ReadonlyArray<{ keys: string[]; label: string }> = [
   { keys: ["T"], label: "Switch between dark and light map" },
   { keys: ["L"], label: "Show or hide aircraft labels" },
   { keys: ["P"], label: "Show or hide aircraft trails (paths)" },
+  { keys: ["U"], label: "Switch units: ft · kt or m · km/h" },
   { keys: ["?"], label: "Show these shortcuts" },
   { keys: ["Esc"], label: "Close search, menu, full map or flight detail" },
 ];
