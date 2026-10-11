@@ -23,7 +23,7 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B10: Keyboard navigation through flight cards** with ↑/↓, Home and End.
 - [x] **B11: Added a "Nearest" sort** that orders the board by distance to the map centre.
 - [x] **B12: The status filter and sort order are remembered between visits.** The text filter stays per session, so the list never loads mysteriously filtered.
-- [ ] B13: Add a light-theme visual regression capture to the e2e suite.
+- [x] **B13: Light-theme capture in the e2e suite.** `e2e/theme.spec.ts` saves a light-theme screenshot and checks the system-theme default, the `T` key, the saved choice and the browser theme colour.
 - [x] **B14: Unified the icon set on Font Awesome Free (solid)**, replacing lucide. Icons are generated from the local FA download by `scripts/build-icons.mjs`.
 - [x] **B15: At 1280 px the map title ran under the LIVE badge, and the mobile search sheet let the map show through.**
 
@@ -83,3 +83,17 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B49: Airframe history.** Owners, operators and registrations over time from OpenSky snapshots (all countries) and the FAA registry (US), the registered owner today from ADSBDB, serial number and age, and recent flights on demand.
 - [x] **B50: Search by registration.** `F-HBXA`, `N283VA` or a hex code opens an airframe anywhere; aircraft that are not flying show a clear "not in the live feed" state instead of an endless "Resolving…".
 - [ ] B51: Refresh `data/aircraft-history` and `data/faa-registry` on a schedule (the OpenSky snapshots end in August 2025).
+
+## Improvement pass (2026-10-11)
+
+- [x] Keyboard shortcuts sheet (`?`), `T` theme and `L` labels keys.
+- [x] Altitude and ground map filters saved between visits (free text stays per session, as in B12).
+- [x] Up to eight favourites all listed, recent airports kept below them and clearable; a ninth favourite is refused with a notice.
+- [x] Phone map controls stay at the bottom when no sheet is open.
+- [x] Ticket flight numbers: `AF1234` finds `AFR1234` in search and filters, and is shown beside airline callsigns.
+- [x] Sharing: airport boards, the map position (`?at=lat,lon,zoom`), and the native share sheet on phones.
+- [x] Airport history: previous/next day arrows, no future dates.
+- [x] Flight detail: working ICAO24 copy, links to other trackers.
+- [x] Hidden tabs skip live refresh rounds; offline state is announced and live traffic refreshes on reconnect.
+- [x] Favicon, home-screen icons, manifest, link previews, security headers, CDN caching of airport catalogue answers.
+
