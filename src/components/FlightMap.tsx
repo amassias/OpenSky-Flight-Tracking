@@ -935,8 +935,13 @@ export function FlightMap({
       setLiveRefresh((value) => value + 1);
     }
     document.addEventListener("visibilitychange", resume);
-    return () => document.removeEventListener("visibilitychange", resume);
-  }, []);
+    // Back online: refresh now rather than waiting out the retry timer.
+    window.addEventListener("online", requestLiveRefresh);
+    return () => {
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", requestLiveRefresh);
+    };
+  }, [requestLiveRefresh]);
   const [liveState, setLiveState] = useState<ProgressiveLiveState>({
     data: null,
     fetching: false,

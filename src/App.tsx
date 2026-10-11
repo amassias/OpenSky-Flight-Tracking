@@ -324,6 +324,18 @@ export function App() {
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme] ?? THEME_COLORS.dark);
   }, [theme]);
 
+  // A lost connection would otherwise look like an empty sky.
+  useEffect(() => {
+    const offline = () => setToast("You are offline. The map keeps the last positions until the connection returns.");
+    const online = () => setToast("Back online. Live traffic is refreshing.");
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    return () => {
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", online);
+    };
+  }, [setToast]);
+
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2800);
