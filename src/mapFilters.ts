@@ -21,7 +21,18 @@ export function activeFilterCount(filters: MapFilters): number {
     + Number(filters.query.trim() !== "");
 }
 
-export function matchesFilters(aircraft: Flight, filters: MapFilters): boolean {
+interface CompiledQuery {
+  terms: string[];
+  /** Callsign forms of each term when it is a ticket flight number. */
+  flightNumbers: string[][];
+}
+
+function compileQuery(query: string): CompiledQuery {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return { terms, flightNumbers: terms.map(callsignsForFlightNumber) };
+}
+
+export function matchesFilters(aircraft: Flight, filters: MapFilters, query: CompiledQuery = compileQuery(filters.query)): boolean {
   // A declared emergency is never filtered out of sight.
   if (emergencyInfo(aircraft)) return true;
   if (filters.hideGround && aircraft.on_ground) return false;
@@ -33,16 +44,19 @@ export function matchesFilters(aircraft: Flight, filters: MapFilters): boolean {
     if (filters.minAltitudeFt != null && feet < filters.minAltitudeFt) return false;
     if (filters.maxAltitudeFt != null && feet > filters.maxAltitudeFt) return false;
   }
-  const terms = filters.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const { terms, flightNumbers } = query;
   if (terms.length) {
     const haystack = [aircraft.callsign, aircraft.airline_name, aircraft.airline_code, aircraft.registration, aircraft.aircraft_type, aircraft.aircraft_description, aircraft.icao24]
       .filter(Boolean).join(" ").toLowerCase();
     const callsign = (aircraft.callsign || "").toLowerCase();
-    if (!terms.every((term) => haystack.includes(term) || callsignsForFlightNumber(term).some((form) => callsign.startsWith(form)))) return false;
+    if (!terms.every((term, index) => haystack.includes(term) || flightNumbers[index].some((form) => callsign.startsWith(form)))) return false;
   }
   return true;
 }
 
 export function filterAircraft<T extends Flight>(aircraft: readonly T[], filters: MapFilters): readonly T[] {
-  return activeFilterCount(filters) === 0 ? aircraft : aircraft.filter((item) => matchesFilters(item, filters));
+  if (activeFilterCount(filters) === 0) return aircraft;
+  // Parsed once per pass, not once per aircraft: a wide view holds thousands.
+  const query = compileQuery(filters.query);
+  return aircraft.filter((item) => matchesFilters(item, filters, query));
 }
