@@ -687,6 +687,25 @@ function useReveal(key: string, ready: boolean, duration: number): number {
   return state.key === key ? state.value : 0;
 }
 
+/** Eases 0 to 1 over `duration` ms once `active`; stays at 0 until then. */
+function useRamp(active: boolean, duration: number): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!active) { setValue(0); return; }
+    if (prefersReducedMotion()) { setValue(1); return; }
+    const start = performance.now();
+    let frame = 0;
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      setValue(1 - (1 - progress) ** 2);
+      if (progress < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [active, duration]);
+  return value;
+}
+
 /** The first `fraction` of a trace, ending on a point interpolated inside its last segment. */
 function revealPath(points: TrackPoint[], fraction: number): TrackPoint[] {
   if (fraction >= 1 || points.length < 3) return points;
@@ -740,6 +759,9 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const drawnBase = useMemo(() => revealPath(basePoints, fraction), [basePoints, fraction]);
   // The line also fades in over the first part of the reveal.
   const fade = Math.min(1, fraction * 4);
+  // The stretch up to the aircraft joins in once the trace is complete, fading
+  // in rather than popping.
+  const headFade = useRamp(fraction >= 1, 450);
   const baseSegments = useMemo(() => buildAltitudeSegments(drawnBase), [drawnBase]);
   const lastBase = basePoints[basePoints.length - 1];
   // The last stretch joins the end of the trace to the aircraft's position now.
@@ -800,11 +822,11 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   return (
     <>
       {halo.length > 1 && <Polyline positions={halo} pathOptions={haloOptions} />}
-      {headSegment && <Polyline positions={headSegment.positions} pathOptions={haloOptions} />}
+      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ ...haloOptions, opacity: haloOptions.opacity * headFade }} />}
       {baseSegments.map((segment, index) => (
         <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96 * fade, lineCap: "round", lineJoin: "round" }} />
       ))}
-      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ color: headSegment.color, weight: 3.5, opacity: 0.96 * fade, lineCap: "round", lineJoin: "round" }} />}
+      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ color: headSegment.color, weight: 3.5, opacity: 0.96 * headFade, lineCap: "round", lineJoin: "round" }} />}
       {firstPoint && basePoints.length > 1 && fade > 0.5 && (
         <Marker position={[firstPoint[1], firstPoint[2]]} icon={startIcon} keyboard={false}>
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="aircraft-tooltip"><strong>Trace start</strong><span className="mono">{formatAltitude(firstPoint[3])}</span></Tooltip>
