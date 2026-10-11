@@ -225,6 +225,7 @@ input { caret-color: var(--accent); }
 .message-state p { max-width: 260px; margin: 0; font-size: 13px; line-height: 1.45; }
 .message-state.compact { min-height: 140px; }
 .message-icon { display: grid; place-items: center; width: 32px; height: 32px; color: var(--danger); border-radius: 50%; background: var(--fill-strong); font-weight: 700; }
+.app-error { display: grid; place-items: center; min-height: 100vh; color: var(--text); background: var(--bg); }
 .panel-error { display: grid; justify-items: start; gap: 6px; padding: 18px 16px; color: var(--muted); font-size: 13px; }
 .panel-error svg { color: var(--warn); }
 .panel-error p { margin: 0; }

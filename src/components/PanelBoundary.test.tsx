@@ -18,4 +18,11 @@ describe("PanelBoundary", () => {
     rerender(<div><p>Map</p><PanelBoundary label="flight details" resetKey="b"><Broken fail={false} /></PanelBoundary></div>);
     expect(screen.getByText("Panel content")).toBeInTheDocument();
   });
+
+  it("offers a reload when the whole app fails", () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    render(<PanelBoundary label="app" reload><Broken fail /></PanelBoundary>);
+    expect(screen.getByRole("alert")).toHaveTextContent("SkyTrace hit an unexpected error.");
+    expect(screen.getByRole("button", { name: "Reload SkyTrace" })).toBeInTheDocument();
+  });
 });

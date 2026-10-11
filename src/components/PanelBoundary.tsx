@@ -8,6 +8,8 @@ interface PanelBoundaryProps {
   resetKey?: string | number | null;
   /** Class of a frame around the message, so it sits where the panel was. */
   frameClassName?: string;
+  /** Offers a page reload instead of an in-place retry (for the whole app). */
+  reload?: boolean;
   children: ReactNode;
 }
 
@@ -40,8 +42,10 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
     const message = (
       <div className="panel-error" role="alert">
         <TriangleAlert size={16} aria-hidden="true" />
-        <p>The {this.props.label} could not be shown. The map keeps working.</p>
-        <button type="button" className="secondary-button" onClick={() => this.setState({ error: null })}>Try again</button>
+        <p>{this.props.reload ? `SkyTrace hit an unexpected error.` : `The ${this.props.label} could not be shown. The map keeps working.`}</p>
+        {this.props.reload
+          ? <button type="button" className="secondary-button" onClick={() => window.location.reload()}>Reload SkyTrace</button>
+          : <button type="button" className="secondary-button" onClick={() => this.setState({ error: null })}>Try again</button>}
       </div>
     );
     return this.props.frameClassName ? <div className={this.props.frameClassName}>{message}</div> : message;

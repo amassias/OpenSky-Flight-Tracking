@@ -5,6 +5,7 @@ import { MotionConfig } from "motion/react";
 import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import { App } from "./App";
+import { PanelBoundary } from "./components/PanelBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,7 +17,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <MotionConfig reducedMotion="user">
-        <App />
+        <PanelBoundary label="app" reload frameClassName="app-error">
+          <App />
+        </PanelBoundary>
       </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,
