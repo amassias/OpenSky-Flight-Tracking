@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from math import asin, ceil, cos, radians, sin, sqrt
@@ -499,10 +500,13 @@ class OpenSkyClient:
         icao24_list: Optional[Iterable[str]] = None,
         bbox: Optional[tuple] = None,
         point: Optional[tuple] = None,
+        callsign: Optional[str] = None,
     ):
         """Fetch live ADS-B positions from the public production fallback."""
         grid_coverage = False
-        if point:
+        if callsign:
+            endpoints = [f"callsign/{re.sub(r'[^A-Z0-9]', '', str(callsign).upper())[:8]}"]
+        elif point:
             latitude, longitude, radius_nm = point
             endpoints = [f"point/{float(latitude):.4f}/{float(longitude):.4f}/{max(1.0, min(250.0, float(radius_nm))):.0f}"]
         elif icao24_list:
@@ -1417,6 +1421,10 @@ class OpenSkyClient:
     def get_live_fallback_states(self, bbox: tuple):
         """Fetch one provider-safe live tile without waiting on OpenSky."""
         return self._get_airplanes_live_states(bbox=bbox)
+
+    def get_live_callsign_states(self, callsign: str):
+        """The aircraft currently flying under one callsign, wherever it is."""
+        return self._get_airplanes_live_states(callsign=callsign)
 
     def get_live_point_states(self, latitude: float, longitude: float, radius_nm: float):
         """Every aircraft within one public-provider circle (at most 250 NM)."""

@@ -244,7 +244,7 @@ export function FlightList({
           <div className="message-state">
             <Plane size={26} aria-hidden="true" />
             <h3>{live ? "No aircraft in view" : notice ? "Historical data unavailable" : "No movements found"}</h3>
-            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice || "OpenSky has no recorded flights for this airport and UTC date. Try the previous day."}</p>
+            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice || "No recorded flights for this airport and date. Try the previous day."}</p>
             {notice && <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>}
           </div>
         )}

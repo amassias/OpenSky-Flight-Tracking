@@ -1,9 +1,9 @@
-import { memo, useMemo, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Moon, PlaneLanding, PlaneTakeoff, Radio, Sun, TriangleAlert } from "./icons";
 import { RunwayIcon, WindArrow } from "./customIcons";
 import { api, readableApiError } from "../api";
-import { PHASE_LABEL, boardRowToFlight, localTime, mergeSchedule, minutesUntil, relativeAge, runwayLength, scheduleEntryToFlight, sunTimes, surfaceName, utcOffsetLabel, visibilityText, type ScheduleEntry, type ScheduleTone } from "../airportLive";
+import { PHASE_LABEL, boardRowToFlight, localTime, mergeSchedule, minutesUntil, relativeAge, runwayLength, scheduleEntryToFlight, scheduledOnlyFlight, sunTimes, surfaceName, utcOffsetLabel, visibilityText, type ScheduleEntry, type ScheduleTone } from "../airportLive";
 import { useNow } from "../hooks/useNow";
 import type { Airport, AirportConditionsResponse, BoardFlight, Flight, FlightMode, LiveAircraft } from "../types";
 import { formatAltitude, formatSpeed } from "../utils";
@@ -151,7 +151,6 @@ export function AirportConditions({ airport }: { airport: Airport }) {
                 {data?.airport.wikipedia && <> · <a href={data.airport.wikipedia} target="_blank" rel="noreferrer">Wikipedia</a></>}
                 {airport.website && <> · <a href={airport.website} target="_blank" rel="noreferrer">Website</a></>}
               </p>
-              <p className="conditions-note">Weather: NOAA Aviation Weather Center · Runways & frequencies: OurAirports{delays ? " · Delays: FAA NAS Status" : ""}</p>
             </div>
           </details>
         </div>
@@ -163,7 +162,7 @@ export function AirportConditions({ airport }: { airport: Airport }) {
           <span><strong>{delayHeadline(delay)}</strong>{delay.reason ? <small>{delay.reason.length > 90 ? `${delay.reason.slice(0, 90)}…` : delay.reason}</small> : null}</span>
         </div>
       ))}
-      {delays && delays.length === 0 && <p className="delay-clear">FAA: no delay programme or ground stop reported.</p>}
+      {delays && delays.length === 0 && <p className="delay-clear">No delay programme or ground stop reported.</p>}
     </section>
   );
 }
@@ -272,12 +271,14 @@ interface ScheduleRowProps {
   airport: Airport;
   now: number;
   selected: boolean;
+  resolving: boolean;
   onSelect: (flight: Flight) => void;
+  onResolve: (entry: ScheduleEntry) => void;
   onPreview?: (flight: Flight | null) => void;
 }
 
 /** One FlightAware flight: gate times, gate and status, live progress when the aircraft is in view. */
-const ScheduleRow = memo(function ScheduleRow({ entry, mode, airport, now, selected, onSelect, onPreview }: ScheduleRowProps) {
+const ScheduleRow = memo(function ScheduleRow({ entry, mode, airport, now, selected, resolving, onSelect, onResolve, onPreview }: ScheduleRowProps) {
   useUnits();
   const { flight, live } = entry;
   const other = mode === "departure" ? flight.destination : flight.origin;
@@ -307,17 +308,17 @@ const ScheduleRow = memo(function ScheduleRow({ entry, mode, airport, now, selec
       cancelled={Boolean(flight.cancelled)}
     />
   );
-  if (!selectable) return <div className={`board-row is-static tone-${entry.tone}`} title="Not in live view yet">{content}</div>;
   return (
     <button
       type="button"
-      className={`board-row tone-${entry.tone} ${selected ? "selected" : ""}`}
+      className={`board-row tone-${entry.tone} ${selected ? "selected" : ""} ${resolving ? "is-resolving" : ""}`}
       aria-pressed={selected}
-      onClick={() => onSelect(selectable)}
-      onMouseEnter={() => onPreview?.(selectable)}
-      onMouseLeave={() => onPreview?.(null)}
-      onFocus={() => onPreview?.(selectable)}
-      onBlur={() => onPreview?.(null)}
+      aria-busy={resolving}
+      onClick={() => selectable ? onSelect(selectable) : onResolve(entry)}
+      onMouseEnter={() => selectable && onPreview?.(selectable)}
+      onMouseLeave={() => selectable && onPreview?.(null)}
+      onFocus={() => selectable && onPreview?.(selectable)}
+      onBlur={() => selectable && onPreview?.(null)}
     >
       {content}
     </button>
@@ -362,6 +363,37 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
     refetchInterval: 10 * 60_000,
     retry: false,
   });
+  // A scheduled flight that is not on the map yet is looked up by callsign
+  // (it may be flying anywhere), then by its registration, so every row opens.
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveNotice, setResolveNotice] = useState<string | null>(null);
+  const resolveToken = useRef(0);
+  const resolveScheduled = useCallback(async (entry: ScheduleEntry) => {
+    const id = entry.flight.fa_flight_id ?? entry.flight.ident ?? "";
+    const token = ++resolveToken.current;
+    setResolvingId(id);
+    setResolveNotice(null);
+    try {
+      let flight: Flight | null = null;
+      const idents = [entry.flight.atc_ident, entry.flight.ident_icao, entry.flight.ident].filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index);
+      for (const ident of idents) {
+        // A provider hiccup must not hide the registration fallback below.
+        const result = await api.callsignLookup(ident).catch(() => null);
+        if (result?.aircraft) { flight = scheduleEntryToFlight(entry, result.aircraft); break; }
+      }
+      if (!flight && entry.flight.registration) {
+        const lookup = await api.aircraftLookup(entry.flight.registration);
+        if (lookup.icao24) flight = scheduledOnlyFlight(entry, lookup.icao24);
+      }
+      if (token !== resolveToken.current) return;
+      if (flight) onSelect(flight);
+      else setResolveNotice(`${entry.flight.ident_iata || entry.flight.ident || "This flight"} has no aircraft assigned yet.`);
+    } catch {
+      if (token === resolveToken.current) setResolveNotice("Could not reach this flight right now. Try again.");
+    } finally {
+      if (token === resolveToken.current) setResolvingId(null);
+    }
+  }, [onSelect]);
   const observed = mode === "departure" ? board.data?.departures ?? [] : board.data?.arrivals ?? [];
   const merged = useMemo(() => {
     const flights = schedule.data?.available ? schedule.data.flights : [];
@@ -395,6 +427,7 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
       </div>
 
       <div className="live-board-rows" aria-busy={board.isFetching}>
+        {resolveNotice && <p className="board-resolve-notice" role="status">{resolveNotice}</p>}
         {board.isPending && Array.from({ length: 5 }, (_, index) => <div key={index} className="board-row skeleton" aria-hidden="true" />)}
         {board.isError && !board.data && (
           <div className="message-state compact">
@@ -407,7 +440,7 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
           <>
             <h4 className="board-section">Scheduled {mode === "departure" ? "departures" : "arrivals"}</h4>
             {merged.entries.map((entry) => (
-              <ScheduleRow key={entry.flight.fa_flight_id ?? entry.flight.ident ?? ""} entry={entry} mode={mode} airport={airport} now={now} selected={entry.live?.icao24 === selectedIcao24} onSelect={onSelect} onPreview={onPreview} />
+              <ScheduleRow key={entry.flight.fa_flight_id ?? entry.flight.ident ?? ""} entry={entry} mode={mode} airport={airport} now={now} selected={entry.live?.icao24 === selectedIcao24} resolving={resolvingId === (entry.flight.fa_flight_id ?? entry.flight.ident ?? "")} onSelect={onSelect} onResolve={resolveScheduled} onPreview={onPreview} />
             ))}
             {rows.length > 0 && <h4 className="board-section">Also seen live</h4>}
           </>
@@ -426,20 +459,6 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
         ))}
       </div>
 
-      {schedule.data && (schedule.data.available || schedule.data.reason === "budget") && (
-        <p className="live-board-source">
-          {schedule.data.available
-            ? <>Times, gates and status: FlightAware AeroAPI, the next {schedule.data.flights.length} airline {mode === "departure" ? "departures" : "arrivals"}{schedule.data.fetched_at ? `, updated ${relativeAge(schedule.data.fetched_at, now)}` : ""}{schedule.data.stale ? " (refresh delayed)" : ""}. Progress and arrival estimates use the aircraft's live position.</>
-            : "The scheduled board is paused: this month's FlightAware allowance is used. Live observations continue below."}
-        </p>
-      )}
-      {board.data && (
-        <p className="live-board-source">
-          Observed live by ADS-B within {distanceText(board.data.radius_nm * 1.852, units)} ({board.data.aircraft_scanned} aircraft scanned)
-          {board.data.routes_pending > 0 ? ` · resolving ${board.data.routes_pending} more routes` : ""}.
-          Routes come from each callsign's usual service (adsb.lol), not a timetable; arrival times are estimated from distance and ground speed.
-        </p>
-      )}
     </section>
   );
 }

@@ -9,6 +9,8 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:4173",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // The first-visit tour is covered by its own spec; skip it elsewhere.
+    storageState: { cookies: [], origins: [{ origin: "http://127.0.0.1:4173", localStorage: [{ name: "skytrace-onboarded", value: "true" }] }] },
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },

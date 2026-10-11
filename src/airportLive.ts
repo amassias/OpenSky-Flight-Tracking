@@ -219,9 +219,10 @@ function scheduleStatus(flight: FlightAwareDetails, live: LiveAircraft | null, m
   return { status: "On time", tone: "neutral" };
 }
 
-/** A scheduled flight seen live, as a selectable flight with FlightAware's route and operations. */
-export function scheduleEntryToFlight(entry: ScheduleEntry): Flight | null {
-  const { flight, live } = entry;
+/** A scheduled flight with an aircraft attached, as a selectable flight with FlightAware's route and operations. */
+export function scheduleEntryToFlight(entry: ScheduleEntry, aircraft: LiveAircraft | null = entry.live): Flight | null {
+  const { flight } = entry;
+  const live = aircraft;
   if (!live) return null;
   return {
     ...live,
@@ -233,6 +234,28 @@ export function scheduleEntryToFlight(entry: ScheduleEntry): Flight | null {
     departure_airport_name: flight.origin?.name ?? live.departure_airport_name ?? null,
     arrival_airport: flight.destination?.code_icao ?? live.arrival_airport ?? null,
     arrival_airport_name: flight.destination?.name ?? live.arrival_airport_name ?? null,
+    route_source: "flightaware",
+    route_provider: "FlightAware",
+    flightaware: flight,
+  };
+}
+
+/** A scheduled flight whose aircraft is not flying (yet): only the registration identifies it. */
+export function scheduledOnlyFlight(entry: ScheduleEntry, icao24: string): Flight {
+  const { flight } = entry;
+  return {
+    icao24,
+    callsign: flight.atc_ident || flight.ident || flight.ident_iata || icao24.toUpperCase(),
+    primary_time: 0,
+    data_source: "live-nearby",
+    status: "unknown",
+    airline_name: flight.airline_name || "",
+    registration: flight.registration ?? null,
+    aircraft_type: flight.aircraft_type ?? null,
+    departure_airport: flight.origin?.code_icao ?? null,
+    departure_airport_name: flight.origin?.name ?? null,
+    arrival_airport: flight.destination?.code_icao ?? null,
+    arrival_airport_name: flight.destination?.name ?? null,
     route_source: "flightaware",
     route_provider: "FlightAware",
     flightaware: flight,

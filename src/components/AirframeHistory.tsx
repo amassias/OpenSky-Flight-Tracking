@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Database } from "./icons";
 import { api, readableApiError } from "../api";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
 import { airframeAge, describePeriod, distinctOwners, entryTitle, registrationsOf } from "../airframe";
-import type { AirframeEntry, Flight } from "../types";
-
-const SOURCE_LABEL: Record<AirframeEntry["source"], string> = { faa: "FAA registry", opensky: "OpenSky" };
+import type { Flight } from "../types";
 
 const dayFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -101,7 +98,6 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
                   ) : null}
                   <p className="timeline-period">
                     <span className="mono">{describePeriod(entry, data?.snapshots?.last)}</span>
-                    <span className={`source-tag source-${entry.source}`}>{SOURCE_LABEL[entry.source]}</span>
                   </p>
                 </div>
               </li>
@@ -124,9 +120,7 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
           <p className="track-error" role="status">Recent flights unavailable · {readableApiError(recentFlights.error)}</p>
         ) : !recentFlights.data.available ? (
           <p className="track-error" role="status">
-            {recentFlights.data.reason === "budget"
-              ? "Recent flights are paused: this month's free FlightAware allowance is used."
-              : recentFlights.data.reason === "unconfigured" ? "Recent flights need a FlightAware key." : "Recent flights are unavailable right now."}
+            Recent flights are unavailable right now.
           </p>
         ) : recentFlights.data.flights.length === 0 ? (
           <p className="track-error">No recent flights found for {registration}.</p>
@@ -143,15 +137,7 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
           </ul>
         )}
       </div>
-
-      <p className="profile-footnote">
-        <Database size={12} aria-hidden="true" />
-        <span>
-          {data?.sources.length ? data.sources.join(" · ") : "No source lists this airframe"}.
-          {data?.snapshots ? ` Ownership changes are read from OpenSky snapshots between ${data.snapshots.first} and ${data.snapshots.last}, so they are dated to a month.` : ""}
-          {" "}Individuals' names are not shown.
-        </span>
-      </p>
+      <p className="profile-footnote">Individuals' names are not shown.</p>
     </div>
   );
 }

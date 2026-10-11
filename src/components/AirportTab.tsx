@@ -26,7 +26,7 @@ interface AirportTabProps {
   onSelectFlight: (flight: Flight) => void;
   onPreviewFlight?: (flight: Flight | null) => void;
   /** Present once an airport has been opened; describes the recorded-history board. */
-  heading: { title: string; subtitle: string; source: string; tone: "live" | "history" } | null;
+  heading: { title: string; subtitle: string } | null;
   /** The recorded-history board (stats and flight list). */
   children: ReactNode;
 }
@@ -46,7 +46,7 @@ function ShortcutList({ airports, onSelect }: { airports: Airport[]; onSelect: (
 
 function ViewToggle({ view, onChange }: { view: AirportView; onChange: (view: AirportView) => void }) {
   return (
-    <div className="segmented view-toggle" role="group" aria-label="Board source">
+    <div className="segmented view-toggle" role="group" aria-label="Board view">
       <button type="button" className={view === "live" ? "active" : ""} aria-pressed={view === "live"} onClick={() => onChange("live")}>Live</button>
       <button type="button" className={view === "history" ? "active" : ""} aria-pressed={view === "history"} onClick={() => onChange("history")}>History</button>
     </div>
@@ -113,7 +113,6 @@ export function AirportTab({
                     <h3>{heading.title}</h3>
                     <p>{heading.subtitle}</p>
                   </div>
-                  <span className={`source-pill ${heading.tone}`} role="status"><span className="source-pill-dot" />{heading.source}</span>
                 </header>
               )}
               {children}

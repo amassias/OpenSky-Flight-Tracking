@@ -321,30 +321,44 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, them
   return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers}>{liveTooltip(aircraft)}</CircleMarker>;
 }, areMarkersEqual);
 
-interface BoundsReporterProps { onBounds: (bounds: Bounds) => void }
+interface BoundsReporterProps { onBounds: (bounds: Bounds, visible: Bounds) => void }
 function BoundsReporter({ onBounds }: BoundsReporterProps) {
   const map = useMap();
   useEffect(() => {
-    function report() {
-      const bounds = map.getBounds();
-      onBounds(quantizeBounds(expandBounds({
+    function report(target?: L.LatLngBounds) {
+      const bounds = target ?? map.getBounds();
+      const visible = {
         lamin: Math.max(-90, bounds.getSouth()),
         lomin: Math.max(-180, bounds.getWest()),
         lamax: Math.min(90, bounds.getNorth()),
         lomax: Math.min(180, bounds.getEast()),
-      })));
+      };
+      onBounds(quantizeBounds(expandBounds(visible), 0.25), visible);
     }
-    map.on("moveend", report);
+    const onMoveEnd = () => report();
+    // The camera announces where it is headed before it gets there, so the
+    // traffic for the destination loads while the map is still flying.
+    const onPrefetch = (event: L.LeafletEvent) => report((event as L.LeafletEvent & { bounds: L.LatLngBounds }).bounds);
+    map.on("moveend", onMoveEnd);
+    map.on("viewprefetch", onPrefetch);
     const initialTimer = setTimeout(report, 120);
     const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
     observer.observe(map.getContainer());
     return () => {
       clearTimeout(initialTimer);
-      map.off("moveend", report);
+      map.off("moveend", onMoveEnd);
+      map.off("viewprefetch", onPrefetch);
       observer.disconnect();
     };
   }, [map, onBounds]);
   return null;
+}
+
+/** Map bounds the camera will show once it arrives at `center` and `zoom`. */
+function boundsAt(map: L.Map, center: L.LatLng, zoom: number): L.LatLngBounds {
+  const half = map.getSize().divideBy(2);
+  const middle = map.project(center, zoom);
+  return L.latLngBounds(map.unproject(middle.add([-half.x, half.y]), zoom), map.unproject(middle.add([half.x, -half.y]), zoom));
 }
 
 interface UserLocation {
@@ -530,7 +544,9 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
       // The first position appears immediately; later changes travel there.
       map.setView(placementCenter(map, [airportLatitude, airportLongitude], 8, insets), 8, { animate: false });
     } else {
-      map.flyTo(placementCenter(map, [airportLatitude, airportLongitude], 9, insets), 9, { animate: !prefersReducedMotion(), duration: 1.1, easeLinearity: 0.2 });
+      const target = placementCenter(map, [airportLatitude, airportLongitude], 9, insets);
+      map.fire("viewprefetch", { bounds: boundsAt(map, target, 9) });
+      map.flyTo(target, 9, { animate: !prefersReducedMotion(), duration: 0.9, easeLinearity: 0.2 });
     }
   }, [airportIcao, airportLatitude, airportLongitude, flight, map]);
 
@@ -643,27 +659,50 @@ function AirportPin({ airport, active, onSelect }: { airport: Airport; active: b
   );
 }
 
-function useReveal(key: string, ready: boolean): number {
-  const [fraction, setFraction] = useState(1);
+/**
+ * Progress of the route reveal for one selection, 0 to 1. It reads 0 until the
+ * animation starts (so a freshly loaded trace never flashes in full), waits a
+ * beat for the camera to settle, then eases in and out.
+ */
+function useReveal(key: string, ready: boolean, duration: number): number {
+  const [state, setState] = useState({ key: "", value: 0 });
   useEffect(() => {
     if (!ready) return;
     if (prefersReducedMotion()) {
-      setFraction(1);
+      setState({ key, value: 1 });
       return;
     }
-    const start = performance.now();
-    const duration = 950;
+    const delay = 220;
+    const start = performance.now() + delay;
     let frame = 0;
-    setFraction(0);
     const step = (now: number) => {
-      const progress = Math.min(1, (now - start) / duration);
-      setFraction(1 - (1 - progress) ** 3);
+      const progress = Math.min(1, Math.max(0, (now - start) / duration));
+      const eased = progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
+      setState({ key, value: eased });
       if (progress < 1) frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [key, ready]);
-  return fraction;
+  }, [duration, key, ready]);
+  return state.key === key ? state.value : 0;
+}
+
+/** The first `fraction` of a trace, ending on a point interpolated inside its last segment. */
+function revealPath(points: TrackPoint[], fraction: number): TrackPoint[] {
+  if (fraction >= 1 || points.length < 3) return points;
+  const position = fraction * (points.length - 1);
+  const whole = Math.floor(position);
+  const part = position - whole;
+  const drawn = points.slice(0, whole + 1);
+  const from = points[whole];
+  const to = points[whole + 1];
+  if (to && part > 0) {
+    drawn.push(from.map((value, index) => {
+      const next = to[index];
+      return typeof value === "number" && typeof next === "number" ? value + (next - value) * part : value;
+    }) as unknown as TrackPoint);
+  }
+  return drawn;
 }
 
 interface SelectedTrackProps {
@@ -695,11 +734,12 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
     return (track?.track.path ?? []).filter((point) => Number.isFinite(point[1]) && Number.isFinite(point[2]));
   }, [selectedId, track]);
 
-  const fraction = useReveal(`${selectedId}:${track?.track.icao24 ?? ""}`, basePoints.length > 1);
-  const drawnBase = useMemo(
-    () => fraction >= 1 ? basePoints : basePoints.slice(0, Math.max(2, Math.ceil(basePoints.length * fraction))),
-    [basePoints, fraction],
-  );
+  // Long traces take a little longer to draw, within a calm range.
+  const revealDuration = Math.min(2200, 1200 + basePoints.length * 2);
+  const fraction = useReveal(`${selectedId}:${track?.track.icao24 ?? ""}`, basePoints.length > 1, revealDuration);
+  const drawnBase = useMemo(() => revealPath(basePoints, fraction), [basePoints, fraction]);
+  // The line also fades in over the first part of the reveal.
+  const fade = Math.min(1, fraction * 4);
   const baseSegments = useMemo(() => buildAltitudeSegments(drawnBase), [drawnBase]);
   const lastBase = basePoints[basePoints.length - 1];
   // The last stretch joins the end of the trace to the aircraft's position now.
@@ -713,7 +753,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   // copies and re-projects the whole trace.
   const halo = useMemo<[number, number][]>(() => drawnBase.map((point) => [point[1], point[2]] as [number, number]), [drawnBase]);
   const firstPoint = basePoints[0];
-  const haloOptions = useMemo(() => ({ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7, lineCap: "round" as const, lineJoin: "round" as const }), [theme]);
+  const haloOptions = useMemo(() => ({ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7 * fade, lineCap: "round" as const, lineJoin: "round" as const }), [fade, theme]);
   const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
   const fallbackIcon = useMemo(
     () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight) }),
@@ -762,10 +802,10 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
       {halo.length > 1 && <Polyline positions={halo} pathOptions={haloOptions} />}
       {headSegment && <Polyline positions={headSegment.positions} pathOptions={haloOptions} />}
       {baseSegments.map((segment, index) => (
-        <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96, lineCap: "round", lineJoin: "round" }} />
+        <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96 * fade, lineCap: "round", lineJoin: "round" }} />
       ))}
-      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ color: headSegment.color, weight: 3.5, opacity: 0.96, lineCap: "round", lineJoin: "round" }} />}
-      {firstPoint && basePoints.length > 1 && (
+      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ color: headSegment.color, weight: 3.5, opacity: 0.96 * fade, lineCap: "round", lineJoin: "round" }} />}
+      {firstPoint && basePoints.length > 1 && fade > 0.5 && (
         <Marker position={[firstPoint[1], firstPoint[2]]} icon={startIcon} keyboard={false}>
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="aircraft-tooltip"><strong>Trace start</strong><span className="mono">{formatAltitude(firstPoint[3])}</span></Tooltip>
         </Marker>
@@ -835,7 +875,10 @@ export function FlightMap({
 }: FlightMapProps) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const handleBounds = useCallback((next: Bounds) => {
+  // What the visitor actually sees, as opposed to the padded box requested.
+  const visibleBoundsRef = useRef<Bounds | null>(null);
+  const handleBounds = useCallback((next: Bounds, visible: Bounds) => {
+    visibleBoundsRef.current = visible;
     setBounds((current) => (boundsEqual(current, next) ? current : next));
   }, []);
   useEffect(() => {
@@ -868,7 +911,10 @@ export function FlightMap({
   const [nearbyOpen, setNearbyOpen] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const airportIcaoRef = useRef<string | null>(airport?.icao ?? null);
-  const seededViewportRef = useRef(false);
+  // The last complete private request: while it is fresh, panning inside it
+  // needs no network at all.
+  const coverageRef = useRef<{ bounds: Bounds; until: number } | null>(null);
+  const handledRefreshRef = useRef(0);
   useEffect(() => {
     airportIcaoRef.current = airport?.icao ?? null;
   }, [airport?.icao]);
@@ -886,8 +932,8 @@ export function FlightMap({
     // take several seconds. Prime the map once with one provider-safe centre
     // tile, then let the complete request replace it. This keeps first paint
     // fast without turning every refresh into an extra public-provider call.
-    const shouldSeedViewport = usePrivateViewport && !seededViewportRef.current;
-    const seedTile = shouldSeedViewport ? splitBoundsIntoTiles(bounds, 1)[0] ?? bounds : null;
+    const forcedRefresh = handledRefreshRef.current !== liveRefresh;
+    handledRefreshRef.current = liveRefresh;
     const viewportKey = viewportCacheKey(bounds);
     const now = Date.now();
     const staleBefore = now - LIVE_AIRCRAFT_CACHE_TTL_MS;
@@ -917,6 +963,33 @@ export function FlightMap({
     for (const aircraft of aircraftCacheRef.current.values()) {
       if (isAircraftInBounds(aircraft, bounds)) retained.set(aircraft.icao24, aircraft);
     }
+    // A refresh timer or retry always goes to the network; a pan inside an
+    // area that was loaded moments ago just shows what is already known.
+    const visible = visibleBoundsRef.current;
+    const coverage = coverageRef.current;
+    if (usePrivateViewport && !forcedRefresh && visible && coverage && Date.now() < coverage.until
+      && visible.lamin >= coverage.bounds.lamin && visible.lamax <= coverage.bounds.lamax
+      && visible.lomin >= coverage.bounds.lomin && visible.lomax <= coverage.bounds.lomax) {
+      const covered: LiveFlightsResponse = {
+        success: true,
+        time: cachedViewport?.time ?? null,
+        time_iso: null,
+        count: retained.size,
+        states: Array.from(retained.values()),
+        provider: cachedViewport?.provider,
+        coverage_tiles: 1,
+        coverage_complete: true,
+      };
+      setLiveState({ data: covered, fetching: false, loadedTiles: 1, totalTiles: 1, failedTiles: 0, error: null });
+      onLiveSnapshot?.(covered, airportIcaoRef.current);
+      const wait = Math.max(1_000, coverage.until - Date.now());
+      const timer = setTimeout(() => setLiveRefresh((value) => value + 1), wait);
+      return () => clearTimeout(timer);
+    }
+    // The full-viewport call can take several seconds upstream, so a quick
+    // centre tile from the public feed runs beside it unless the cache
+    // already has this area on screen.
+    const seedTile = usePrivateViewport && retained.size < 12 ? splitBoundsIntoTiles(bounds, 1)[0] ?? bounds : null;
     const freshAircraft = new Set<string>();
     const coveredTiles: Bounds[] = [];
     let loadedTiles = 0;
@@ -1008,8 +1081,8 @@ export function FlightMap({
       if (!seedTile) return;
       try {
         const response = await api.liveFlights(seedTile, controller.signal, true);
-        if (controller.signal.aborted) return;
-        seededViewportRef.current = true;
+        // The complete answer may already be here; it is the better data.
+        if (controller.signal.aborted || loadedTiles > 0) return;
         rememberAircraft(response.states);
         for (const aircraft of response.states) retained.set(aircraft.icao24, aircraft);
         latestTime = response.time ?? latestTime;
@@ -1027,7 +1100,8 @@ export function FlightMap({
       }
     };
 
-    void loadSeed().then(() => Promise.all(tiles.map(loadTile))).then(() => {
+    void loadSeed();
+    void Promise.all(tiles.map(loadTile)).then(() => {
       if (controller.signal.aborted) return;
       // Prune aircraft inside any tile we actually refreshed this round, even
       // when the viewport is too wide to cover in full: those cells are known
@@ -1047,6 +1121,9 @@ export function FlightMap({
         }
       }
       saveViewportCache();
+      if (usePrivateViewport && failedTiles === 0 && loadedTiles > 0) {
+        coverageRef.current = { bounds, until: Date.now() + Math.max(20, refreshAfterSeconds) * 1_000 };
+      }
       const data = retained.size ? snapshot() : null;
       setLiveState({
         data,
@@ -1200,7 +1277,7 @@ export function FlightMap({
       <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />
         <strong>{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</strong>
-        <span className="map-status-copy">{!liveAvailable ? "OpenSky credentials required" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
+        <span className="map-status-copy">{!liveAvailable ? "Live traffic unavailable" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
         {hiddenByFilters > 0 && <span className="map-status-filter">{hiddenByFilters} hidden by filters</span>}
         {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}
         {liveEnabled && (liveState.error || liveState.failedTiles > 0) && <button type="button" className="live-retry" onClick={() => setLiveRefresh((value) => value + 1)}>Retry</button>}
@@ -1213,7 +1290,7 @@ export function FlightMap({
         </div>
         <div className="map-control-group">
           <button type="button" className={userLocation ? "location-active" : ""} onClick={requestLocation} aria-label="Locate me" title={userLocation ? "Update my location" : "Locate me"}><LocateFixed size={17} /></button>
-          <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "OpenSky credentials required"}>
+          <button type="button" disabled={!liveAvailable} onClick={onToggleLive} aria-label={liveEnabled ? "Pause live traffic" : "Resume live traffic"} title={liveAvailable ? (liveEnabled ? "Pause live traffic" : "Resume live traffic") : "Live traffic unavailable"}>
             {liveEnabled ? <Pause size={17} /> : <Play size={17} />}
           </button>
           <button type="button" onClick={onToggleExpanded} aria-label={expanded ? "Show panels" : "Hide panels"} title={expanded ? "Show panels" : "Full map"}>

@@ -443,3 +443,9 @@ export interface AircraftLookupResponse {
   registration: string | null;
   registry: AirframeRegistry | null;
 }
+
+export interface CallsignLookupResponse {
+  success: boolean;
+  found: boolean;
+  aircraft: LiveAircraft | null;
+}

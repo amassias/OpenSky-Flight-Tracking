@@ -71,3 +71,25 @@ def test_aircraft_routes_return_json_and_cache_headers():
     assert "s-maxage=86400" in history.headers["cache-control"]
     assert "s-maxage=3600" in flights.headers["cache-control"]
     assert client.get("/api/aircraft-history", params={"icao24": "zz"}).status_code == 400
+
+
+def test_live_flights_are_cached_at_the_cdn_unless_degraded():
+    fresh = {"success": True, "time": 1, "count": 0, "states": []}
+    with patch.object(server.FlightServerHandler, "handle_live_flights", return_value=fresh):
+        response = client.get("/api/live-flights", params={"lamin": 48, "lomin": 1, "lamax": 50, "lomax": 4})
+    assert "s-maxage=10" in response.headers["cache-control"]
+    with patch.object(server.FlightServerHandler, "handle_live_flights", return_value={**fresh, "degraded": True}):
+        degraded = client.get("/api/live-flights", params={"lamin": 48, "lomin": 1, "lamax": 50, "lomax": 4})
+    assert "s-maxage" not in degraded.headers.get("cache-control", "")
+
+
+def test_callsign_lookup_finds_the_aircraft_flying_a_callsign():
+    aircraft = {"icao24": "406a3d", "callsign": "BAW557H", "latitude": 49.1, "longitude": 3.3}
+    row = ["406a3d", "BAW557H"]
+    with patch.object(server.api_client, "get_live_callsign_states", return_value={"states": [row]}), \
+         patch.object(server.FlightServerHandler, "_parse_states", return_value=[aircraft]), \
+         patch.object(server.FlightServerHandler, "_enrich_live_states"):
+        response = client.get("/api/callsign-lookup", params={"callsign": "baw 557h"})
+    assert response.status_code == 200
+    assert response.json()["aircraft"]["icao24"] == "406a3d"
+    assert client.get("/api/callsign-lookup", params={"callsign": "x"}).status_code == 400

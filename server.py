@@ -274,6 +274,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json_response(200, self.handle_aircraft_lookup(query_params.get("q", [""])[0]))
                 return
 
+            if path == "/api/callsign-lookup":
+                self.send_json_response(200, self.handle_callsign_lookup(query_params.get("callsign", [""])[0]))
+                return
+
             if path == "/api/airport-schedule":
                 self.send_json_response(200, self.handle_airport_schedule(
                     query_params.get("airport", [""])[0], query_params.get("direction", ["departure"])[0]))
@@ -949,6 +953,18 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         if not code:
             raise ValueError(f"No aircraft found for {text}.")
         return {"success": True, "icao24": code, "registration": (registry or {}).get("registration") or text, "registry": registry}
+
+    def handle_callsign_lookup(self, callsign):
+        """Find the aircraft flying a callsign right now, so a scheduled flight can be followed live."""
+        ident = "".join(ch for ch in str(callsign or "").upper() if ch.isalnum())
+        if not 2 <= len(ident) <= 8:
+            raise ValueError("Enter a flight callsign.")
+        states = api_client.get_live_callsign_states(ident)
+        parsed = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
+        parsed = [item for item in parsed if item.get("latitude") is not None and item.get("longitude") is not None]
+        if parsed:
+            self._enrich_live_states(parsed)
+        return {"success": True, "found": bool(parsed), "aircraft": parsed[0] if parsed else None}
 
     def handle_airport_schedule(self, airport_icao, direction):
         """FlightAware's next airline departures or arrivals, with airline names filled in."""

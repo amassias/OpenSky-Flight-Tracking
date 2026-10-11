@@ -99,6 +99,14 @@ def aircraft_lookup_route(q: str = ""):
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=3600, s-maxage=86400"})
 
 
+@app.get("/api/callsign-lookup")
+def callsign_lookup_route(callsign: str = ""):
+    result = execute(lambda: service.handle_callsign_lookup(callsign))
+    if isinstance(result, JSONResponse):
+        return result
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=10, s-maxage=15, stale-while-revalidate=30"})
+
+
 @app.get("/api/airport-schedule")
 def airport_schedule(airport: str = "", direction: str = "departure"):
     result = execute(lambda: service.handle_airport_schedule(airport, direction))
@@ -139,7 +147,13 @@ def live_flights(
     time: int | None = None,
     fallback: bool = False,
 ):
-    return execute(lambda: service.handle_live_flights(lamin, lomin, lamax, lomax, time, fallback))
+    result = execute(lambda: service.handle_live_flights(lamin, lomin, lamax, lomax, time, fallback))
+    if isinstance(result, JSONResponse) or time is not None or result.get("degraded"):
+        return result
+    # The viewport boxes are snapped to a grid by the client, so neighbouring
+    # visitors share a key: let the CDN answer them for a few seconds and keep
+    # serving the last snapshot while the slow upstream call refreshes.
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=5, s-maxage=10, stale-while-revalidate=40"})
 
 
 @app.get("/flight-info")

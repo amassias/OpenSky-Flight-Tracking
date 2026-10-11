@@ -1,6 +1,6 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
-import { ChevronDown, Copy, Database, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
+import { ChevronDown, Copy, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
 import { compassPoint, emergencyInfo, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
@@ -63,6 +63,31 @@ function RouteEndpoint({ role, icao, iata, name, time, align }: { role: string; 
   );
 }
 
+/**
+ * Progress along the route. The bar stays empty until the route is settled
+ * (origin, destination and their coordinates), appears in place with a fade
+ * rather than sliding in from an interim value, and only then animates changes.
+ */
+function RouteProgressBar({ progress, pending }: { progress: number | null; pending: boolean }) {
+  const [shown, setShown] = useState<number | null>(null);
+  const [moving, setMoving] = useState(false);
+  useEffect(() => {
+    if (!pending && progress != null) setShown(Math.min(100, Math.max(0, progress)));
+  }, [pending, progress]);
+  const visible = shown != null;
+  useEffect(() => {
+    if (!visible) return;
+    const frame = requestAnimationFrame(() => setMoving(true));
+    return () => cancelAnimationFrame(frame);
+  }, [visible]);
+  return (
+    <div className={`route-progress ${visible ? "is-ready" : ""} ${moving ? "is-moving" : ""}`} role="img" aria-label={shown != null ? `Flight progress ${Math.round(shown)} percent` : "Flight progress unknown"}>
+      <span className="route-progress-track"><span className="route-progress-fill" style={{ transform: `scaleX(${(shown ?? 0) / 100})` }} /></span>
+      {shown != null && <span className="route-progress-plane" style={{ left: `${shown}%` }}><Plane size={14} /></span>}
+    </div>
+  );
+}
+
 function Section({ title, aside, open = false, children }: { title: string; aside?: ReactNode; open?: boolean; children: ReactNode }) {
   return (
     <details className="panel-section" open={open}>
@@ -76,7 +101,7 @@ function Section({ title, aside, open = false, children }: { title: string; asid
   );
 }
 
-export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, routeError, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
   useUnits();
   // The registry fills what the live feed did not say, such as the tail and
   // type of an airframe opened from a registration search.
@@ -105,17 +130,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
   const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
   const origin = flight.departure_airport ? airports?.get(flight.departure_airport) : undefined;
   const destination = flight.arrival_airport ? airports?.get(flight.arrival_airport) : undefined;
-  const routeSourceLabel = flight.route_source === "callsign"
-    ? "Estimated from callsign"
-    : flight.route_source === "opensky"
-      ? "OpenSky flight record"
-      : flight.route_source === "flightaware"
-        ? "FlightAware operational data"
-        : flight.route_source === "mixed"
-          ? "Combined flight data"
-          : routeError
-            ? "Route lookup unavailable"
-            : null;
   const hasRoute = Boolean(flight.departure_airport || flight.arrival_airport);
 
   // Progress comes from the aircraft's position along origin -> destination.
@@ -202,15 +216,11 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
             align="end"
           />
         </div>
-        <div className="route-progress" role="img" aria-label={progress != null ? `Flight progress ${Math.round(progress)} percent` : "Flight progress unknown"}>
-          <span className="route-progress-track"><span className="route-progress-fill" style={{ transform: `scaleX(${(progress ?? 0) / 100})` }} /></span>
-          {progress != null && <span className="route-progress-plane" style={{ left: `${progress}%` }}><Plane size={14} /></span>}
-        </div>
+        <RouteProgressBar progress={progress} pending={routeLoading} />
         <div className="route-hero-foot mono">
           <span>{geometry ? `${Math.round(geometry.percent)}% · ${distanceText(geometry.flownKm)} flown` : progress != null ? `${Math.round(progress)}% flown` : "Progress unavailable"}</span>
           <span>{remaining ? `${remaining} to go` : geometry ? `${distanceText(geometry.remainingKm)} to go` : ""}</span>
         </div>
-        {routeSourceLabel && <small className="route-source">{routeSourceLabel}{flight.route_provider ? ` · ${flight.route_provider}` : ""}</small>}
       </section>
 
       <div className="live-readouts" aria-label="Live readouts">
@@ -244,7 +254,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </>
       )}
 
-      <Section title="Aircraft" aside={flight.source || (flight.data_source === "live-nearby" ? "ADS-B live" : "OpenSky")} open>
+      <Section title="Aircraft" open>
         <div className="aircraft-profile-grid">
           <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
           <div><span>Type code</span><strong className="mono">{profileValue(flight.aircraft_type)}</strong></div>
@@ -264,7 +274,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       </Section>
 
       {operations && (
-        <Section title="Operations" aside="FlightAware" open>
+        <Section title="Operations" open>
           <div className="operations-status-row">
             <strong>{operations.status || "Status unavailable"}</strong>
             <span className={operations.cancelled ? "operations-flag is-alert" : operations.diverted ? "operations-flag is-warning" : "operations-flag"}>
@@ -284,7 +294,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
             {(operations.gate_dest || operations.terminal_dest) && <div><span>Destination gate / terminal</span><strong className="mono">{[operations.gate_dest, operations.terminal_dest].filter(Boolean).join(" · ")}</strong></div>}
           </div>
           {operations.route && <p className="operations-route"><span>Filed route</span><strong className="mono">{operations.route}</strong></p>}
-          <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Queried after selection and cached for 15 minutes.</p>
         </Section>
       )}
 
@@ -303,7 +312,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           <div><span>Accuracy radius</span><strong className="mono">{flight.rc == null ? "—" : `${Math.round(flight.rc)} m`}</strong></div>
           <div><span>ICAO24</span><strong className="mono"><Copy size={11} aria-hidden="true" /> {flight.icao24.toUpperCase()}</strong></div>
         </div>
-        <p className="profile-footnote"><Database size={12} aria-hidden="true" /> Queried after selection and cached briefly.</p>
       </Section>
       </div>
     </motion.aside>
@@ -345,8 +353,7 @@ function AircraftPhotoFigure({ flight, photo, loading, error }: AircraftPhotoFig
         {identity && <span className="aircraft-photo-identity mono">{identity}</span>}
       </a>
       <figcaption>
-        <span>© {photo.photographer}</span>
-        <a href={photo.link} target="_blank" rel="noopener">Planespotters.net</a>
+        <a href={photo.link} target="_blank" rel="noopener">© {photo.photographer}</a>
       </figcaption>
     </figure>
   );

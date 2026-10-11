@@ -10,6 +10,7 @@ import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
 import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
+import { Onboarding } from "./components/Onboarding";
 import { OmniSearch } from "./components/OmniSearch";
 import { Topbar } from "./components/Topbar";
 import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
@@ -67,6 +68,10 @@ export function App() {
   const [favoriteAirportsOnly, setFavoriteAirportsOnly] = usePersistentState("skytrace-favorite-airports-only", false);
   const [airportPinsEnabled, setAirportPinsEnabled] = usePersistentState("skytrace-airport-pins", true);
   const [trafficOpen, setTrafficOpen] = usePersistentState("skytrace-traffic-open", window.innerWidth > 900);
+  const [tourSeen, setTourSeen] = usePersistentState("skytrace-onboarded", false);
+  // A shared link opens straight onto its flight or airport; the tour waits.
+  const [tourOpen, setTourOpen] = useState(() => !tourSeen && !new URLSearchParams(window.location.search).has("icao24") && !new URLSearchParams(window.location.search).has("airport"));
+  const closeTour = useCallback(() => { setTourOpen(false); setTourSeen(true); }, [setTourSeen]);
   const [filters, setFilters] = useState<MapFilters>(NO_FILTERS);
   const [tab, setTab] = useState<TrafficTab>(initialParams.get("airport") ? "airport" : "live");
   const [homeAirport, setHomeAirport] = useState<Airport | null>(null);
@@ -354,20 +359,18 @@ export function App() {
   const airportSummary = useLiveSnapshot ? liveSnapshotSummary(airportFlights) : flights.data?.summary;
   const liveSummary = useMemo(() => liveSnapshotSummary(filteredLive), [filteredLive]);
   const airportNotice = livePreviewDuringLoad
-    ? `Loading recorded ${request?.mode}s · showing current live traffic around ${request?.airport.icao} meanwhile.`
+    ? `Loading ${request?.mode}s · showing live traffic around ${request?.airport.icao} meanwhile.`
     : clientLiveFallback
-    ? `OpenSky history is unavailable for ${request?.date}. Showing the live map snapshot around ${request?.airport.icao}; these are not recorded ${request?.mode}s.`
+    ? `History is unavailable for ${request?.date}. Showing live traffic around ${request?.airport.icao} instead.`
     : flights.data?.source === "live-nearby"
-    ? `${flights.data.notice || "History unavailable."} Aircraft observed near this airport may be passing overhead; they are not confirmed arrivals or departures.`
+    ? "History is unavailable. Showing aircraft currently near this airport."
     : flights.data?.notice;
   const airportCode = request ? request.airport.iata || request.airport.icao : null;
   const boardHeading = request ? {
     title: showingLiveFallback
       ? `Live traffic around ${airportCode}`
       : `${request.mode === "departure" ? "Departures from" : "Arrivals at"} ${airportCode}`,
-    subtitle: showingLiveFallback ? `Current observations · ${request.airport.name}` : `${request.date} · UTC · ${request.airport.name}`,
-    source: showingLiveFallback ? "Nearby traffic" : flights.isFetching ? "Loading history" : flights.data?.source === "unavailable" || flights.isError ? "History unavailable" : "Recorded",
-    tone: showingLiveFallback ? "live" as const : "history" as const,
+    subtitle: showingLiveFallback ? request.airport.name : `${request.date} · ${request.airport.name}`,
   } : null;
 
   // Emergencies in the visible airspace are flagged on the map whatever panel
@@ -477,6 +480,7 @@ export function App() {
         healthPending={health.isPending}
         theme={theme}
         onToggleTheme={toggleTheme}
+        onShowTour={() => setTourOpen(true)}
         search={(
           <OmniSearch
             focusRequest={searchFocusRequest}
@@ -512,7 +516,7 @@ export function App() {
           liveAvailable={liveAvailable}
           liveProbePending={health.isPending}
           expanded={mapExpanded}
-          onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Add OpenSky credentials to enable live traffic.")}
+          onToggleLive={() => liveAvailable ? setLiveEnabled(!liveEnabled) : setToast("Live traffic is not available right now.")}
           onToggleExpanded={() => setMapExpanded(!mapExpanded)}
           onSelectFlight={selectFlight}
           onSelectAirport={openAirport}
@@ -560,8 +564,7 @@ export function App() {
               track={track.data}
               trackLoading={track.isFetching}
               trackError={track.error ? readableApiError(track.error) : undefined}
-              routeLoading={flightInfo.isFetching && !flightInfo.data}
-              routeError={flightInfo.error ? readableApiError(flightInfo.error) : undefined}
+              routeLoading={(flightInfo.isFetching && !flightInfo.data) || endAirports.isFetching}
               photo={photo.data}
               photoLoading={photo.isPending && photo.fetchStatus !== "idle"}
               photoError={photo.isError}
@@ -667,6 +670,8 @@ export function App() {
           </button>
         )}
       </main>
+
+      {tourOpen && <Onboarding onClose={closeTour} />}
 
       <AnimatePresence>
         {toast && (

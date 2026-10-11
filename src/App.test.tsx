@@ -114,6 +114,25 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "AFR1234" })).toBeInTheDocument();
   });
 
+  it("opens a scheduled flight that is not on the map yet by looking its aircraft up", async () => {
+    window.history.replaceState(null, "", "/");
+    const soon = new Date(Date.now() + 20 * 60_000).toISOString();
+    mockApi({
+      "/api/airport-schedule": () => json({
+        success: true, airport: "LFPG", direction: "departure", available: true, fetched_at: Math.floor(Date.now() / 1000),
+        flights: [{ provider: "FlightAware", ident: "AFR990", ident_icao: "AFR990", ident_iata: "AF990", atc_ident: "AFR990", destination: { code_icao: "FAOR", code_iata: "JNB", city: "Johannesburg" }, scheduled_out: soon, estimated_out: soon }],
+      }),
+      "/api/callsign-lookup": () => json({ success: true, found: true, aircraft: { icao24: "3944aa", callsign: "AFR990", latitude: 49.1, longitude: 2.6, baro_altitude: 3000, velocity: 140, true_track: 90, on_ground: false } }),
+    });
+    renderApp();
+    await openAirportFromSearch();
+    const row = await screen.findByRole("button", { name: /AF990/ });
+    expect(row).toBeEnabled();
+    await userEvent.click(row);
+    expect(await screen.findByRole("heading", { name: "AFR990" })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).toContain("icao24=3944aa"));
+  });
+
   it("selects a live board flight with this airport as one end of its route", async () => {
     window.history.replaceState(null, "", "/");
     mockApi();

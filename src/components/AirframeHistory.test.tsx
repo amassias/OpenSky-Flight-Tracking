@@ -31,7 +31,7 @@ function renderHistory(handlers: Record<string, () => unknown> = {}) {
 }
 
 describe("AirframeHistory", () => {
-  it("shows the airframe facts, the owner today and the timeline with dates and sources", async () => {
+  it("shows the airframe facts, the owner today and the timeline with dates", async () => {
     renderHistory();
     expect(await screen.findByText("F-HBXA", { selector: ".airframe-registration" })).toBeInTheDocument();
     expect(screen.getByText("Embraer EMB-170 STD")).toBeInTheDocument();
@@ -65,10 +65,10 @@ describe("AirframeHistory", () => {
     expect(screen.getByText("Arrived")).toBeInTheDocument();
   });
 
-  it("explains a paused flights lookup and an unknown airframe", async () => {
+  it("says when the flights lookup is unavailable and an unknown airframe", async () => {
     renderHistory({ "/api/aircraft-flights": () => ({ success: true, registration: "FHBXA", provider: "x", available: false, reason: "budget", flights: [] }) });
     await userEvent.click(await screen.findByRole("button", { name: /Show recent flights/ }));
-    expect(await screen.findByText(/free FlightAware allowance is used/)).toBeInTheDocument();
+    expect(await screen.findByText(/unavailable right now/)).toBeInTheDocument();
   });
 
   it("says so when no registry lists the transponder code", async () => {

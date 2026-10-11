@@ -1,6 +1,7 @@
 import type {
   AircraftFlightsResponse,
   AircraftLookupResponse,
+  CallsignLookupResponse,
   Airport,
   AirframeHistoryResponse,
   AirportBoardResponse,
@@ -47,7 +48,7 @@ async function request<T>(path: string, params?: Record<string, string | number 
   return payload as T;
 }
 
-const LIVE_REQUEST_MIN_INTERVAL_MS = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? 25 : 1_200;
+const LIVE_REQUEST_MIN_INTERVAL_MS = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? 25 : 600;
 let nextLiveRequestAt = 0;
 let liveRequestSlotQueue = Promise.resolve();
 
@@ -102,9 +103,12 @@ export const api = {
     // small client-side spacing keeps those changes responsive while avoiding
     // a provider rate-limit burst; obsolete queries are still cancelled by
     // TanStack Query through the same signal.
-    await reserveLiveRequestSlot(signal);
+    // The public-feed tile answers from another provider and is never the
+    // one being rate limited, so it skips the queue.
+    if (!fallbackOnly) await reserveLiveRequestSlot(signal);
     return request<LiveFlightsResponse>("/api/live-flights", { ...bounds, fallback: fallbackOnly ? 1 : undefined }, signal);
   },
+  callsignLookup: (callsign: string, signal?: AbortSignal) => request<CallsignLookupResponse>("/api/callsign-lookup", { callsign }, signal),
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
   track: (icao24: string, time = 0, signal?: AbortSignal) => request<TrackResponse>("/api/track", { icao24, time }, signal),
 };
