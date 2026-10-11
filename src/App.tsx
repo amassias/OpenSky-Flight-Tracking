@@ -8,7 +8,7 @@ import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportTab, type AirportView } from "./components/AirportTab";
 import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
-import { FlightMap, type MapView } from "./components/FlightMap";
+import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
 import { Onboarding } from "./components/Onboarding";
 import { OmniSearch } from "./components/OmniSearch";
@@ -17,8 +17,8 @@ import { Topbar } from "./components/Topbar";
 import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
-import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme } from "./types";
-import { emergencyInfo, liveAircraftToFlight, todayUtc } from "./utils";
+import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme, MapView } from "./types";
+import { emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
 
 interface FlightRequest {
   airport: Airport;
@@ -65,14 +65,6 @@ const THEME_COLORS: Record<MapTheme, string> = { dark: "#0b0b0c", light: "#f5f5f
 /** First visit follows the operating system; a choice made in the app wins afterwards. */
 function systemTheme(): MapTheme {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
-
-/** `?at=lat,lon,zoom`, the shareable map position when no airport or flight is open. */
-function parseMapView(value: string | null): MapView | null {
-  const [latitude, longitude, zoom] = (value ?? "").split(",").map(Number);
-  if (![latitude, longitude, zoom].every(Number.isFinite)) return null;
-  if (Math.abs(latitude) > 85 || Math.abs(longitude) > 180 || zoom < 2 || zoom > 18) return null;
-  return { latitude, longitude, zoom: Math.round(zoom) };
 }
 
 function isTyping(target: EventTarget | null) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -153,5 +153,19 @@ describe("routeProgress", () => {
     const { routeProgress } = await import("./utils");
     expect(routeProgress(null, paris, paris)).toBeNull();
     expect(routeProgress(paris, paris, paris)).toBeNull();
+  });
+});
+
+describe("parseMapView", () => {
+  it("reads a shared lat,lon,zoom position", () => {
+    expect(parseMapView("51.470,-0.454,10")).toEqual({ latitude: 51.47, longitude: -0.454, zoom: 10 });
+  });
+
+  it("rejects malformed or out-of-range positions", () => {
+    expect(parseMapView(null)).toBeNull();
+    expect(parseMapView("51.4,-0.4")).toBeNull();
+    expect(parseMapView("abc,1,5")).toBeNull();
+    expect(parseMapView("95,0,5")).toBeNull();
+    expect(parseMapView("40,0,40")).toBeNull();
   });
 });

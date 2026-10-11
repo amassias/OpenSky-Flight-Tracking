@@ -449,3 +449,10 @@ export interface CallsignLookupResponse {
   found: boolean;
   aircraft: LiveAircraft | null;
 }
+
+/** A map position: centre and Leaflet zoom level. */
+export interface MapView {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+}

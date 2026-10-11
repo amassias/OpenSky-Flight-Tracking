@@ -5,7 +5,7 @@ import { LocateFixed, Maximize2, Minimize2, Navigation, Pause, Play } from "./ic
 import { Minus, Plus, Route } from "./customIcons";
 import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../api";
-import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, TrackPoint, TrackResponse } from "../types";
+import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../types";
 import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, formatSpeed, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
@@ -864,12 +864,6 @@ interface FlightMapProps {
   initialView?: MapView | null;
   /** Reports the settled centre and zoom after every pan or zoom. */
   onViewChange?: (view: MapView) => void;
-}
-
-export interface MapView {
-  latitude: number;
-  longitude: number;
-  zoom: number;
 }
 
 interface ProgressiveLiveState {

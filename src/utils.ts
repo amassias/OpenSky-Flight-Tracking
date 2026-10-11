@@ -1,4 +1,4 @@
-import type { Bounds, Flight, FlightStatus, LiveAircraft } from "./types";
+import type { Bounds, Flight, FlightStatus, LiveAircraft, MapView } from "./types";
 import { altitudeText, speedText } from "./units";
 
 export const ALTITUDE_UNKNOWN_COLOR = "#8e8e93";
@@ -286,3 +286,12 @@ export function routeProgress(
     etaSeconds: speed != null && speed > 50 ? (remainingKm * 1000) / speed : null,
   };
 }
+
+/** `?at=lat,lon,zoom`, the shareable map position when no airport or flight is open. */
+export function parseMapView(value: string | null): MapView | null {
+  const [latitude, longitude, zoom] = (value ?? "").split(",").map(Number);
+  if (![latitude, longitude, zoom].every(Number.isFinite)) return null;
+  if (Math.abs(latitude) > 85 || Math.abs(longitude) > 180 || zoom < 2 || zoom > 18) return null;
+  return { latitude, longitude, zoom: Math.round(zoom) };
+}
+
