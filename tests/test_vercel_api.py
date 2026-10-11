@@ -93,3 +93,10 @@ def test_callsign_lookup_finds_the_aircraft_flying_a_callsign():
     assert response.status_code == 200
     assert response.json()["aircraft"]["icao24"] == "406a3d"
     assert client.get("/api/callsign-lookup", params={"callsign": "x"}).status_code == 400
+
+
+def test_static_airport_answers_are_cdn_cacheable():
+    for path, params in (("/api/airports", {}), ("/api/search-airports", {"q": "CDG"})):
+        response = client.get(path, params=params)
+        assert response.status_code == 200
+        assert "s-maxage=86400" in response.headers["cache-control"]

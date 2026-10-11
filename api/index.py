@@ -38,6 +38,17 @@ def execute(operation: Callable[[], T]):
         return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error."})
 
 
+# The airport catalogue ships with each deployment, so the CDN can share
+# search and popular-airport answers instead of waking the function.
+STATIC_CATALOGUE_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+
+
+def cached(result, cache_control: str):
+    if isinstance(result, JSONResponse):
+        return result
+    return JSONResponse(content=result, headers={"Cache-Control": cache_control})
+
+
 @app.get("/health")
 @app.get("/api/health")
 def health():
@@ -47,13 +58,13 @@ def health():
 @app.get("/search-airports")
 @app.get("/api/search-airports")
 def search_airports(q: str = "", limit: int = Query(default=15, ge=1, le=100)):
-    return execute(lambda: service.handle_search_airports(q.strip(), limit))
+    return cached(execute(lambda: service.handle_search_airports(q.strip(), limit)), STATIC_CATALOGUE_CACHE)
 
 
 @app.get("/airports")
 @app.get("/api/airports")
 def airports():
-    return execute(service.handle_get_popular_airports)
+    return cached(execute(service.handle_get_popular_airports), STATIC_CATALOGUE_CACHE)
 
 
 @app.get("/api/map-airports")
