@@ -41,3 +41,10 @@ describe("map filters", () => {
     expect(activeFilterCount({ hideGround: true, minAltitudeFt: 5_000, maxAltitudeFt: 20_000, query: " x " })).toBe(3);
   });
 });
+
+describe("flight numbers in the filter", () => {
+  it("keeps the aircraft flying a ticket flight number", () => {
+    const flights = [{ icao24: "a", callsign: "AFR1234" }, { icao24: "b", callsign: "BAW9" }] as Flight[];
+    expect(filterAircraft(flights, { ...NO_FILTERS, query: "AF1234" }).map((flight) => flight.callsign)).toEqual(["AFR1234"]);
+  });
+});

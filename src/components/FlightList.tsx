@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "
 import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert } from "./icons";
 import { usePersistentState } from "../hooks/usePersistentState";
 import type { Flight } from "../types";
-import { distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
+import { callsignsForFlightNumber, distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
 import { useUnits } from "../units";
 
 /** Cards rendered per step: a zoomed-out map can hold thousands of aircraft. */
@@ -107,6 +107,7 @@ export function FlightList({
 
   const visibleFlights = useMemo(() => {
     const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const flightNumbers = terms.map(callsignsForFlightNumber);
     const filtered = flights.filter((flight) => {
       const searchable = [
         flight.callsign,
@@ -120,7 +121,8 @@ export function FlightList({
         flight.aircraft_type,
         flight.aircraft_description,
       ].filter(Boolean).join(" ").toLowerCase();
-      const matchesText = terms.every((term) => searchable.includes(term));
+      const callsign = (flight.callsign || "").toLowerCase();
+      const matchesText = terms.every((term, index) => searchable.includes(term) || flightNumbers[index].some((form) => callsign.startsWith(form)));
       const actualStatus = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
       return matchesText && (status === "all" || actualStatus === status);
     });

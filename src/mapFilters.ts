@@ -1,5 +1,5 @@
 import type { Flight } from "./types";
-import { emergencyInfo } from "./utils";
+import { callsignsForFlightNumber, emergencyInfo } from "./utils";
 
 export interface MapFilters {
   /** Hide aircraft reported on the ground. */
@@ -37,7 +37,8 @@ export function matchesFilters(aircraft: Flight, filters: MapFilters): boolean {
   if (terms.length) {
     const haystack = [aircraft.callsign, aircraft.airline_name, aircraft.airline_code, aircraft.registration, aircraft.aircraft_type, aircraft.aircraft_description, aircraft.icao24]
       .filter(Boolean).join(" ").toLowerCase();
-    if (!terms.every((term) => haystack.includes(term))) return false;
+    const callsign = (aircraft.callsign || "").toLowerCase();
+    if (!terms.every((term) => haystack.includes(term) || callsignsForFlightNumber(term).some((form) => callsign.startsWith(form)))) return false;
   }
   return true;
 }
