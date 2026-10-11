@@ -86,9 +86,15 @@ export function App() {
   // A shared link opens straight onto its flight or airport; the tour waits.
   const [tourOpen, setTourOpen] = useState(() => !tourSeen && !new URLSearchParams(window.location.search).has("icao24") && !new URLSearchParams(window.location.search).has("airport"));
   const closeTour = useCallback(() => { setTourOpen(false); setTourSeen(true); }, [setTourSeen]);
-  const [storedFilters, setFilters] = usePersistentState<MapFilters>("skytrace-filters", NO_FILTERS);
-  // Stored filters from an older release may lack newer fields.
-  const filters = useMemo(() => ({ ...NO_FILTERS, ...storedFilters }), [storedFilters]);
+  // Altitude and ground filters are kept between visits; the free-text filter
+  // stays per session so the map never opens mysteriously narrowed (B12).
+  const [storedFilters, setStoredFilters] = usePersistentState<MapFilters>("skytrace-filters", NO_FILTERS);
+  const [filterQuery, setFilterQuery] = useState("");
+  const filters = useMemo(() => ({ ...NO_FILTERS, ...storedFilters, query: filterQuery }), [filterQuery, storedFilters]);
+  const setFilters = useCallback((next: MapFilters) => {
+    setStoredFilters({ ...next, query: "" });
+    setFilterQuery(next.query);
+  }, [setStoredFilters]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
   const [tab, setTab] = useState<TrafficTab>(initialParams.get("airport") ? "airport" : "live");

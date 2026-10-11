@@ -224,9 +224,10 @@ describe("App", () => {
   });
 
   it("keeps map filters for the next visit", async () => {
-    window.localStorage.setItem("skytrace-filters", JSON.stringify({ hideGround: true }));
+    window.localStorage.setItem("skytrace-filters", JSON.stringify({ hideGround: true, query: "stale text" }));
     mockApi();
     renderApp();
+    // The ground filter returns; free text from an earlier visit does not.
     expect(await screen.findByRole("button", { name: /Filters/ })).toHaveTextContent("1");
   });
 
