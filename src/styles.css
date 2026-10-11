@@ -204,6 +204,7 @@ input { caret-color: var(--accent); }
 .flight-identity { display: grid; min-width: 0; gap: 2px; }
 .callsign-row { display: flex; align-items: center; min-width: 0; gap: 7px; }
 .callsign-row .status-dot { width: 7px; height: 7px; }
+.flight-number { flex: none; color: var(--quiet); font-size: 11px; font-weight: 500; }
 .callsign { overflow: hidden; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; text-overflow: ellipsis; white-space: nowrap; }
 .airline { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .route { align-self: start; color: var(--text); font-size: 13px; font-weight: 500; }

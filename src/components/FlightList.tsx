@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "
 import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert } from "./icons";
 import { usePersistentState } from "../hooks/usePersistentState";
 import type { Flight } from "../types";
-import { callsignsForFlightNumber, distanceKm, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
+import { callsignsForFlightNumber, distanceKm, flightNumberForCallsign, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
 import { useUnits } from "../units";
 
 /** Cards rendered per step: a zoomed-out map can hold thousands of aircraft. */
@@ -42,6 +42,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
   const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
   const airframe = [flight.registration_source === "schedule" ? null : flight.registration, flight.aircraft_type].filter(Boolean).join(" · ");
   const operator = flight.airline_name || airframe || "Unidentified operator";
+  const flightNumber = flightNumberForCallsign(flight.callsign);
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
     <button
@@ -59,6 +60,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
           <span className="callsign-row">
             <span className={`status-dot status-${statusKey}`} aria-hidden="true" />
             <span className="callsign mono">{flight.callsign || flight.icao24.toUpperCase()}</span>
+            {flightNumber && <span className="flight-number mono" title="Flight number on tickets">{flightNumber}</span>}
           </span>
           <span className="airline">{operator}{flight.airline_name && airframe ? <span className="airframe"> · {airframe}</span> : null}</span>
         </span>
