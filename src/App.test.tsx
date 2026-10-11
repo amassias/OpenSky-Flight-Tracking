@@ -155,6 +155,21 @@ describe("App", () => {
     expect(window.location.search).toContain("view=history");
   });
 
+  it("steps the history back one UTC day and not past today", async () => {
+    window.history.replaceState(null, "", "/");
+    mockApi();
+    renderApp();
+    await openAirportFromSearch();
+    await openHistory();
+    expect(screen.getByRole("button", { name: "Next day" })).toBeDisabled();
+    const today = (screen.getByLabelText("UTC date") as HTMLInputElement).value;
+    await userEvent.click(screen.getByRole("button", { name: "Previous day" }));
+    const yesterday = new Date(`${today}T00:00:00Z`);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    await waitFor(() => expect(window.location.search).toContain(`date=${yesterday.toISOString().slice(0, 10)}`));
+    expect(screen.getByRole("button", { name: "Next day" })).toBeEnabled();
+  });
+
   it("turns an authentication error into an actionable message", async () => {
     window.history.replaceState(null, "", "/");
     mockApi({ "/api/flights": () => json({ success: false, error: "Missing credentials" }, 401) });

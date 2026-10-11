@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { CalendarDays, Heart, PlaneLanding, PlaneTakeoff, Share2 } from "./icons";
+import { CalendarDays, ChevronDown, Heart, PlaneLanding, PlaneTakeoff, Share2 } from "./icons";
 import { AirportSearch } from "./AirportSearch";
 import { AirportConditions, LiveBoard } from "./AirportLive";
 import type { Airport, Flight, FlightMode, LiveAircraft } from "../types";
@@ -45,6 +45,13 @@ function ShortcutList({ airports, onSelect }: { airports: Airport[]; onSelect: (
       ))}
     </div>
   );
+}
+
+/** The UTC day `days` after an ISO `YYYY-MM-DD` date. */
+function shiftDate(date: string, days: number) {
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
 }
 
 function ViewToggle({ view, onChange }: { view: AirportView; onChange: (view: AirportView) => void }) {
@@ -109,9 +116,13 @@ export function AirportTab({
           ) : (
             <>
               <div className="history-controls">
-                <label className="date-control">
-                  <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} max={todayUtc()} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
-                </label>
+                <div className="date-stepper">
+                  <button type="button" className="icon-button date-step date-step-prev" aria-label="Previous day" title="Previous day" onClick={() => onDateChange(shiftDate(date, -1))}><ChevronDown size={13} /></button>
+                  <label className="date-control">
+                    <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} max={todayUtc()} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
+                  </label>
+                  <button type="button" className="icon-button date-step date-step-next" aria-label="Next day" title="Next day" disabled={date >= todayUtc()} onClick={() => onDateChange(shiftDate(date, 1))}><ChevronDown size={13} /></button>
+                </div>
                 <ViewToggle view={view} onChange={onViewChange} />
               </div>
               {heading && (
