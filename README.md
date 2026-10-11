@@ -6,7 +6,7 @@ Explore the aircraft above you, follow a flight across the map, or inspect traff
 
 ## What you can do
 
-- **Explore live traffic.** Pan and zoom the map, filter aircraft by altitude or identity, switch units and map theme, and spot emergency squawks. Aircraft with enough position data glide between feed updates.
+- **Explore live traffic.** Pan and zoom the map, filter aircraft by altitude or identity, switch units and map theme, and spot emergency squawks. Aircraft with enough position data glide between feed updates. Turn on **Display → Aircraft trails** to see where each aircraft has gone since you opened the page.
 - **Inspect a flight.** Select an aircraft for its ticket flight number (AF1234 for AFR1234), current altitude, speed, route, profile, photo and available operational details. The map makes one purposeful camera move; use **Follow** to stay with it or **Show full route** to frame its trace. Links open the same aircraft on ADS-B Exchange, adsb.lol, FlightAware and Flightradar24 for cross-checking, and the ICAO24 hex code copies with one click.
 - **Search in one place.** Find a visible aircraft by callsign, ticket flight number (`AF1234` finds `AFR1234`), registration, type or airline, or find an airport by name, city, IATA or ICAO code.
 - **Find airports on the map.** Blue markers cover all geolocated airports in the bundled catalogue. Nearby markers form numbered groups; click to zoom in, then open arrivals and departures. Use **Display → Favourite airports only** to limit the markers to your saved airports.

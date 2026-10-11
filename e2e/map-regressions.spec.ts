@@ -31,9 +31,12 @@ test.beforeEach(async ({ page }) => {
 async function clickUncovered(page: Page, name: string) {
   const control = page.getByRole('button', {name, exact: true});
   await expect(control).toBeVisible();
-  const box = (await control.boundingBox())!;
-  const onTop = await page.evaluate(({x, y}) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), {x: box.x + box.width / 2, y: box.y + box.height / 2});
-  expect(onTop).toBe(name);
+  // Retried, because the controls slide for 0.3 s when the panels toggle.
+  await expect.poll(async () => {
+    const box = await control.boundingBox();
+    if (!box) return null;
+    return page.evaluate(({x, y}) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), {x: box.x + box.width / 2, y: box.y + box.height / 2});
+  }).toBe(name);
   await control.click({force: true});
 }
 

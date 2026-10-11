@@ -79,6 +79,7 @@ export function App() {
   const [recent, setRecent] = usePersistentState<Airport[]>("skytrace-recent", []);
   const [liveEnabled, setLiveEnabled] = usePersistentState("skytrace-live", true);
   const [labelsEnabled, setLabelsEnabled] = usePersistentState("skytrace-labels", true);
+  const [trailsEnabled, setTrailsEnabled] = usePersistentState("skytrace-trails", false);
   const [favoriteAirportsOnly, setFavoriteAirportsOnly] = usePersistentState("skytrace-favorite-airports-only", false);
   const [airportPinsEnabled, setAirportPinsEnabled] = usePersistentState("skytrace-airport-pins", true);
   const [trafficOpen, setTrafficOpen] = usePersistentState("skytrace-traffic-open", window.innerWidth > 900);
@@ -598,6 +599,7 @@ export function App() {
           theme={theme}
           filters={filters}
           labelsEnabled={labelsEnabled}
+          trailsEnabled={trailsEnabled}
           liveEnabled={liveEnabled && liveAvailable}
           liveAvailable={liveAvailable}
           liveProbePending={health.isPending}
@@ -615,6 +617,8 @@ export function App() {
           onFiltersChange={setFilters}
           labelsEnabled={labelsEnabled}
           onLabelsChange={setLabelsEnabled}
+          trailsEnabled={trailsEnabled}
+          onTrailsChange={setTrailsEnabled}
           airportsEnabled={airportPinsEnabled}
           onAirportsChange={setAirportPinsEnabled}
           favoritesOnly={favoriteAirportsOnly}

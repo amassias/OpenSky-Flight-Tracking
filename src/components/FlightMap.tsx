@@ -13,6 +13,8 @@ import { projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMoti
 import { flightLevelText, speedText, useUnits } from "../units";
 import { AltitudeLegend } from "./AltitudeLegend";
 
+/** Recent positions kept per aircraft for its trail. */
+const TRAIL_POINTS = 8;
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 /** Reveal labels only when there is enough room to read them. */
@@ -850,6 +852,8 @@ interface FlightMapProps {
   theme: MapTheme;
   filters: MapFilters;
   labelsEnabled: boolean;
+  /** Faint lines through the positions this page has seen for each aircraft. */
+  trailsEnabled?: boolean;
   liveEnabled: boolean;
   liveAvailable: boolean;
   liveProbePending?: boolean;
@@ -888,6 +892,7 @@ export function FlightMap({
   theme,
   filters,
   labelsEnabled,
+  trailsEnabled = false,
   liveEnabled,
   liveAvailable,
   liveProbePending = false,
@@ -1240,6 +1245,33 @@ export function FlightMap({
   // plane icons for normal views, then switch to a lightweight canvas layer so
   // zooming out does not turn every aircraft into a DOM subtree.
   const denseTraffic = visibleStates.length > 750;
+  // Trails come from successive live snapshots, so they cost no request and
+  // start when the page opens. Only airborne aircraft keep one.
+  const trailPointsRef = useRef(new Map<string, [number, number][]>());
+  const [trails, setTrails] = useState<Array<{ icao24: string; positions: [number, number][]; color: string }>>([]);
+  useEffect(() => {
+    if (!trailsEnabled) {
+      trailPointsRef.current.clear();
+      setTrails([]);
+      return;
+    }
+    const next = new Map<string, [number, number][]>();
+    for (const aircraft of displayedLiveStates) {
+      if (aircraft.latitude == null || aircraft.longitude == null || aircraft.on_ground) continue;
+      const points = trailPointsRef.current.get(aircraft.icao24) ?? [];
+      const last = points[points.length - 1];
+      const point: [number, number] = [aircraft.latitude, aircraft.longitude];
+      const moved = !last || Math.abs(last[0] - point[0]) + Math.abs(last[1] - point[1]) > 0.002;
+      next.set(aircraft.icao24, moved ? [...points, point].slice(-TRAIL_POINTS) : points);
+    }
+    trailPointsRef.current = next;
+    setTrails(displayedLiveStates.flatMap((aircraft) => {
+      const positions = next.get(aircraft.icao24);
+      return positions && positions.length > 1
+        ? [{ icao24: aircraft.icao24, positions, color: altitudeColor(aircraft.baro_altitude ?? aircraft.geo_altitude) }]
+        : [];
+    }));
+  }, [displayedLiveStates, trailsEnabled]);
   const hiddenByFilters = displayedLiveStates.length - visibleStates.length;
   const liveStatus = liveState.error || liveState.failedTiles > 0
     ? hasLiveSnapshot ? `Refresh delayed · last snapshot kept · ${liveState.loadedTiles}/${liveState.totalTiles} sectors` : "Live traffic temporarily unavailable"
@@ -1302,6 +1334,9 @@ export function FlightMap({
         <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={onSelectFlight} />
         {onSelectAirport && <AirportPins airports={airports} activeIcao={airport?.icao ?? null} onSelect={onSelectAirport} />}
         {selectedFlight && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
+        {trailsEnabled && !denseTraffic && trails.map((trail) => trail.icao24 === selectedIcao24 ? null : (
+          <Polyline key={`trail-${trail.icao24}`} positions={trail.positions} interactive={false} pathOptions={{ color: trail.color, weight: 1.5, opacity: 0.5, lineCap: "round" }} />
+        ))}
         {visibleStates.map((aircraft) => denseTraffic ? (
           <AircraftDot
             key={aircraft.icao24}

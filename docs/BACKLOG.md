@@ -64,7 +64,7 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B39: Units** (aviation or metric) shared by every readout, plus follow (F) and show-route (R) shortcuts.
 - [x] **B40: Shared links to a live aircraft now work.** A link without an airport used to select nothing; the aircraft is now looked up directly.
 - [ ] B41: Add a real-tile visual regression capture; the screenshots in this repo use a procedural base map because the capture environment had no internet access.
-- [ ] B42: Show a short trail behind every aircraft in view (needs a cheap batched history source).
+- [x] **B42: Trails behind every aircraft in view** (Display → Aircraft trails, off by default). They are built in the browser from successive live snapshots, so they cost no extra request and start when the page opens.
 
 ## Live airport tab and performance pass (2026-10-08)
 

@@ -8,6 +8,8 @@ interface MapToolbarProps {
   onFiltersChange: (filters: MapFilters) => void;
   labelsEnabled: boolean;
   onLabelsChange: (enabled: boolean) => void;
+  trailsEnabled?: boolean;
+  onTrailsChange?: (enabled: boolean) => void;
   airportsEnabled: boolean;
   onAirportsChange: (enabled: boolean) => void;
   favoritesOnly: boolean;
@@ -64,7 +66,7 @@ function altitudeLabel(feet: number | null, fallback: string, units: UnitSystem)
   return units === "metric" ? `${Math.round(feet * 0.3048).toLocaleString("en-US")} m` : `${feet.toLocaleString("en-US")} ft`;
 }
 
-export function MapToolbar({ filters, onFiltersChange, labelsEnabled, onLabelsChange, airportsEnabled, onAirportsChange, favoritesOnly, favoriteCount, onFavoritesOnlyChange }: MapToolbarProps) {
+export function MapToolbar({ filters, onFiltersChange, labelsEnabled, onLabelsChange, trailsEnabled = false, onTrailsChange, airportsEnabled, onAirportsChange, favoritesOnly, favoriteCount, onFavoritesOnlyChange }: MapToolbarProps) {
   const units = useUnits();
   const minimum = filters.minAltitudeFt ?? 0;
   const maximum = filters.maxAltitudeFt ?? ALTITUDE_FILTER_MAX_FT;
@@ -103,6 +105,7 @@ export function MapToolbar({ filters, onFiltersChange, labelsEnabled, onLabelsCh
           </div>
         </div>
         <Switch label="Aircraft labels" hint="Callsign and level beside each aircraft when zoomed in" checked={labelsEnabled} onChange={onLabelsChange} />
+        {onTrailsChange && <Switch label="Aircraft trails" hint="Where each aircraft has been since you opened the page" checked={trailsEnabled} onChange={onTrailsChange} />}
         <Switch label="Favourite airports only" hint={favoriteCount ? `${favoriteCount} saved · applies to map markers` : "No favourites yet. Save an airport using the heart in airport search."} checked={favoritesOnly} onChange={onFavoritesOnlyChange} />
         <Switch label="Airport markers" hint="Click one to open its departures and arrivals" checked={airportsEnabled} onChange={onAirportsChange} />
       </Popover>
