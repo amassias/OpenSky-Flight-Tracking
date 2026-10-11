@@ -188,6 +188,18 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Next day" })).toBeEnabled();
   });
 
+  it("shows unloaded history as unknown and states the notice once", async () => {
+    window.history.replaceState(null, "", "/");
+    const notice = "OpenSky history is temporarily unavailable for 2026-07-10.";
+    mockApi({ "/api/flights": () => json({ success: true, airport: "LFPG", mode: "departure", date: "2026-07-10", source: "unavailable", notice, count: 0, summary: { total: 0, live_airborne: 0, live_on_ground: 0, unique_airlines: 0 }, flights: [], generated_at: new Date().toISOString() }) });
+    renderApp();
+    await openAirportFromSearch();
+    await openHistory();
+    expect(await screen.findByText("Historical data unavailable")).toBeInTheDocument();
+    expect(screen.getAllByText(notice)).toHaveLength(1);
+    expect(screen.getByText("Flights").previousElementSibling).toHaveTextContent("—");
+  });
+
   it("turns an authentication error into an actionable message", async () => {
     window.history.replaceState(null, "", "/");
     mockApi({ "/api/flights": () => json({ success: false, error: "Missing credentials" }, 401) });

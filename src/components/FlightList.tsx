@@ -248,7 +248,8 @@ export function FlightList({
           <div className="message-state">
             <Plane size={26} aria-hidden="true" />
             <h3>{live ? "No aircraft in view" : notice ? "Historical data unavailable" : "No movements found"}</h3>
-            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice || "No recorded flights for this airport and date. Try the previous day."}</p>
+            {/* The notice itself is already shown above the list; say what to do instead of repeating it. */}
+            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice ? "Try again in a moment, or switch to Live for the aircraft around this airport now." : "No recorded flights for this airport and date. Try the previous day."}</p>
             {notice && <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>}
           </div>
         )}

@@ -456,6 +456,9 @@ export function App() {
     : flights.data?.flights ?? [], [flights.data, nearbyLiveStates, useLiveSnapshot]);
   const showingLiveFallback = flights.data?.source === "live-nearby" || useLiveSnapshot;
   const airportSummary = useLiveSnapshot ? liveSnapshotSummary(airportFlights) : flights.data?.summary;
+  // History that could not be loaded is unknown, not zero flights.
+  const summaryUnknown = flights.data?.source === "unavailable" && !useLiveSnapshot;
+  const summaryValue = (value?: number) => summaryUnknown ? "—" : value ?? 0;
   const liveSummary = useMemo(() => liveSnapshotSummary(filteredLive), [filteredLive]);
   const airportNotice = livePreviewDuringLoad
     ? `Loading ${request?.mode}s · showing live traffic around ${request?.airport.icao} meanwhile.`
@@ -777,9 +780,9 @@ export function App() {
                     heading={boardHeading}
                   >
                     <div className="stats-row">
-                      <div><strong className="mono">{airportSummary?.total ?? 0}</strong><span>{showingLiveFallback ? "Live aircraft" : "Flights"}</span></div>
-                      <div><strong className="mono">{airportSummary?.live_airborne ?? 0}</strong><span>Airborne</span></div>
-                      <div><strong className="mono">{airportSummary?.unique_airlines ?? 0}</strong><span>Airlines</span></div>
+                      <div><strong className="mono">{summaryValue(airportSummary?.total)}</strong><span>{showingLiveFallback ? "Live aircraft" : "Flights"}</span></div>
+                      <div><strong className="mono">{summaryValue(airportSummary?.live_airborne)}</strong><span>Airborne</span></div>
+                      <div><strong className="mono">{summaryValue(airportSummary?.unique_airlines)}</strong><span>Airlines</span></div>
                     </div>
                     <FlightList
                       flights={airportFlights}
