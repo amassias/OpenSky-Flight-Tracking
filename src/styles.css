@@ -475,6 +475,7 @@ input { caret-color: var(--accent); }
 .emergency-banner button { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; color: var(--danger); text-align: left; border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); border-radius: var(--r-md); background: var(--panel-solid); box-shadow: var(--shadow-float); font-size: 13px; cursor: pointer; transition: background .15s var(--ease-out), transform .12s var(--ease-out); }
 .emergency-banner button:hover { background: color-mix(in srgb, var(--danger) 10%, var(--panel-solid)); }
 .emergency-banner button:active { transform: scale(.98); }
+.emergency-more { justify-self: start; padding: 3px 10px; color: var(--danger); border-radius: var(--r-pill); background: var(--panel-solid); box-shadow: var(--shadow-float); font-size: 12px; font-weight: 600; }
 .emergency-banner strong { font-weight: 600; white-space: nowrap; }
 .emergency-banner span { overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
 

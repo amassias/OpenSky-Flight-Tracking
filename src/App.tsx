@@ -632,6 +632,7 @@ export function App() {
                   <span>{aircraft.callsign || aircraft.icao24.toUpperCase()} · {info.label}</span>
                 </button>
               ))}
+              {emergencies.length > 2 && <span className="emergency-more">+{emergencies.length - 2} more</span>}
             </motion.div>
           )}
         </AnimatePresence>
