@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, bearingDeg, boundsEqual, callsignsForFlightNumber, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, bearingDeg, boundsEqual, callsignsForFlightNumber, currentLegTrack, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import type { TrackPoint, TrackResponse } from "./types";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -204,5 +205,23 @@ describe("bearingDeg", () => {
     expect(Math.round(bearingDeg([0, 0], [1, 0]))).toBe(0);
     expect(Math.round(bearingDeg([0, 0], [0, 1]))).toBe(90);
     expect(Math.round(bearingDeg([1, 0], [0, 0]))).toBe(180);
+  });
+});
+
+describe("currentLegTrack", () => {
+  const response = (path: TrackPoint[]) => ({ success: true, track: { icao24: "abc", path, trace_kind: "full" } }) as TrackResponse;
+  const cruise: TrackPoint[] = [[0, 51, 0, 10000, 90, false], [3_000, 51.2, 1, 3000, 90, false], [3_600, 51.4, 1.2, 0, 90, true]];
+
+  it("drops the previous leg once an aircraft has been on the ground past a turnaround", () => {
+    const taxiing = response([...cruise, [6_000, 51.41, 1.2, 0, 180, true], [6_200, 51.42, 1.21, 0, 180, true]]);
+    const trimmed = currentLegTrack(taxiing, true)!;
+    expect(trimmed.track.path).toHaveLength(3);
+    expect(trimmed.track.path!.every((point) => point[5] === true)).toBe(true);
+  });
+
+  it("keeps a fresh arrival and every airborne trace whole", () => {
+    const justLanded = response([...cruise, [3_900, 51.41, 1.2, 0, 180, true]]);
+    expect(currentLegTrack(justLanded, true)!.track.path).toHaveLength(4);
+    expect(currentLegTrack(justLanded, false)!.track.path).toHaveLength(4);
   });
 });

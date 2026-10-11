@@ -1,5 +1,5 @@
 import { AIRLINE_ICAO_BY_IATA } from "./airlineCodes";
-import type { Bounds, Flight, FlightStatus, LiveAircraft, MapView } from "./types";
+import type { Bounds, Flight, FlightStatus, LiveAircraft, MapView, TrackPoint, TrackResponse } from "./types";
 import { altitudeText, speedText } from "./units";
 
 export const ALTITUDE_UNKNOWN_COLOR = "#8e8e93";
@@ -337,4 +337,28 @@ export function flightNumberForCallsign(callsign?: string | null): string | null
   }
   const iata = iataByIcao.get(match[1]);
   return iata ? `${iata}${match[2]}` : null;
+}
+
+/** Minutes on the ground after which a trace's earlier flight is a previous leg. */
+const TURNAROUND_MINUTES = 20;
+
+/**
+ * The trace of the flight the aircraft is on now. An airframe's trace can
+ * span its previous leg: an aircraft taxiing out showed the whole cruise
+ * and descent of the flight that brought it in. When it is on the ground
+ * and its last airborne point is older than a turnaround, only the ground
+ * movement since then is kept. A recent landing keeps its full arrival.
+ */
+export function currentLegTrack(track: TrackResponse | undefined, onGround?: boolean | null): TrackResponse | undefined {
+  const path = track?.track.path;
+  if (!track || !path || path.length < 2 || onGround !== true) return track;
+  const airborne = (point: TrackPoint) => point[5] === false && (point[3] ?? 0) > 0;
+  let lastAirborne = -1;
+  for (let index = path.length - 1; index >= 0; index -= 1) {
+    if (airborne(path[index])) { lastAirborne = index; break; }
+  }
+  if (lastAirborne < 0) return track;
+  const sinceLanding = path[path.length - 1][0] - path[lastAirborne][0];
+  if (sinceLanding < TURNAROUND_MINUTES * 60) return track;
+  return { ...track, track: { ...track.track, path: path.slice(lastAirborne + 1), trace_kind: "recent" } };
 }

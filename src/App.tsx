@@ -19,7 +19,7 @@ import { usePersistentState } from "./hooks/usePersistentState";
 import { getUnits, setUnits } from "./units";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
 import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme, MapView } from "./types";
-import { emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
+import { currentLegTrack, emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
 
 interface FlightRequest {
   airport: Airport;
@@ -304,6 +304,8 @@ export function App() {
     enabled: Boolean(detailsFlight),
     retry: false,
   });
+
+  const currentTrack = useMemo(() => currentLegTrack(track.data, detailsFlight?.on_ground), [detailsFlight?.on_ground, track.data]);
 
   // Only the selected aircraft is looked up, never every marker, to keep the
   // photo provider's traffic reasonable. The registration usually arrives a
@@ -636,7 +638,7 @@ export function App() {
           onRetryAirportCatalog={() => { void airportCatalog.refetch(); }}
           selectedFlight={selectedFlight}
           previewFlight={previewFlight}
-          track={track.data}
+          track={currentTrack}
           theme={theme}
           filters={filters}
           labelsEnabled={labelsEnabled}
@@ -695,7 +697,7 @@ export function App() {
             <Suspense fallback={<div className="details-drawer dock-panel" aria-busy="true" />}>
             <FlightDetails
               flight={detailsFlight}
-              track={track.data}
+              track={currentTrack}
               trackLoading={track.isFetching}
               trackError={track.error ? readableApiError(track.error) : undefined}
               routeLoading={(flightInfo.isFetching && !flightInfo.data) || endAirports.isFetching}
