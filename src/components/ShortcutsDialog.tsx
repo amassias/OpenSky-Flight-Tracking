@@ -8,6 +8,7 @@ const SHORTCUTS: ReadonlyArray<{ keys: string[]; label: string }> = [
   { keys: ["F"], label: "Follow the selected aircraft" },
   { keys: ["R"], label: "Frame the selected route" },
   { keys: ["T"], label: "Switch between dark and light map" },
+  { keys: ["L"], label: "Show or hide aircraft labels" },
   { keys: ["?"], label: "Show these shortcuts" },
   { keys: ["Esc"], label: "Close search, menu, full map or flight detail" },
 ];
