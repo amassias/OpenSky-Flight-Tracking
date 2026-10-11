@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Topbar } from "./Topbar";
 
@@ -21,5 +21,14 @@ describe("Topbar", () => {
   it("says when only recorded history is available", () => {
     renderTopbar({ health: { success: true, credentials_configured: false, live_available: false } as never });
     expect(screen.getByText("History only")).toBeInTheDocument();
+  });
+});
+
+describe("Topbar connection", () => {
+  it("says Offline when the browser loses its connection", async () => {
+    renderTopbar();
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    act(() => { window.dispatchEvent(new Event("offline")); });
+    expect(await screen.findByText("Offline")).toBeInTheDocument();
   });
 });

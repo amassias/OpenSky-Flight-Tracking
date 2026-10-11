@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNow } from "../hooks/useNow";
 import { Moon, Plane, Sun } from "./icons";
 import { CircleHelp, KeyboardIcon } from "./customIcons";
@@ -21,9 +21,24 @@ function UtcClock() {
   return <span className="mono">{new Date(now).toISOString().slice(11, 19)} UTC</span>;
 }
 
+function useOnline() {
+  const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine !== false);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine !== false);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+  return online;
+}
+
 export function Topbar({ health, healthPending, theme, search, onToggleTheme, onShowTour, onShowShortcuts }: TopbarProps) {
-  const liveAvailable = health?.live_available ?? health?.credentials_configured;
-  const channel = healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
+  const online = useOnline();
+  const liveAvailable = online && (health?.live_available ?? health?.credentials_configured);
+  const channel = !online ? "Offline" : healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
   return (
     <header className="topbar">
       <div className="brand" aria-label="SkyTrace">
