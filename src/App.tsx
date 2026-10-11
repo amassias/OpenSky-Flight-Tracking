@@ -325,7 +325,9 @@ export function App() {
     // Commas are legal in a query string; keep ?at=51.470,-0.454,10 readable.
     const query = params.toString().replace(/%2C/g, ",");
     const next = query ? `${window.location.pathname}?${query}` : window.location.pathname;
-    window.history.replaceState(null, "", next);
+    // Follow mode settles the map every second; Safari throttles (and throws
+    // on) frequent replaceState calls, so skip the ones that change nothing.
+    if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", next);
   }, [airportView, mapView, request, selectedFlight]);
 
   const titleAirport = request ? request.airport.iata || request.airport.icao : null;

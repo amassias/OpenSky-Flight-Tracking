@@ -1251,8 +1251,10 @@ export function FlightMap({
   const [trails, setTrails] = useState<Array<{ icao24: string; positions: [number, number][]; color: string }>>([]);
   useEffect(() => {
     if (!trailsEnabled) {
+      // Runs on every live refresh while off: keep the same array so the map
+      // does not re-render for nothing.
       trailPointsRef.current.clear();
-      setTrails([]);
+      setTrails((current) => (current.length ? [] : current));
       return;
     }
     const next = new Map<string, [number, number][]>();
