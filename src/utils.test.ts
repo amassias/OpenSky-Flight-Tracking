@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, callsignsForFlightNumber, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -167,5 +167,18 @@ describe("parseMapView", () => {
     expect(parseMapView("abc,1,5")).toBeNull();
     expect(parseMapView("95,0,5")).toBeNull();
     expect(parseMapView("40,0,40")).toBeNull();
+  });
+});
+
+describe("callsignsForFlightNumber", () => {
+  it("reads a ticket flight number as the callsigns it is flown under", () => {
+    expect(callsignsForFlightNumber("AF1234")).toEqual(["afr1234"]);
+    expect(callsignsForFlightNumber("ba0012")).toEqual(["baw12"]);
+    expect(callsignsForFlightNumber("LH400")).toContain("dlh400");
+  });
+
+  it("ignores terms that are not flight numbers", () => {
+    expect(callsignsForFlightNumber("AFR1234")).toEqual([]);
+    expect(callsignsForFlightNumber("Paris")).toEqual([]);
   });
 });

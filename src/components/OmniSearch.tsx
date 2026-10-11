@@ -4,6 +4,7 @@ import { Database, MapPin, Plane, Search, X } from "./icons";
 import { api } from "../api";
 import { looksLikeRegistration } from "../airframe";
 import type { AirframeRegistry, Airport, LiveAircraft } from "../types";
+import { callsignsForFlightNumber } from "../utils";
 
 interface OmniSearchProps {
   /** Aircraft currently on the map; the live feed has no global lookup. */
@@ -25,14 +26,17 @@ type Option =
 function matchAircraft(aircraft: readonly LiveAircraft[], query: string): LiveAircraft[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
+  // A ticket flight number (AF1234) also finds the callsign it flies as (AFR1234).
+  const alternatives = terms.map(callsignsForFlightNumber);
   const scored: Array<{ flight: LiveAircraft; score: number }> = [];
   for (const flight of aircraft) {
     const callsign = (flight.callsign || "").toLowerCase();
     const registration = (flight.registration || "").toLowerCase();
     const haystack = [callsign, registration, flight.icao24, flight.airline_name, flight.aircraft_type, flight.aircraft_description].filter(Boolean).join(" ").toLowerCase();
-    if (!terms.every((term) => haystack.includes(term))) continue;
+    if (!terms.every((term, index) => haystack.includes(term) || alternatives[index].some((callsignForm) => callsign.startsWith(callsignForm)))) continue;
     const first = terms[0];
-    scored.push({ flight, score: callsign.startsWith(first) || registration.startsWith(first) ? 0 : callsign.includes(first) || registration.includes(first) ? 1 : 2 });
+    const flightNumber = alternatives[0].some((callsignForm) => callsign.startsWith(callsignForm));
+    scored.push({ flight, score: callsign.startsWith(first) || registration.startsWith(first) || flightNumber ? 0 : callsign.includes(first) || registration.includes(first) ? 1 : 2 });
   }
   return scored.sort((a, b) => a.score - b.score || (a.flight.callsign || "").localeCompare(b.flight.callsign || "")).slice(0, 6).map((entry) => entry.flight);
 }
@@ -218,7 +222,7 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
           {searching && options.length === 0 && <p className="omni-empty">Searching…</p>}
           {empty && <p className="omni-empty">No aircraft in view or airport matches “{trimmed}”.</p>}
           {airportSearch.isError && trimmed.length >= 2 && !searching && <p className="omni-empty" role="alert">Airport search is unavailable right now.</p>}
-          <p className="omni-hint">Callsigns search the aircraft on the map. A registration such as F-HBXA or N283VA opens that airframe's history anywhere.</p>
+          <p className="omni-hint">Callsigns and flight numbers such as AF1234 search the aircraft on the map. A registration such as F-HBXA or N283VA opens that airframe's history anywhere.</p>
         </div>
       )}
     </div>

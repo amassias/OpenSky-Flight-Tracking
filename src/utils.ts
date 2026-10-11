@@ -1,3 +1,4 @@
+import { AIRLINE_ICAO_BY_IATA } from "./airlineCodes";
 import type { Bounds, Flight, FlightStatus, LiveAircraft, MapView } from "./types";
 import { altitudeText, speedText } from "./units";
 
@@ -295,3 +296,15 @@ export function parseMapView(value: string | null): MapView | null {
   return { latitude, longitude, zoom: Math.round(zoom) };
 }
 
+
+/**
+ * Callsigns a ticket flight number is transmitted as: "AF1234" is flown as
+ * AFR1234 and "LH400" as DLH400. Returns lowercase candidates, empty when
+ * the term is not an IATA flight number.
+ */
+export function callsignsForFlightNumber(term: string): string[] {
+  const match = /^([a-z0-9]{2})\s?0*(\d{1,4}[a-z]?)$/i.exec(term.trim());
+  if (!match) return [];
+  const icaoCodes = AIRLINE_ICAO_BY_IATA[match[1].toUpperCase()] ?? [];
+  return icaoCodes.map((icao) => `${icao}${match[2]}`.toLowerCase());
+}

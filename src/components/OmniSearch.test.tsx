@@ -27,6 +27,12 @@ function renderSearch(props: Partial<React.ComponentProps<typeof OmniSearch>> = 
 }
 
 describe("OmniSearch", () => {
+  it("finds an aircraft by the flight number printed on a ticket", async () => {
+    const { input, onSelectAircraft } = renderSearch();
+    await userEvent.type(input, "AF123{Enter}");
+    expect(onSelectAircraft).toHaveBeenCalledWith(expect.objectContaining({ callsign: "AFR123" }));
+  });
+
   it("finds aircraft on the map by callsign, registration or type and selects one with Enter", async () => {
     const { input, onSelectAircraft } = renderSearch();
     await userEvent.type(input, "f-ha");
