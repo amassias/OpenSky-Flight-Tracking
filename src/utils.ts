@@ -320,9 +320,13 @@ export function callsignsForFlightNumber(term: string): string[] {
 
 let iataByIcao: Map<string, string> | null = null;
 
-/** The ticket flight number for a numeric airline callsign: AFR1234 → AF1234. */
+/**
+ * The ticket flight number for a numeric airline callsign: AFR1234 → AF1234.
+ * Alphanumeric callsigns (BAW33A, EZY82FH) are ATC codes chosen to avoid
+ * confusion on frequency, not flight numbers, so they get none.
+ */
 export function flightNumberForCallsign(callsign?: string | null): string | null {
-  const match = /^([A-Z]{3})(\d{1,4}[A-Z]?)$/.exec((callsign ?? "").trim().toUpperCase());
+  const match = /^([A-Z]{3})(\d{1,4})$/.exec((callsign ?? "").trim().toUpperCase());
   if (!match) return null;
   if (!iataByIcao) {
     iataByIcao = new Map();

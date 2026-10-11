@@ -192,6 +192,8 @@ describe("flightNumberForCallsign", () => {
   it("leaves registrations and unknown prefixes alone", () => {
     expect(flightNumberForCallsign("FGIKP")).toBeNull();
     expect(flightNumberForCallsign("RYR4EB")).toBeNull();
+    expect(flightNumberForCallsign("BAW33A")).toBeNull();
+    expect(flightNumberForCallsign("BAW465M")).toBeNull();
     expect(flightNumberForCallsign("QQQ123")).toBeNull();
     expect(flightNumberForCallsign(null)).toBeNull();
   });
