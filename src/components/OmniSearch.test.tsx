@@ -53,7 +53,7 @@ describe("OmniSearch", () => {
     const { input } = renderSearch();
     await userEvent.click(input);
     expect(await screen.findByRole("option", { name: /Paris Charles de Gaulle/ })).toBeInTheDocument();
-    expect(screen.getByText(/Callsigns search the aircraft on the map/i)).toBeInTheDocument();
+    expect(screen.getByText(/flight numbers such as AF1234 search the aircraft on the map/i)).toBeInTheDocument();
   });
 
   it("explains an empty result instead of staying silent", async () => {
