@@ -26,10 +26,15 @@ test.beforeEach(async ({ page }) => {
 test('map controls remain clickable and map resizes in full map', async ({page}, testInfo) => {
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   await page.screenshot({path: testInfo.outputPath('map.png')});
-  // CI's software-rendered WebKit animates 300 markers slowly, so the
-  // button needs longer than 3 s to report a stable box; clickability is
-  // still what this asserts.
-  await page.getByRole('button', {name: 'Hide panels', exact: true}).click({timeout: 10_000});
+  // CI's software-rendered WebKit sometimes never reports a stable box for
+  // this button under 300 markers. What matters is that no marker covers it:
+  // hit-test its centre explicitly, then click without the stability wait.
+  const hidePanels = page.getByRole('button', {name: 'Hide panels', exact: true});
+  await expect(hidePanels).toBeVisible();
+  const box = (await hidePanels.boundingBox())!;
+  const onTop = await page.evaluate(({x, y}) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), {x: box.x + box.width / 2, y: box.y + box.height / 2});
+  expect(onTop).toBe('Hide panels');
+  await hidePanels.click({force: true});
   await expect(page.locator('.app')).toHaveClass(/map-expanded/);
   await page.screenshot({path: testInfo.outputPath('full-map.png')});
   await page.getByRole('button', {name: 'Pause live traffic'}).click();
