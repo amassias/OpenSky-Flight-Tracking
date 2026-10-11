@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import https from "node:https";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
@@ -130,9 +131,17 @@ function sendJson(response: ServerResponse, status: number, payload: unknown) {
   response.end(JSON.stringify(payload));
 }
 
+/** Constant-time comparison, so response timing reveals nothing about the secret. */
+function secretMatches(provided: string | string[] | undefined, expected: string) {
+  if (typeof provided !== "string") return false;
+  // Hashing first gives equal lengths, which timingSafeEqual requires.
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(provided), digest(expected));
+}
+
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   const expectedSecret = process.env.OPEN_SKY_PROXY_SECRET;
-  if (!expectedSecret || request.headers["x-skytrace-proxy-secret"] !== expectedSecret) {
+  if (!expectedSecret || !secretMatches(request.headers["x-skytrace-proxy-secret"], expectedSecret)) {
     sendJson(response, 401, { success: false, error: "Unauthorized" });
     return;
   }
