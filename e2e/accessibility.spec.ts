@@ -67,3 +67,25 @@ test("the airport board has no WCAG A/AA violations", async ({ page }) => {
   await expect(page.getByText("VFR")).toBeVisible();
   expect(await audit(page)).toEqual([]);
 });
+
+test.describe("dark theme", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("the live view and a selected flight have no WCAG A/AA violations", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".app")).toHaveClass(/theme-dark/);
+    await expect(page.locator(".aircraft-marker")).toHaveCount(3);
+    expect(await audit(page)).toEqual([]);
+    const reopen = page.getByRole("button", { name: "Open traffic panel" });
+    if (await reopen.isVisible()) await reopen.click();
+    await page.locator(".flight-card").first().click();
+    await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
+    expect(await audit(page)).toEqual([]);
+  });
+
+  test("the airport board has no WCAG A/AA violations", async ({ page }) => {
+    await page.goto("/?airport=LFPG");
+    await expect(page.getByText("AFR1234")).toBeVisible();
+    expect(await audit(page)).toEqual([]);
+  });
+});
