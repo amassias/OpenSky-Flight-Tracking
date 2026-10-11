@@ -119,7 +119,10 @@ export function AirportTab({
                 <div className="date-stepper">
                   <button type="button" className="icon-button date-step date-step-prev" aria-label="Previous day" title="Previous day" onClick={() => onDateChange(shiftDate(date, -1))}><ChevronDown size={13} /></button>
                   <label className="date-control">
-                    <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} max={todayUtc()} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
+                    <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} max={todayUtc()} onClick={(event) => {
+                      // The native picker icon is hidden for room; the whole field opens it.
+                      try { event.currentTarget.showPicker?.(); } catch { /* not allowed here */ }
+                    }} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
                   </label>
                   <button type="button" className="icon-button date-step date-step-next" aria-label="Next day" title="Next day" disabled={date >= todayUtc()} onClick={() => onDateChange(shiftDate(date, 1))}><ChevronDown size={13} /></button>
                 </div>

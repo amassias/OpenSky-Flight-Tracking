@@ -680,6 +680,11 @@ input { caret-color: var(--accent); }
 .history-controls .date-control { flex: 1; min-width: 0; max-width: 180px; }
 .date-stepper { display: flex; flex: 1; align-items: center; gap: 2px; min-width: 0; }
 .date-step { flex: none; width: 28px; height: 28px; }
+.date-stepper .date-control { max-width: none; }
+.date-stepper .control-shell { padding-left: 8px; padding-right: 6px; }
+.date-stepper .control-shell > svg { display: none; }
+.date-stepper input { cursor: pointer; }
+.date-stepper input::-webkit-calendar-picker-indicator { display: none; }
 .date-step:disabled { opacity: .35; cursor: not-allowed; }
 .date-step-prev svg { transform: rotate(90deg); }
 .date-step-next svg { transform: rotate(-90deg); }
