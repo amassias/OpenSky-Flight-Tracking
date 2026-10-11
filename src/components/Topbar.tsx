@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useNow } from "../hooks/useNow";
 import { Moon, Plane, Sun } from "./icons";
 import { CircleHelp, KeyboardIcon } from "./customIcons";
 import type { HealthResponse, MapTheme } from "../types";
@@ -16,12 +17,8 @@ interface TopbarProps {
 }
 
 function UtcClock() {
-  const [time, setTime] = useState(() => new Date().toISOString().slice(11, 19));
-  useEffect(() => {
-    const timer = window.setInterval(() => setTime(new Date().toISOString().slice(11, 19)), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  return <span className="mono">{time} UTC</span>;
+  const now = useNow(1000);
+  return <span className="mono">{new Date(now).toISOString().slice(11, 19)} UTC</span>;
 }
 
 export function Topbar({ health, healthPending, theme, search, onToggleTheme, onShowTour, onShowShortcuts }: TopbarProps) {
