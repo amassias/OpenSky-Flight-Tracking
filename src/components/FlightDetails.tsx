@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ChevronDown, Copy, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
-import { compassPoint, emergencyInfo, flightNumberForCallsign, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
+import { bearingDeg, compassPoint, distanceKm, emergencyInfo, flightNumberForCallsign, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
 import { distanceText, useUnits, verticalRateText } from "../units";
 import { AirframeHistory } from "./AirframeHistory";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
@@ -24,6 +24,8 @@ interface FlightDetailsProps {
   onRetryTrack: () => void;
   onClose: () => void;
   onShare: () => void;
+  /** The visitor's position, when shared, for "distance from you". */
+  observer?: [number, number] | null;
 }
 
 const profileValue = (value?: string | number | null, fallback = "—") => value == null || value === "" ? fallback : String(value);
@@ -132,9 +134,13 @@ function Section({ title, aside, open = false, children }: { title: string; asid
   );
 }
 
-export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare }: FlightDetailsProps) {
+export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare, observer = null }: FlightDetailsProps) {
   useUnits();
   const flightNumber = flightNumberForCallsign(liveFlight.callsign);
+  const aircraftPosition: [number, number] | null = liveFlight.latitude != null && liveFlight.longitude != null ? [liveFlight.latitude, liveFlight.longitude] : null;
+  const fromYou = observer && aircraftPosition
+    ? `${distanceText(distanceKm(observer, aircraftPosition))} ${compassPoint(bearingDeg(observer, aircraftPosition))} of you`
+    : null;
   // The registry fills what the live feed did not say, such as the tail and
   // type of an airframe opened from a registration search.
   const airframe = useAirframeHistory(liveFlight.icao24).data;
@@ -283,6 +289,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           <small className="mono">{flight.icao24.toUpperCase()}</small>
         </div>
       </div>
+      {fromYou && <p className="from-you mono">{fromYou}</p>}
 
         </>
       )}

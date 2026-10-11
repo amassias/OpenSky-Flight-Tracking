@@ -122,6 +122,7 @@ export function App() {
   const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
   const [liveFallbackSnapshot, setLiveFallbackSnapshot] = useState<LiveFallbackSnapshot | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [sharedView] = useState(() => initialParams.get("airport") || initialParams.get("icao24") ? null : parseMapView(initialParams.get("at")));
   const [mapView, setMapView] = useState<MapView | null>(sharedView);
   // The position only reaches the URL while no airport or flight is open, so
@@ -622,6 +623,7 @@ export function App() {
           airport={request?.airport ?? (sharedView ? null : homeAirport)}
           initialView={sharedView}
           onViewChange={handleViewChange}
+          onUserLocation={setUserPosition}
           airports={airportPinsEnabled ? favoriteAirportsOnly ? favorites : mapAirports : []}
           nearbyAirports={mapAirports}
           airportCatalogLoading={airportCatalog.isPending}
@@ -699,6 +701,7 @@ export function App() {
               onRetryTrack={() => track.refetch()}
               onClose={() => setSelectedFlight(null)}
               onShare={shareView}
+              observer={userPosition}
             />
             </Suspense>
             </PanelBoundary>

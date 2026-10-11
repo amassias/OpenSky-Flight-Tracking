@@ -142,6 +142,12 @@ test("shows a location marker after the user grants geolocation", async ({ page,
   await page.getByRole("button", { name: "Locate me" }).click();
   await expect(page.locator(".user-location-marker")).toHaveCount(1);
   await expect(page.locator(".leaflet-marker-icon").filter({ has: page.locator(".user-location-marker") })).toHaveCount(1);
+
+  // A selected aircraft then says where it is from the visitor.
+  const reopen = page.getByRole("button", { name: "Open traffic panel" });
+  if (await reopen.isVisible()) await reopen.click();
+  await page.getByRole("complementary", { name: "Traffic" }).getByRole("button", { name: /AFR123/ }).click();
+  await expect(page.getByRole("complementary", { name: "Selected flight details" }).getByText(/ of you$/)).toBeVisible();
 });
 
 test("follows the selected aircraft until the map is dragged", async ({ page, isMobile }) => {

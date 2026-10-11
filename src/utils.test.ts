@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, boundsEqual, callsignsForFlightNumber, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, bearingDeg, boundsEqual, callsignsForFlightNumber, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
 
 describe("altitude colour scale", () => {
   it("maps each flight level to a stable colour band", () => {
@@ -194,5 +194,13 @@ describe("flightNumberForCallsign", () => {
     expect(flightNumberForCallsign("RYR4EB")).toBeNull();
     expect(flightNumberForCallsign("QQQ123")).toBeNull();
     expect(flightNumberForCallsign(null)).toBeNull();
+  });
+});
+
+describe("bearingDeg", () => {
+  it("points from one place to another", () => {
+    expect(Math.round(bearingDeg([0, 0], [1, 0]))).toBe(0);
+    expect(Math.round(bearingDeg([0, 0], [0, 1]))).toBe(90);
+    expect(Math.round(bearingDeg([1, 0], [0, 0]))).toBe(180);
   });
 });

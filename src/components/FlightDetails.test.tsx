@@ -10,12 +10,12 @@ const flight = {
   status: "airborne", on_ground: false, primary_time: 0, data_source: "live-nearby",
 } as Flight;
 
-function renderDetails(overrides: Partial<Flight> = {}) {
+function renderDetails(overrides: Partial<Flight> = {}, observer: [number, number] | null = null) {
   vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ success: false }), { status: 404 }))));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlightDetails flight={{ ...flight, ...overrides }} trackLoading={false} onRetryTrack={vi.fn()} onClose={vi.fn()} onShare={vi.fn()} />
+      <FlightDetails flight={{ ...flight, ...overrides }} trackLoading={false} onRetryTrack={vi.fn()} onClose={vi.fn()} onShare={vi.fn()} observer={observer} />
     </QueryClientProvider>,
   );
 }
@@ -41,5 +41,10 @@ describe("FlightDetails", () => {
     await user.click(screen.getByRole("button", { name: "Copy ICAO24 39ABCD" }));
     expect(writeText).toHaveBeenCalledWith("39ABCD");
     expect(await screen.findByText("Copied")).toBeInTheDocument();
+  });
+
+  it("says how far and which way the aircraft is from the visitor", () => {
+    renderDetails({ latitude: 49, longitude: 2.5 }, [48, 2.5]);
+    expect(screen.getByText(/N of you$/)).toBeInTheDocument();
   });
 });

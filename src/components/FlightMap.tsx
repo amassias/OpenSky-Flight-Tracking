@@ -868,6 +868,8 @@ interface FlightMapProps {
   initialView?: MapView | null;
   /** Reports the settled centre and zoom after every pan or zoom. */
   onViewChange?: (view: MapView) => void;
+  /** The visitor's position once they share it with "Locate me". */
+  onUserLocation?: (position: [number, number]) => void;
 }
 
 interface ProgressiveLiveState {
@@ -905,6 +907,7 @@ export function FlightMap({
   onViewportCenter,
   initialView = null,
   onViewChange,
+  onUserLocation,
 }: FlightMapProps) {
   const [map, setMap] = useState<L.Map | null>(null);
   const appliedInitialView = useRef(false);
@@ -1289,7 +1292,8 @@ export function FlightMap({
   const handleLocationFound = useCallback((location: UserLocation) => {
     setUserLocation(location);
     setLocationError(null);
-  }, []);
+    onUserLocation?.([location.latitude, location.longitude]);
+  }, [onUserLocation]);
   const handleLocationError = useCallback((message: string) => {
     setLocationError(message);
   }, []);
