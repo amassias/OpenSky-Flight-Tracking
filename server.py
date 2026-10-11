@@ -9,6 +9,7 @@ Open: http://localhost:8000
 import http.server
 import json
 import math
+import logging
 import mimetypes
 import os
 import re
@@ -324,13 +325,16 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         except OpenSkyAPIError as exc:
             status = exc.status_code if exc.status_code in (400, 401, 403, 404, 429) else 502
             self.send_error_response(status, str(exc), details=exc.payload)
-        except Exception as exc:
-            self.send_error_response(500, str(exc))
+        except Exception:
+            # Same contract as the Vercel entry point: internals stay in the log.
+            logging.exception("Unhandled SkyTrace API error")
+            self.send_error_response(500, "Internal server error.")
 
     def send_json_response(self, status_code, data):
         self.send_response(status_code)
         self.send_header("Content-type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
