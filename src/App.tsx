@@ -120,6 +120,17 @@ export function App() {
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [sharedView] = useState(() => initialParams.get("airport") || initialParams.get("icao24") ? null : parseMapView(initialParams.get("at")));
   const [mapView, setMapView] = useState<MapView | null>(sharedView);
+  // The position only reaches the URL while no airport or flight is open, so
+  // other moves (follow mode settles every second) skip the app re-render.
+  const urlTracksMapRef = useRef(true);
+  // Always current, so closing a flight writes where the map is now.
+  const latestViewRef = useRef<MapView | null>(sharedView);
+  const handleViewChange = useCallback((view: MapView) => {
+    const next = { latitude: Number(view.latitude.toFixed(3)), longitude: Number(view.longitude.toFixed(3)), zoom: view.zoom };
+    latestViewRef.current = next;
+    if (!urlTracksMapRef.current) return;
+    setMapView((current) => current && current.latitude === next.latitude && current.longitude === next.longitude && current.zoom === next.zoom ? current : next);
+  }, []);
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
 
@@ -314,8 +325,10 @@ export function App() {
         params.set("date", request.date);
       }
     }
-    if (!request && !selectedFlight && mapView) {
-      params.set("at", `${mapView.latitude.toFixed(3)},${mapView.longitude.toFixed(3)},${mapView.zoom}`);
+    urlTracksMapRef.current = !request && !selectedFlight;
+    const view = latestViewRef.current ?? mapView;
+    if (!request && !selectedFlight && view) {
+      params.set("at", `${view.latitude.toFixed(3)},${view.longitude.toFixed(3)},${view.zoom}`);
     }
     if (selectedFlight) {
       params.set("icao24", selectedFlight.icao24);
@@ -591,7 +604,7 @@ export function App() {
           // A shared map position wins over the home airport until one is opened.
           airport={request?.airport ?? (sharedView ? null : homeAirport)}
           initialView={sharedView}
-          onViewChange={setMapView}
+          onViewChange={handleViewChange}
           airports={airportPinsEnabled ? favoriteAirportsOnly ? favorites : mapAirports : []}
           nearbyAirports={mapAirports}
           airportCatalogLoading={airportCatalog.isPending}
