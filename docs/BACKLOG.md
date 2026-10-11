@@ -98,4 +98,6 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] Favicon, home-screen icons, manifest, link previews, security headers, CDN caching of airport catalogue answers.
 - [x] Accessibility audit (axe, WCAG 2 A/AA) in e2e for the live view, the shortcuts sheet, a selected flight and an airport board; the light theme's green status text was darkened to pass contrast.
 - [x] A partial API body can no longer blank the page: track, airframe, conditions, board and schedule answers are normalised in `src/api.ts`, and the flight details, airport board and conditions card sit behind error boundaries with a retry.
+- [x] Dark-theme contrast: weather-category badges use dark text, quiet text and the live board chip are lighter; light-theme quiet text passes on a selected card. The audit now measures settled colours (reduced motion, finished animations).
+- [x] The altitude legend no longer covers the Follow and Show route controls.
 

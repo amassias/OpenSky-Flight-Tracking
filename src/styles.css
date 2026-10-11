@@ -19,11 +19,16 @@
   --line-strong: rgba(255, 255, 255, 0.16);
   --text: #f5f5f7;
   --muted: #a1a1a6;
-  --quiet: #8e8e93;
+  --quiet: #98989d;
   --accent: #2997ff;
   --accent-press: #0a84ff;
   --accent-soft: rgba(41, 151, 255, 0.16);
   --on-accent: #ffffff;
+  /* Accent-coloured text on --accent-soft, and text on the bright weather
+     category colours: both need more contrast than the defaults in dark. */
+  --accent-text: #4aa3ff;
+  --on-category: #0b0b0c;
+  --lifr: #bf5af2;
   --ok: #30d158;
   --warn: #ffd60a;
   --danger: #ff453a;
@@ -65,11 +70,14 @@
   --line-strong: rgba(0, 0, 0, 0.14);
   --text: #1d1d1f;
   --muted: #515154;
-  --quiet: #6e6e73;
+  --quiet: #68686d;
   --accent: #0066cc;
   --accent-press: #0058b0;
   --accent-soft: rgba(0, 102, 204, 0.1);
   --ok: #1f7a36;
+  --accent-text: var(--accent);
+  --on-category: #ffffff;
+  --lifr: #8e3cbf;
   --warn: #b25000;
   --danger: #d70015;
   --halo: #ffffff;
@@ -346,7 +354,9 @@ input { caret-color: var(--accent); }
 .map-expanded .workspace.has-dock, .map-expanded .workspace.traffic-open { --inset-left: var(--edge); --inset-right: var(--edge); }
 .leaflet-bottom.leaflet-right { transition: right .3s var(--ease-out); right: calc(var(--inset-right) - var(--edge)); }
 
-.map-status { position: absolute; z-index: 500; left: var(--inset-left); bottom: var(--edge); display: flex; align-items: center; gap: 8px; min-height: 32px; max-width: min(520px, calc(100% - var(--inset-left) - var(--inset-right))); padding: 6px 12px; color: var(--muted); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); box-shadow: var(--shadow-float); font-size: 12px; font-variant-numeric: tabular-nums; transition: left .3s var(--ease-out); }
+/* Bottom-left overlays stop short of the map-control column on the right. */
+.workspace { --controls-room: 56px; }
+.map-status { position: absolute; z-index: 500; left: var(--inset-left); bottom: var(--edge); display: flex; align-items: center; gap: 8px; min-height: 32px; max-width: min(520px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); padding: 6px 12px; color: var(--muted); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); box-shadow: var(--shadow-float); font-size: 12px; font-variant-numeric: tabular-nums; transition: left .3s var(--ease-out); }
 .map-status strong { flex: 0 0 auto; color: var(--text); font-weight: 600; }
 .map-status.paused strong, .map-status.offline strong { color: var(--warn); }
 .map-status-copy { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -364,7 +374,7 @@ input { caret-color: var(--accent); }
 .map-controls button.location-active { color: var(--accent); background: var(--accent-soft); }
 .map-controls button.follow-active, .map-controls button.follow-active:hover:not(:disabled) { color: var(--on-accent); background: var(--accent); }
 .location-status { position: absolute; z-index: 510; right: var(--inset-right); bottom: 214px; max-width: 280px; padding: 8px 12px; color: var(--text); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); font-size: 12px; line-height: 1.4; transition: right .3s var(--ease-out); }
-.map-altitude-legend { position: absolute; z-index: 510; left: var(--inset-left); bottom: 48px; max-width: min(600px, calc(100% - var(--inset-left) - var(--inset-right))); padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); pointer-events: none; transition: left .3s var(--ease-out); }
+.map-altitude-legend { position: absolute; z-index: 510; left: var(--inset-left); bottom: 48px; max-width: min(600px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); pointer-events: none; transition: left .3s var(--ease-out); }
 
 /* Map toolbar and its popovers */
 .map-toolbar { position: absolute; z-index: 800; top: var(--edge); left: var(--inset-left); display: flex; gap: 6px; transition: left .3s var(--ease-out); }
@@ -640,11 +650,11 @@ input { caret-color: var(--accent); }
 .weather-wind { display: inline-flex; align-items: center; gap: 5px; }
 .weather-wind svg { flex: 0 0 auto; color: var(--accent); transition: transform .4s var(--ease-out); }
 .weather-age { margin-left: auto; color: var(--quiet); }
-.flight-category { display: inline-grid; place-items: center; height: 20px; padding: 0 7px; color: var(--on-accent); border-radius: var(--r-sm); font-size: 11px; font-weight: 700; letter-spacing: .02em; cursor: help; }
+.flight-category { display: inline-grid; place-items: center; height: 20px; padding: 0 7px; color: var(--on-category); border-radius: var(--r-sm); font-size: 11px; font-weight: 700; letter-spacing: .02em; cursor: help; }
 .category-vfr { background: var(--ok); }
 .category-mvfr { background: var(--accent); }
 .category-ifr { background: var(--danger); }
-.category-lifr { background: #bf5af2; }
+.category-lifr { background: var(--lifr); }
 .runway-favoured { display: flex; align-items: center; gap: 6px; padding-top: 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .runway-favoured svg { flex: 0 0 auto; color: var(--quiet); }
 .runway-favoured strong { color: var(--text); font-weight: 600; }
@@ -741,7 +751,7 @@ input { caret-color: var(--accent); }
 .board-aside { display: grid; justify-items: end; gap: 4px; min-width: 0; }
 .board-aside small { color: var(--quiet); font-size: 11px; line-height: 1.2; white-space: nowrap; }
 .board-chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; color: var(--muted); border-radius: var(--r-sm); background: var(--fill-strong); font-size: 11.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
-.board-chip.tone-live { color: var(--accent); background: var(--accent-soft); }
+.board-chip.tone-live { color: var(--accent-text); background: var(--accent-soft); }
 .board-chip.tone-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
 .board-chip.tone-warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
 .board-chip.tone-alert { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }

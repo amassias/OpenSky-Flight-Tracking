@@ -3,6 +3,11 @@ import { expect, test } from "@playwright/test";
 
 const airport = { icao: "LFPG", iata: "CDG", name: "Paris Charles de Gaulle", display_name: "Paris Charles de Gaulle (CDG)", country: "FR", region: "Île-de-France", latitude: 49, longitude: 2.5 };
 
+// Contrast is measured on settled colours: with reduced motion the stylesheet
+// shortens transitions to 0.01 ms, and the audit waits for any finite
+// animation to end. Mid-fade colours otherwise fail under a loaded CI runner.
+test.use({ reducedMotion: "reduce" });
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -31,6 +36,8 @@ test.beforeEach(async ({ page }) => {
 
 // Map tiles and markers are drawn by Leaflet; the audit covers the app chrome.
 async function audit(page: import("@playwright/test").Page) {
+  await page.waitForFunction(() => document.getAnimations().every((animation) =>
+    animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity));
   const results = await new AxeBuilder({ page }).exclude(".leaflet-pane").exclude(".leaflet-control-container").withTags(["wcag2a", "wcag2aa"]).analyze();
   return results.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
 }
