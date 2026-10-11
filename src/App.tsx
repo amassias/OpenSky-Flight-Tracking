@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
@@ -6,7 +6,6 @@ import { TriangleAlert } from "./components/icons";
 import { List } from "./components/customIcons";
 import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportTab, type AirportView } from "./components/AirportTab";
-import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
 import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
@@ -59,6 +58,11 @@ function withLiveKinematics(flight: Flight, live: LiveAircraft): Flight {
     status: live.on_ground == null ? flight.status : live.on_ground ? "on_ground" : "airborne",
   };
 }
+
+// Only needed once an aircraft is selected, so it loads on demand and keeps
+// the first screen's script smaller.
+const loadFlightDetails = () => import("./components/FlightDetails").then((module) => ({ default: module.FlightDetails }));
+const FlightDetails = lazy(loadFlightDetails);
 
 const FAVORITE_LIMIT = 8;
 const THEME_COLORS: Record<MapTheme, string> = { dark: "#0b0b0c", light: "#f5f5f7" };
@@ -353,6 +357,19 @@ export function App() {
   useEffect(() => {
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme] ?? THEME_COLORS.dark);
   }, [theme]);
+
+  // Fetch the flight drawer while the browser is idle, so the first click
+  // on an aircraft does not wait for it.
+  useEffect(() => {
+    const prefetch = () => { void loadFlightDetails(); };
+    // Safari has no requestIdleCallback; a short delay does the same job there.
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(prefetch, { timeout: 4000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = setTimeout(prefetch, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // A lost connection would otherwise look like an empty sky.
   useEffect(() => {
@@ -668,6 +685,7 @@ export function App() {
         <AnimatePresence>
           {detailsFlight && !mapExpanded && (
             <PanelBoundary key="details" label="flight details" resetKey={detailsFlight.icao24} frameClassName="details-drawer dock-panel">
+            <Suspense fallback={<div className="details-drawer dock-panel" aria-busy="true" />}>
             <FlightDetails
               flight={detailsFlight}
               track={track.data}
@@ -682,6 +700,7 @@ export function App() {
               onClose={() => setSelectedFlight(null)}
               onShare={shareView}
             />
+            </Suspense>
             </PanelBoundary>
           )}
         </AnimatePresence>
