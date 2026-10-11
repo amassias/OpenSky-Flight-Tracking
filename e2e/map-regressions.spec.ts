@@ -54,7 +54,7 @@ test('refreshes the live viewport after zooming out', async ({page, isMobile}) =
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   await page.locator('.leaflet-map').hover();
   returnWideViewport = true;
-  await page.mouse.wheel(0, -480);
+  await page.mouse.wheel(0, 480);
   await expect(page.locator('.aircraft-marker')).toHaveCount(301);
   await expect(page.locator('.map-status')).toContainText('301 aircraft');
 });
@@ -83,7 +83,7 @@ test('keeps the last live snapshot when a zoom refresh fails', async ({page, isM
   // Zoom in on the aircraft themselves: with a panel open the map centre is not where they are.
   const target = (await page.locator('.aircraft-marker').first().boundingBox())!;
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
-  await page.mouse.wheel(0, -280);
+  await page.mouse.wheel(0, 280);
   await expect(page.locator('.map-status')).toContainText('Refresh delayed · last snapshot kept');
   await expect(page.locator('.map-status')).not.toContainText('Your search is preserved');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);

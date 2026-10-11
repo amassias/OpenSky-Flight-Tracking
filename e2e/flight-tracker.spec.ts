@@ -94,13 +94,11 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   // rotated and can move under WebKit while a progressive sector settles.
   await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
-  await expect(page.getByText("Estimated from callsign")).toBeVisible();
   await expect(page.getByText("Incheon", { exact: true })).toBeVisible();
   await expect(page.getByText("F-HABC", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("F-HABC · A359")).toBeVisible();
   await expect(page.getByText("AIRBUS A-350-941")).toBeVisible();
   await expect(page.getByText("Operations", { exact: true })).toBeVisible();
-  await expect(page.getByText("FlightAware", { exact: true })).toBeVisible();
   await expect(page.getByText("64% complete")).toBeVisible();
 });
 

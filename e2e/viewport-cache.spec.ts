@@ -24,9 +24,9 @@ test('restores a visited viewport while its refresh is in flight', async ({ page
   await expect(page.locator('.aircraft-marker')).toHaveCount(50, { timeout: 5_000 });
   phase = 'wide';
   await page.locator('.leaflet-map').hover();
-  await page.mouse.wheel(0, -480);
+  await page.mouse.wheel(0, 480);
   await expect(page.locator('.aircraft-marker')).toHaveCount(1, { timeout: 5_000 });
   phase = 'return';
-  await page.mouse.wheel(0, 480);
+  await page.mouse.wheel(0, -480);
   await expect(page.locator('.aircraft-marker')).toHaveCount(50, { timeout: 1_000 });
 });
