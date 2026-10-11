@@ -4,7 +4,7 @@ import { Database, MapPin, Plane, Search, X } from "./icons";
 import { api } from "../api";
 import { looksLikeRegistration } from "../airframe";
 import type { AirframeRegistry, Airport, LiveAircraft } from "../types";
-import { callsignsForFlightNumber } from "../utils";
+import { callsignsForFlightNumber, flightNumberForCallsign } from "../utils";
 
 interface OmniSearchProps {
   /** Aircraft currently on the map; the live feed has no global lookup. */
@@ -193,7 +193,7 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
                     <span className="omni-icon"><Plane size={14} aria-hidden="true" /></span>
                     <span className="omni-copy">
                       <strong className="mono">{option.flight.callsign || option.flight.icao24.toUpperCase()}</strong>
-                      <small>{[option.flight.airline_name, option.flight.aircraft_type, option.flight.registration].filter(Boolean).join(" · ") || "Aircraft"}</small>
+                      <small>{[flightNumberForCallsign(option.flight.callsign), option.flight.airline_name, option.flight.aircraft_type, option.flight.registration].filter(Boolean).join(" · ") || "Aircraft"}</small>
                     </span>
                     <span className="omni-tag">Show</span>
                   </>
