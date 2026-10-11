@@ -314,7 +314,9 @@ export function App() {
       const time = selectedFlight.primary_time ?? selectedFlight.first_seen;
       if (time) params.set("time", String(time));
     }
-    const next = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
+    // Commas are legal in a query string; keep ?at=51.470,-0.454,10 readable.
+    const query = params.toString().replace(/%2C/g, ",");
+    const next = query ? `${window.location.pathname}?${query}` : window.location.pathname;
     window.history.replaceState(null, "", next);
   }, [airportView, mapView, request, selectedFlight]);
 
