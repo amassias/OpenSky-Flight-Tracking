@@ -10,7 +10,7 @@ import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCac
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, formatSpeed, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
-import { flightLevelText, speedText, useUnits } from "../units";
+import { distanceText, flightLevelText, speedText, useUnits } from "../units";
 import { AltitudeLegend } from "./AltitudeLegend";
 
 /** Recent positions kept per aircraft for its trail. */
@@ -1387,9 +1387,9 @@ export function FlightMap({
             : airportCatalogLoading ? <p role="status">Loading airports…</p>
             : airportCatalogError ? <p role="status">Airport catalogue unavailable. <button type="button" onClick={onRetryAirportCatalog}>Retry</button></p>
             : closestAirports.length === 0 ? <p>No geolocated airports available.</p>
-            : <><p>From your location · ±{Math.round(userLocation.accuracy)} m</p><ol>{closestAirports.map(({ airport: nearby, distance }) => (
+            : <><p>From your location{userLocation.accuracy >= 1 ? ` · ±${Math.round(userLocation.accuracy)} m` : ""}</p><ol>{closestAirports.map(({ airport: nearby, distance }) => (
               <li key={nearby.icao}><button type="button" onClick={() => { onSelectAirport?.(nearby); setNearbyOpen(false); }}>
-                <span><b>{nearby.iata || nearby.icao}</b><span>{nearby.name}</span></span><small>{distance.toFixed(1)} km</small>
+                <span><b>{nearby.iata || nearby.icao}</b><span>{nearby.name}</span></span><small>{distanceText(distance)}</small>
               </button></li>
             ))}</ol></>}
           <button type="button" className="popover-reset" onClick={requestLocation}>{userLocation ? "Update my location" : "Retry location"}</button>

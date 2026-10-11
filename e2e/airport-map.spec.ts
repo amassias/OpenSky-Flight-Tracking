@@ -74,10 +74,10 @@ test("lists nearest airports from geolocation and opens a nearby board", async (
   await page.goto("/");
   await page.getByRole("button", { name: "Nearby airports", exact: true }).click();
   const nearby = page.getByRole("region", { name: "Nearby airports", exact: true });
-  await expect(nearby.getByRole("button", { name: /ORY.*0.0 km/ })).toBeVisible();
+  await expect(nearby.getByRole("button", { name: /ORY.*0\.0 (NM|km)/ })).toBeVisible();
   await expect(nearby.locator("li").first()).toContainText("Paris Orly");
   await page.screenshot({ path: testInfo.outputPath("nearby-airports.png") });
-  await nearby.getByRole("button", { name: /ORY.*0.0 km/ }).click();
+  await nearby.getByRole("button", { name: /ORY.*0\.0 (NM|km)/ }).click();
   await expect(page.getByRole("heading", { name: /ORY Paris Orly/ })).toBeVisible();
 });
 

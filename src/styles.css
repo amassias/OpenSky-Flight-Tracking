@@ -614,7 +614,8 @@ input { caret-color: var(--accent); }
 .nearby-airports-panel { width: min(280px, calc(100vw - 32px)); margin-top: 6px; padding: 12px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--r-md); }
 .nearby-airports-panel > strong { font-size: 13px; }
 .nearby-airports-panel p { color: var(--muted); font-size: 12px; line-height: 1.4; margin: 6px 0; }
-.nearby-airports-panel ol { list-style: none; padding: 0; margin: 8px 0; max-height: 210px; overflow-y: auto; }
+/* Five rows of 54 px: the full list fits, the fifth (often the main hub) was cut off. */
+.nearby-airports-panel ol { list-style: none; padding: 0; margin: 8px 0; max-height: 280px; overflow-y: auto; }
 .nearby-airports-panel li button { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 10px 4px; border: 0; background: transparent; text-align: left; color: var(--text); cursor: pointer; border-radius: var(--r-sm); }
 .nearby-airports-panel li button:hover { background: var(--fill-strong); }
 .nearby-airports-panel li button > span { display: grid; gap: 3px; min-width: 0; }
