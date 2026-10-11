@@ -1169,7 +1169,10 @@ export function FlightMap({
         failedTiles,
         error: failedTiles && !retained.size ? "Live traffic is temporarily unavailable." : null,
       });
-      refreshTimer = setTimeout(() => setLiveRefresh((value) => value + 1), Math.max(20, refreshAfterSeconds) * 1_000);
+      // A failed or empty round is retried quickly instead of waiting a full
+      // refresh interval with a blank or stale map.
+      const retrySoon = failedTiles > 0 || retained.size === 0;
+      refreshTimer = setTimeout(() => setLiveRefresh((value) => value + 1), retrySoon ? 5_000 : Math.max(20, refreshAfterSeconds) * 1_000);
     });
 
     return () => {
