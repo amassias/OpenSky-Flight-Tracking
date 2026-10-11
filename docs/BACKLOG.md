@@ -33,7 +33,7 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B17: Added a new top-down helicopter marker** (rotor, cabin, tail boom, tail rotor) that rotates with its heading and uses neutral ink. Aircraft on the ground are now grey instead of orange.
 - [x] **B18: Added Motion (motion.dev) animations**: spring entrance and exit for the flight drawer and toast, and a sliding thumb on the Departures/Arrivals control. Switching theme now plays a circular View Transitions reveal. All motion respects reduced-motion settings.
 - [x] **B19: Fixed the whole-repo code review findings.** The segmented-control thumb was invisible. Dense canvas dots used a different colour scheme. Full map now hides the flight drawer cleanly. Map colours now follow the theme. API 500 responses no longer leak exception text. Inter no longer blocks render through a CSS @import. Repeated toasts now replay. Dead markup was removed.
-- [ ] B20: Four Python tests in `tests/test_server.py` were already failing before this work (live-fallback and 401 status handling). They need a separate fix.
+- [x] **B20: The four failing `tests/test_server.py` cases now pass** (whole Python suite green, checked 2026-10-11).
 
 ## Aircraft photos (2026-10-01)
 
