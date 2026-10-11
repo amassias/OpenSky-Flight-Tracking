@@ -23,6 +23,8 @@ export function ShortcutsDialog({ onClose }: ShortcutsDialogProps) {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeButton.current?.focus();
     function onKey(event: KeyboardEvent) {
+      // The close button is the only control, so Tab stays on it (modal focus).
+      if (event.key === "Tab") { event.preventDefault(); closeButton.current?.focus(); return; }
       if (event.key !== "Escape" && event.key !== "?") return;
       // Captured first so the flight detail behind the dialog stays open.
       event.preventDefault();
