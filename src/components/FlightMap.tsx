@@ -947,7 +947,11 @@ export function FlightMap({
     // call, so only split into a paced grid of small requests when we're
     // limited to the public ADS-B fallback (which caps a single call to a
     // 250 NM radius).
-    const usePrivateViewport = liveAvailable && !liveProbePending;
+    // A close-up view fits one or two cells of the public ADS-B feed, which
+    // answers in a fraction of a second; the authenticated whole-box call
+    // takes several seconds upstream, so it is kept for wide views.
+    const compactView = viewportTileCount(bounds) <= 2;
+    const usePrivateViewport = liveAvailable && !liveProbePending && !compactView;
     const tiles = usePrivateViewport ? [bounds] : splitBoundsIntoTiles(bounds);
     const totalViewportTiles = usePrivateViewport ? 1 : viewportTileCount(bounds);
     // A private whole-box request can still be cold (OAuth + upstream) and
@@ -989,7 +993,7 @@ export function FlightMap({
     // area that was loaded moments ago just shows what is already known.
     const visible = visibleBoundsRef.current;
     const coverage = coverageRef.current;
-    if (usePrivateViewport && !forcedRefresh && visible && coverage && Date.now() < coverage.until
+    if (!forcedRefresh && visible && coverage && Date.now() < coverage.until
       && visible.lamin >= coverage.bounds.lamin && visible.lamax <= coverage.bounds.lamax
       && visible.lomin >= coverage.bounds.lomin && visible.lomax <= coverage.bounds.lomax) {
       const covered: LiveFlightsResponse = {
@@ -1068,7 +1072,17 @@ export function FlightMap({
 
     const loadTile = async (tile: Bounds) => {
       try {
-        const response = await api.liveFlights(tile, controller.signal, !usePrivateViewport);
+        // If the quick public feed is unavailable, the authenticated call still answers.
+        const response = usePrivateViewport
+          ? await api.liveFlights(tile, controller.signal, false)
+          : await api.liveFlights(tile, controller.signal, true).then((quick) => {
+            // The public feed answers "degraded and empty" while it is rate limited.
+            if (quick.degraded && quick.states.length === 0) throw new Error("Public feed unavailable");
+            return quick;
+          }).catch((error) => {
+            if (controller.signal.aborted || !liveAvailable || liveProbePending) throw error;
+            return api.liveFlights(tile, controller.signal, false);
+          });
         if (controller.signal.aborted) return;
         rememberAircraft(response.states);
         for (const aircraft of response.states) {
@@ -1143,7 +1157,7 @@ export function FlightMap({
         }
       }
       saveViewportCache();
-      if (usePrivateViewport && failedTiles === 0 && loadedTiles > 0) {
+      if (failedTiles === 0 && loadedTiles > 0) {
         coverageRef.current = { bounds, until: Date.now() + Math.max(20, refreshAfterSeconds) * 1_000 };
       }
       const data = retained.size ? snapshot() : null;
