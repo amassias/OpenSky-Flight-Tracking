@@ -4,6 +4,7 @@ import { CalendarDays, Heart, PlaneLanding, PlaneTakeoff } from "./icons";
 import { AirportSearch } from "./AirportSearch";
 import { AirportConditions, LiveBoard } from "./AirportLive";
 import type { Airport, Flight, FlightMode, LiveAircraft } from "../types";
+import { todayUtc } from "../utils";
 
 export type AirportView = "live" | "history";
 
@@ -57,7 +58,8 @@ export function AirportTab({
   selected, popular, recent, favorites, date, mode, view, onDateChange, onModeChange, onViewChange, onSelect, onClear,
   onToggleFavorite, selectedIcao24, liveAircraft, onSelectFlight, onPreviewFlight, heading, children,
 }: AirportTabProps) {
-  const shortcuts = favorites.length ? favorites : recent;
+  const favoriteCodes = new Set(favorites.map((airport) => airport.icao));
+  const recentOnly = recent.filter((airport) => !favoriteCodes.has(airport.icao));
   const favorite = selected ? favorites.some((item) => item.icao === selected.icao) : false;
   return (
     <div className={`airport-tab ${selected ? "has-airport" : ""}`}>
@@ -103,7 +105,7 @@ export function AirportTab({
             <>
               <div className="history-controls">
                 <label className="date-control">
-                  <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
+                  <span className="control-shell"><CalendarDays size={14} aria-hidden="true" /><input type="date" aria-label="UTC date" value={date} max={todayUtc()} onChange={(event) => event.target.value && onDateChange(event.target.value)} /></span>
                 </label>
                 <ViewToggle view={view} onChange={onViewChange} />
               </div>
@@ -121,9 +123,13 @@ export function AirportTab({
         </>
       ) : (
         <div className="airport-shortcuts">
-          {shortcuts.length > 0 && <>
-            <h3>{favorites.length ? <><Heart size={11} aria-hidden="true" /> Favourites</> : "Recent"}</h3>
-            <ShortcutList airports={shortcuts.slice(0, 6)} onSelect={onSelect} />
+          {favorites.length > 0 && <>
+            <h3><Heart size={11} aria-hidden="true" /> Favourites</h3>
+            <ShortcutList airports={favorites} onSelect={onSelect} />
+          </>}
+          {recentOnly.length > 0 && <>
+            <h3>Recent</h3>
+            <ShortcutList airports={recentOnly.slice(0, favorites.length ? 3 : 6)} onSelect={onSelect} />
           </>}
           <h3>Busy airports</h3>
           <ShortcutList airports={popular.slice(0, 8)} onSelect={onSelect} />
