@@ -921,6 +921,22 @@ export function FlightMap({
   const aircraftCacheSeenAtRef = useRef(new Map<string, number>());
   const viewportCacheRef = useRef(new Map<string, ViewportCacheEntry>());
   const [liveRefresh, setLiveRefresh] = useState(0);
+  // A hidden tab skips its refresh rounds: nobody sees them and each one
+  // spends provider quota. The skipped round runs as soon as the tab returns.
+  const refreshSkippedRef = useRef(false);
+  const requestLiveRefresh = useCallback(() => {
+    if (document.hidden) refreshSkippedRef.current = true;
+    else setLiveRefresh((value) => value + 1);
+  }, []);
+  useEffect(() => {
+    function resume() {
+      if (document.hidden || !refreshSkippedRef.current) return;
+      refreshSkippedRef.current = false;
+      setLiveRefresh((value) => value + 1);
+    }
+    document.addEventListener("visibilitychange", resume);
+    return () => document.removeEventListener("visibilitychange", resume);
+  }, []);
   const [liveState, setLiveState] = useState<ProgressiveLiveState>({
     data: null,
     fetching: false,
@@ -1009,7 +1025,7 @@ export function FlightMap({
       setLiveState({ data: covered, fetching: false, loadedTiles: 1, totalTiles: 1, failedTiles: 0, error: null });
       onLiveSnapshot?.(covered, airportIcaoRef.current);
       const wait = Math.max(1_000, coverage.until - Date.now());
-      const timer = setTimeout(() => setLiveRefresh((value) => value + 1), wait);
+      const timer = setTimeout(requestLiveRefresh, wait);
       return () => clearTimeout(timer);
     }
     // The full-viewport call can take several seconds upstream, so a quick
@@ -1172,14 +1188,14 @@ export function FlightMap({
       // A failed or empty round is retried quickly instead of waiting a full
       // refresh interval with a blank or stale map.
       const retrySoon = failedTiles > 0 || retained.size === 0;
-      refreshTimer = setTimeout(() => setLiveRefresh((value) => value + 1), retrySoon ? 5_000 : Math.max(20, refreshAfterSeconds) * 1_000);
+      refreshTimer = setTimeout(requestLiveRefresh, retrySoon ? 5_000 : Math.max(20, refreshAfterSeconds) * 1_000);
     });
 
     return () => {
       controller.abort();
       if (refreshTimer) clearTimeout(refreshTimer);
     };
-  }, [bounds, liveAvailable, liveEnabled, liveProbePending, liveRefresh, onLiveSnapshot]);
+  }, [bounds, liveAvailable, liveEnabled, liveProbePending, liveRefresh, onLiveSnapshot, requestLiveRefresh]);
 
   const displayedLiveData = liveState.data;
   const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
