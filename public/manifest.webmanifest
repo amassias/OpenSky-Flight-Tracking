@@ -1,0 +1,14 @@
+{
+  "name": "SkyTrace · Live flight tracker",
+  "short_name": "SkyTrace",
+  "description": "Live air traffic map with airport departures and arrivals, aircraft photos, routes and altitude profiles.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

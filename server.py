@@ -32,6 +32,7 @@ LIVE_AIRLINE_CALLSIGN = re.compile(r"^([A-Z]{3})[0-9]")
 
 BASE_DIR = os.path.dirname(__file__)
 FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "dist")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 PORT = int(os.getenv("PORT", "8000"))
 
 print("Loading airports database...")
