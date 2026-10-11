@@ -88,6 +88,37 @@ function RouteProgressBar({ progress, pending }: { progress: number | null; pend
   );
 }
 
+/** The airframe hex as a button that puts it on the clipboard. */
+function CopyHex({ icao24 }: { icao24: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+  const hex = icao24.toUpperCase();
+  return (
+    <button type="button" className="copy-value mono" title="Copy ICAO24 hex code" aria-label={`Copy ICAO24 ${hex}`}
+      onClick={() => { void navigator.clipboard?.writeText(hex).then(() => setCopied(true), () => undefined); }}>
+      <Copy size={11} aria-hidden="true" /> {copied ? "Copied" : hex}
+    </button>
+  );
+}
+
+/** The same aircraft on other trackers, for cross-checking a route or a gap in coverage. */
+function externalTrackers(flight: Flight) {
+  const hex = flight.icao24.toLowerCase();
+  const callsign = flight.callsign?.trim();
+  const registration = flight.registration_source === "schedule" ? null : flight.registration?.trim();
+  return [
+    { label: "ADS-B Exchange", href: `https://globe.adsbexchange.com/?icao=${encodeURIComponent(hex)}` },
+    { label: "adsb.lol", href: `https://adsb.lol/?icao=${encodeURIComponent(hex)}` },
+    callsign && /^[A-Z0-9]{2,8}$/i.test(callsign) && callsign.toUpperCase() !== hex.toUpperCase()
+      ? { label: "FlightAware", href: `https://www.flightaware.com/live/flight/${encodeURIComponent(callsign.toUpperCase())}` } : null,
+    registration ? { label: "Flightradar24", href: `https://www.flightradar24.com/data/aircraft/${encodeURIComponent(registration.toLowerCase())}` } : null,
+  ].filter((link): link is { label: string; href: string } => link !== null);
+}
+
 function Section({ title, aside, open = false, children }: { title: string; aside?: ReactNode; open?: boolean; children: ReactNode }) {
   return (
     <details className="panel-section" open={open}>
@@ -310,9 +341,16 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           <div><span>Emergency</span><strong className={flight.emergency && flight.emergency !== "none" ? "signal-alert-text" : ""}>{profileValue(flight.emergency, "None reported")}</strong></div>
           <div><span>NIC / NACp</span><strong className="mono">{flight.nic == null && flight.nac_p == null ? "—" : `${profileValue(flight.nic)} / ${profileValue(flight.nac_p)}`}</strong></div>
           <div><span>Accuracy radius</span><strong className="mono">{flight.rc == null ? "—" : `${Math.round(flight.rc)} m`}</strong></div>
-          <div><span>ICAO24</span><strong className="mono"><Copy size={11} aria-hidden="true" /> {flight.icao24.toUpperCase()}</strong></div>
+          <div><span>ICAO24</span><strong className="mono"><CopyHex icao24={flight.icao24} /></strong></div>
         </div>
       </Section>
+
+      <nav className="external-trackers" aria-label="Open this aircraft on other trackers">
+        <span>Also on</span>
+        {externalTrackers(flight).map((link) => (
+          <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>
+        ))}
+      </nav>
       </div>
     </motion.aside>
   );

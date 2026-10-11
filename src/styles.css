@@ -540,6 +540,13 @@ input { caret-color: var(--accent); }
 .operations-route { display: grid; gap: 4px; margin: 6px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .operations-route strong { overflow: hidden; color: var(--text); font-size: 12px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .signal-profile-grid strong svg { color: var(--quiet); }
+.copy-value { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; margin: -2px -6px; padding: 2px 6px; color: inherit; border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; cursor: pointer; transition: background .15s var(--ease-out); }
+.copy-value:hover { background: var(--fill); }
+.copy-value:hover svg { color: var(--accent); }
+.external-trackers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 14px 0 4px; font-size: 12px; }
+.external-trackers span { margin-right: 2px; color: var(--quiet); }
+.external-trackers a { padding: 4px 10px; color: var(--muted); border: 1px solid var(--line); border-radius: var(--r-pill); text-decoration: none; transition: color .15s var(--ease-out), border-color .15s var(--ease-out); }
+.external-trackers a:hover { color: var(--text); border-color: var(--line-strong); }
 .altitude-profile { display: grid; gap: 6px; }
  .map-expanded .map-status, .map-expanded .map-altitude-legend { left: var(--edge); }
 
