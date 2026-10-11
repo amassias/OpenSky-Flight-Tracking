@@ -558,11 +558,14 @@ input { caret-color: var(--accent); }
   .dock-panel { border-radius: var(--r-lg) var(--r-lg) 0 0; }
   .traffic-panel { border-radius: var(--r-lg) var(--r-lg) 0 0; }
   .map-toolbar { top: 8px; }
-  .map-controls { bottom: calc(50% + 12px); }
+  /* Controls clear the Traffic button, and lift above a sheet only while one is open. */
+  .map-controls { bottom: 64px; }
+  .location-status { bottom: 244px; }
+  .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .map-controls { bottom: calc(50% + 12px); }
+  .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .leaflet-bottom { bottom: 50%; }
+  .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .location-status { bottom: calc(50% + 160px); }
   .map-altitude-legend { display: none; }
-  .leaflet-bottom { bottom: 50%; }
   .map-status { left: var(--edge); top: 48px; bottom: auto; max-width: calc(100% - var(--edge) * 2); }
-  .location-status { bottom: calc(50% + 160px); }
   .emergency-banner { top: 128px; left: var(--edge); right: var(--edge); }
   .traffic-reopen { top: auto; bottom: 12px; right: 12px; }
   .toast { bottom: 12px; }
