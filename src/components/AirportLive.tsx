@@ -4,6 +4,7 @@ import { ChevronDown, Moon, PlaneLanding, PlaneTakeoff, Radio, Sun, TriangleAler
 import { RunwayIcon, WindArrow } from "./customIcons";
 import { api, readableApiError } from "../api";
 import { PHASE_LABEL, boardRowToFlight, localTime, mergeSchedule, minutesUntil, relativeAge, runwayLength, scheduleEntryToFlight, scheduledOnlyFlight, sunTimes, surfaceName, utcOffsetLabel, visibilityText, type ScheduleEntry, type ScheduleTone } from "../airportLive";
+import { WeatherGuide } from "./WeatherGuide";
 import { useNow } from "../hooks/useNow";
 import type { Airport, AirportConditionsResponse, BoardFlight, Flight, FlightMode, LiveAircraft } from "../types";
 import { formatAltitude, formatSpeed } from "../utils";
@@ -155,6 +156,8 @@ export function AirportConditions({ airport }: { airport: Airport }) {
           </details>
         </div>
       )}
+
+      <WeatherGuide />
 
       {delays && delays.length > 0 && delays.map((delay, index) => (
         <div key={`${delay.category}-${index}`} className="delay-alert" role="status">

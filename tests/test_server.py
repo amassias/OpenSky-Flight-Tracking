@@ -321,11 +321,11 @@ def test_track_returns_graceful_empty_result():
     assert "No track data" in payload["message"]
 
 
-def test_track_returns_immediately_on_vercel(monkeypatch):
+def test_historical_track_returns_immediately_on_vercel(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     fake_client = Mock()
     with patch.object(server, "api_client", fake_client):
-        payload = handler().handle_track("39abcd", "0")
+        payload = handler().handle_track("39abcd", "1750000000")
     assert payload["success"] is True
     assert payload["path_count"] == 0
     assert "serverless" in payload["message"]
@@ -369,3 +369,61 @@ def test_vercel_map_airports_route_returns_cacheable_catalogue():
     assert response.status_code == 200
     assert len(response.json()) > 1000
     assert response.headers["cache-control"] == "public, max-age=86400"
+
+
+@pytest.mark.parametrize("trace_code,trace_callsign,age", [
+    ("39abcd", "AFR123", 86400),  # same callsign yesterday
+    ("39abcd", "AFR999", 10),     # same airframe on another flight
+    ("4caf2b", "AFR123", 10),     # another airframe
+])
+def test_live_track_rejects_another_flight(trace_code, trace_callsign, age):
+    now = 1_800_000_000
+    fake_client = Mock()
+    fake_client.get_track.return_value = {
+        "icao24": trace_code, "callsign": trace_callsign,
+        "path": [[now - age - 60, 49, 2, 1000, 90, False], [now - age, 49.1, 2.1, 2000, 90, False]],
+    }
+    with patch.object(server, "api_client", fake_client), patch.object(server.time, "time", return_value=now):
+        payload = handler().handle_track("39abcd", "0", "AFR123")
+    assert payload["path_count"] == 0
+    assert payload["track"] == {}
+    fake_client.get_flights_by_aircraft.assert_not_called()
+
+
+def test_missing_historical_track_never_falls_back_to_another_flight():
+    fake_client = Mock()
+    fake_client.get_track.side_effect = [{}, {"path": [[1_800_000_000, 49, 2, 1000, 90, False]]}]
+    with patch.object(server, "api_client", fake_client):
+        payload = handler().handle_track("39abcd", "1750000000", "AFR123")
+    assert payload["path_count"] == 0
+    fake_client.get_track.assert_called_once_with("39abcd", 1_750_000_000)
+    fake_client.get_flights_by_aircraft.assert_not_called()
+
+
+def test_live_track_works_without_opensky_proxy_on_vercel(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("OPEN_SKY_PROXY_SECRET", raising=False)
+    now = 1_800_000_000
+    fake_client = Mock()
+    fake_client.get_track.return_value = {"icao24": "39abcd", "callsign": "AFR123", "path": [
+        [now - 120, 49, 2, 1000, 90, False], [now - 10, 49.1, 2.1, 2000, 90, False],
+    ]}
+    with patch.object(server, "api_client", fake_client), patch.object(server.time, "time", return_value=now):
+        payload = handler().handle_track("39abcd", "0", "AFR123")
+    assert payload["path_count"] == 2
+    assert payload["track"]["callsign"] == "AFR123"
+
+
+def test_track_drops_previous_legs_and_their_emergency_events():
+    now = 1_800_000_000
+    fake_client = Mock()
+    fake_client.get_track.return_value = {"icao24": "39abcd", "callsign": "AFR123", "leg_start": now - 200, "path": [
+        [now - 5000, 49, 2, 9000, 90, False], [now - 200, 50, 3, 1000, 90, False], [now - 10, 50.1, 3.1, 2000, 90, False],
+    ], "emergency_events": [
+        {"code": "7700", "callsign": "AFR123", "first_seen": now-5000, "last_seen": now-4900, "ended_at": now-4800},
+        {"code": "7600", "callsign": "AFR123", "first_seen": now-150, "last_seen": now-100, "ended_at": None},
+    ]}
+    with patch.object(server, "api_client", fake_client), patch.object(server.time, "time", return_value=now):
+        payload = handler().handle_track("39abcd", 0, "AFR123")
+    assert payload["path_count"] == 2
+    assert [event["code"] for event in payload["track"]["emergency_events"]] == ["7600"]

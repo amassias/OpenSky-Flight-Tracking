@@ -90,6 +90,11 @@ function listOf<T>(value: T[] | null | undefined): T[] {
 }
 
 export const api = {
+  emergencies: async (signal?: AbortSignal) => {
+    const response = await request<LiveFlightsResponse>("/api/emergencies", undefined, signal);
+    if (!response || !Array.isArray(response.states) || !Number.isFinite(response.time)) throw new ApiError("Global emergency feed returned an unreadable snapshot.", 502);
+    return response;
+  },
   health: (signal?: AbortSignal) => request<HealthResponse>("/api/health", undefined, signal),
   mapAirports: async (signal?: AbortSignal) => listOf(await request<Airport[]>("/api/map-airports", undefined, signal)),
   popularAirports: async (signal?: AbortSignal) => listOf(await request<Airport[]>("/api/airports", undefined, signal)),
@@ -149,8 +154,8 @@ export const api = {
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
   // Every reader dereferences `track.track`; a body without it (a proxy or
   // edge error answered with 200) would otherwise blank the whole page.
-  track: async (icao24: string, time = 0, signal?: AbortSignal) => {
-    const response = await request<TrackResponse>("/api/track", { icao24, time }, signal);
+  track: async (icao24: string, time = 0, signal?: AbortSignal, callsign?: string) => {
+    const response = await request<TrackResponse>("/api/track", { icao24, time, callsign }, signal);
     return { ...response, track: response.track ?? {} };
   },
 };

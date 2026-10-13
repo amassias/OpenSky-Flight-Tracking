@@ -71,7 +71,7 @@ test("the airport board has no WCAG A/AA violations", async ({ page }) => {
   await page.goto("/?airport=LFPG");
   await expect(page.locator(".airport-identity")).toBeVisible();
   await expect(page.getByText("AFR1234")).toBeVisible();
-  await expect(page.getByText("VFR")).toBeVisible();
+  await expect(page.getByText("VFR", { exact: true })).toBeVisible();
   expect(await audit(page)).toEqual([]);
 });
 

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { ChevronDown } from "./icons";
 
-export type TrafficTab = "live" | "airport";
+export type TrafficTab = "live" | "airport" | "alerts";
 
 interface TrafficPanelProps {
   tab: TrafficTab;
@@ -12,14 +12,15 @@ interface TrafficPanelProps {
   airportLabel: string | null;
   live: ReactNode;
   airport: ReactNode;
+  alerts: ReactNode;
 }
 
-export function TrafficPanel({ tab, onTabChange, onClose, liveCount, airportLabel, live, airport }: TrafficPanelProps) {
+export function TrafficPanel({ tab, onTabChange, onClose, liveCount, airportLabel, live, airport, alerts }: TrafficPanelProps) {
   return (
     <aside className="traffic-panel" id="flight-results" aria-label="Traffic">
       <header className="traffic-header">
         <div className="tabs" role="tablist" aria-label="Traffic views">
-          {([["live", "In view", liveCount ? String(liveCount) : null], ["airport", "Airport", airportLabel]] as const).map(([id, label, count]) => (
+          {([["live", "In view", liveCount ? String(liveCount) : null], ["airport", "Airport", airportLabel], ["alerts", "Alerts", null]] as const).map(([id, label, count]) => (
             <button key={id} type="button" role="tab" id={`traffic-tab-${id}`} aria-selected={tab === id} aria-controls={`traffic-pane-${id}`} className={tab === id ? "active" : ""} onClick={() => onTabChange(id)}>
               {tab === id && <motion.span layoutId="traffic-tab-thumb" className="tab-thumb" transition={{ type: "spring", stiffness: 520, damping: 42 }} />}
               <span>{label}</span>
@@ -30,7 +31,7 @@ export function TrafficPanel({ tab, onTabChange, onClose, liveCount, airportLabe
         <button type="button" className="icon-button" onClick={onClose} aria-label="Collapse traffic panel" title="Collapse panel"><ChevronDown size={16} className="collapse-chevron" /></button>
       </header>
       <div className="traffic-pane" role="tabpanel" id={`traffic-pane-${tab}`} aria-labelledby={`traffic-tab-${tab}`}>
-        {tab === "live" ? live : airport}
+        {tab === "live" ? live : tab === "airport" ? airport : alerts}
       </div>
     </aside>
   );

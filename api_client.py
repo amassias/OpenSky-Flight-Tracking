@@ -61,6 +61,7 @@ class OpenSkyClient:
         self._aircraft_flights_cache: Dict[str, Dict[str, Any]] = {}
         self._aircraft_registry_cache: Dict[str, tuple[float, Optional[Dict[str, Any]]]] = {}
         self._track_cache: Dict[str, Dict[str, Any]] = {}
+        self._emergency_cache: Dict[str, Any] = {}
 
         if not self.client_id or not self.client_secret:
             print("Warning: OpenSky credentials not found in environment variables.")
@@ -1432,6 +1433,29 @@ class OpenSkyClient:
         """Fetch one provider-safe live tile without waiting on OpenSky."""
         return self._get_airplanes_live_states(bbox=bbox)
 
+    def get_emergency_states(self):
+        """One global open-data query, shared for a minute, not one per plane."""
+        now = time.time()
+        if now < self._emergency_cache.get("expires_at", 0):
+            return self._emergency_cache["result"]
+        try:
+            response = self.session.get("https://api.adsb.lol/v2/sqk/7500,7600,7700", timeout=8)
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
+                raise ValueError("Invalid emergency feed")
+            feed_time = int(float(payload.get("now", now * 1000)) / 1000)
+            if abs(now - feed_time) > 120:
+                raise ValueError("Emergency feed is stale")
+            rows = [self._airplanes_live_row(item, feed_time) for item in payload["ac"]
+                    if isinstance(item, dict) and str(item.get("squawk")) in {"7500", "7600", "7700"}
+                    and isinstance(item.get("seen"), (int, float)) and 0 <= item["seen"] <= 60]
+            result = {"time": feed_time, "states": rows, "provider": "adsb.lol"}
+            self._emergency_cache = {"expires_at": now + 60, "result": result}
+            return result
+        except (requests.RequestException, ValueError, TypeError) as exc:
+            raise OpenSkyAPIError("Global emergency feed is temporarily unavailable.", status_code=503) from exc
+
     def get_live_callsign_states(self, callsign: str):
         """The aircraft currently flying under one callsign, wherever it is."""
         return self._get_airplanes_live_states(callsign=callsign)
@@ -1498,6 +1522,9 @@ class OpenSkyClient:
         base_time = float(payload.get("timestamp") or 0)
         path = []
         callsign = ""
+        events = []
+        current_event = None
+        leg_start = None
         for point in payload.get("trace") or []:
             if not isinstance(point, list) or len(point) < 6:
                 continue
@@ -1510,8 +1537,25 @@ class OpenSkyClient:
             )
             timestamp = int(base_time + float(offset))
             path.append([timestamp, latitude, longitude, altitude_m, track, on_ground])
-            if len(point) > 8 and isinstance(point[8], dict) and point[8].get("flight"):
-                callsign = str(point[8]["flight"]).strip()
+            if len(point) > 6 and isinstance(point[6], int) and point[6] & 2:
+                leg_start = timestamp
+            if len(point) > 8 and isinstance(point[8], dict):
+                details = point[8]
+                callsign = str(details.get("flight") or callsign).strip()
+                squawk = str(details.get("squawk") or "").strip()
+                emergency = str(details.get("emergency") or "").lower()
+                code = squawk if squawk in {"7500", "7600", "7700"} else emergency if emergency in {"general", "lifeguard", "minfuel", "nordo", "unlawful", "downed"} else None
+                if code:
+                    if current_event is None or current_event["code"] != code or current_event["callsign"] != callsign:
+                        if current_event is not None:
+                            current_event["ended_at"] = timestamp
+                        current_event = {"code": code, "callsign": callsign, "first_seen": timestamp, "last_seen": timestamp, "ended_at": None}
+                        events.append(current_event)
+                    else:
+                        current_event["last_seen"] = timestamp
+                elif current_event is not None and ("squawk" in details or "emergency" in details):
+                    current_event["ended_at"] = timestamp
+                    current_event = None
 
         if not path:
             return {}
@@ -1523,6 +1567,8 @@ class OpenSkyClient:
             "path": path,
             "source": "adsb.lol",
             "trace_kind": trace_kind,
+            "leg_start": leg_start,
+            "emergency_events": events,
         }
         self._track_cache[code] = {"expires_at": now + 90, "result": result}
         return result

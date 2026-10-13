@@ -7,7 +7,7 @@ import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../types";
 import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
-import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, formatSpeed, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
+import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
 import { distanceText, flightLevelText, speedText, useUnits } from "../units";
@@ -17,9 +17,6 @@ import { AltitudeLegend } from "./AltitudeLegend";
 const TRAIL_POINTS = 8;
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
-/** Reveal labels only when there is enough room to read them. */
-const LABEL_MIN_ZOOM = 7;
-const LABEL_DETAIL_ZOOM = 9;
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
 
 // Leaflet paths and canvas dots cannot read CSS custom properties, so the
@@ -178,6 +175,7 @@ function routeEndpointIcon(kind: "start" | "end", theme: MapTheme) {
 interface AircraftMarkerProps {
   aircraft: LiveAircraft;
   active: boolean;
+  selected?: boolean;
   onSelect: (flight: Flight) => void;
   theme?: MapTheme;
 }
@@ -186,7 +184,7 @@ function areMarkersEqual(
   previous: AircraftMarkerProps,
   next: AircraftMarkerProps,
 ) {
-  if (previous.active !== next.active || previous.onSelect !== next.onSelect || previous.theme !== next.theme) return false;
+  if (previous.selected !== next.selected || previous.active !== next.active || previous.onSelect !== next.onSelect || previous.theme !== next.theme) return false;
   const a = previous.aircraft;
   const b = next.aircraft;
   // Every poll returns fresh objects, so compare the fields the marker draws
@@ -209,17 +207,7 @@ function areMarkersEqual(
     && a.emergency === b.emergency;
 }
 
-function liveTooltip(aircraft: LiveAircraft) {
-  return (
-    <Tooltip direction="right" offset={[16, 0]} opacity={1} className="aircraft-tooltip">
-      <strong>{aircraft.callsign || aircraft.registration || aircraft.icao24.toUpperCase()}</strong>
-      <span>{[aircraft.aircraft_type, aircraft.airline_name].filter(Boolean).join(" · ") || "Aircraft"}</span>
-      <span className="mono">{formatAltitude(aircraft.baro_altitude)} · {formatSpeed(aircraft.velocity)}</span>
-    </Tooltip>
-  );
-}
-
-const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect }: AircraftMarkerProps) {
+const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected, onSelect }: AircraftMarkerProps) {
   const units = useUnits();
   const iconKind = aircraftIconKind(aircraft);
   const heading = aircraft.true_track ?? 0;
@@ -230,8 +218,8 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     aircraft.velocity != null && !aircraft.on_ground ? speedText(aircraft.velocity, units).replace(" ", "") : null,
   ].filter(Boolean).join(" · ");
   const icon = useMemo(
-    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, label: { primary: labelPrimary, secondary: labelSecondary } }),
-    [aircraft.icao24, aircraft.on_ground, active, iconKind, heading, emergency, labelPrimary, labelSecondary],
+    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, label: selected ? { primary: labelPrimary, secondary: labelSecondary } : undefined }),
+    [aircraft.icao24, aircraft.on_ground, active, selected, iconKind, heading, emergency, labelPrimary, labelSecondary],
   );
   // A fresh fix is already some seconds old when it arrives, so start from
   // where the aircraft is now rather than where it was reported.
@@ -271,36 +259,8 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, onSelect
     }
   }), []);
 
-  useLayoutEffect(() => {
-    // Firefox can swallow Leaflet's delegated click while a map pan is still
-    // settling. Listening on the marker element itself keeps aircraft
-    // selection responsive during that short transition.
-    let element: HTMLElement | null = null;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-    const bind = () => {
-      element = markerRef.current?.getElement() ?? null;
-      if (element) {
-        element.addEventListener("pointerdown", selectAircraft, true);
-        element.addEventListener("mousedown", selectAircraft, true);
-        element.addEventListener("click", selectAircraft, true);
-        return;
-      }
-      if (attempts < 10) {
-        attempts += 1;
-        timer = setTimeout(bind, 50);
-      }
-    };
-    bind();
-    return () => {
-      if (timer) clearTimeout(timer);
-      element?.removeEventListener("pointerdown", selectAircraft, true);
-      element?.removeEventListener("mousedown", selectAircraft, true);
-      element?.removeEventListener("click", selectAircraft, true);
-    };
-  }, [selectAircraft, icon]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers}>{!active && liveTooltip(aircraft)}</Marker>;
+  return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
 const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, theme = "dark" }: AircraftMarkerProps) {
@@ -320,7 +280,7 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, them
     click: () => onSelect(liveAircraftToFlight(aircraftRef.current)),
   }), [onSelect]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers}>{liveTooltip(aircraft)}</CircleMarker>;
+  return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
 interface BoundsReporterProps { onBounds: (bounds: Bounds, visible: Bounds) => void }
@@ -578,15 +538,13 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
   return null;
 }
 
-/** Zoom-dependent label visibility lives on the map element so zooming never re-renders a marker. */
+/** A single selected label stays readable at every zoom. */
 function MapViewClasses({ labelsEnabled }: { labelsEnabled: boolean }) {
   const map = useMap();
   useEffect(() => {
     const container = map.getContainer();
     const apply = () => {
-      const zoom = map.getZoom();
-      container.classList.toggle("show-labels", labelsEnabled && zoom >= LABEL_MIN_ZOOM);
-      container.classList.toggle("show-label-detail", labelsEnabled && zoom >= LABEL_DETAIL_ZOOM);
+      container.classList.toggle("show-labels", labelsEnabled);
     };
     apply();
     map.on("zoomend", apply);
@@ -779,9 +737,10 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const firstPoint = basePoints[0];
   const haloOptions = useMemo(() => ({ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7 * fade, lineCap: "round" as const, lineJoin: "round" as const }), [fade, theme]);
   const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
+  const units = useUnits();
   const fallbackIcon = useMemo(
-    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight) }),
-    [flight],
+    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · ") } }),
+    [flight, units],
   );
 
   const followStarted = useRef(false);
@@ -1234,7 +1193,7 @@ export function FlightMap({
   const displayedLiveData = liveState.data;
   const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
   const displayedLiveStates = displayedLiveData?.states ?? NO_AIRCRAFT;
-  const selectedIcao24 = selectedFlight ? selectedFlight.icao24.toLowerCase() : null;
+  const selectedIcao24 = selectedFlight && selectedFlight.data_source !== "scheduled" ? selectedFlight.icao24.toLowerCase() : null;
   const selectedLive = useMemo(
     () => selectedIcao24 ? displayedLiveStates.find((aircraft) => aircraft.icao24.toLowerCase() === selectedIcao24) ?? null : null,
     [displayedLiveStates, selectedIcao24],
@@ -1339,11 +1298,11 @@ export function FlightMap({
         />
         <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={onSelectFlight} />
         {onSelectAirport && <AirportPins airports={airports} activeIcao={airport?.icao ?? null} onSelect={onSelectAirport} />}
-        {selectedFlight && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
+        {selectedFlight && selectedFlight.data_source !== "scheduled" && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
         {trailsEnabled && !denseTraffic && trails.map((trail) => trail.icao24 === selectedIcao24 ? null : (
           <Polyline key={`trail-${trail.icao24}`} positions={trail.positions} interactive={false} pathOptions={{ color: trail.color, weight: 1.5, opacity: 0.5, lineCap: "round" }} />
         ))}
-        {visibleStates.map((aircraft) => denseTraffic ? (
+        {visibleStates.map((aircraft) => denseTraffic && aircraft.icao24 !== selectedIcao24 ? (
           <AircraftDot
             key={aircraft.icao24}
             aircraft={aircraft}
@@ -1357,6 +1316,7 @@ export function FlightMap({
             aircraft={aircraft}
             active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
             onSelect={onSelectFlight}
+            selected={aircraft.icao24 === selectedIcao24}
           />
         ))}
         {userLocation && (

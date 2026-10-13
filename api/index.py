@@ -110,6 +110,14 @@ def aircraft_lookup_route(q: str = ""):
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=3600, s-maxage=86400"})
 
 
+@app.get("/api/emergencies")
+def emergencies_route():
+    result = execute(service.handle_emergencies)
+    if isinstance(result, JSONResponse):
+        return result
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=15, s-maxage=60"})
+
+
 @app.get("/api/callsign-lookup")
 def callsign_lookup_route(callsign: str = ""):
     result = execute(lambda: service.handle_callsign_lookup(callsign))
@@ -175,5 +183,5 @@ def flight_info(icao24: str = "", callsign: str = ""):
 
 @app.get("/track")
 @app.get("/api/track")
-def track(icao24: str = "", time: int = 0):
-    return execute(lambda: service.handle_track(icao24, time))
+def track(icao24: str = "", time: int = 0, callsign: str = ""):
+    return execute(lambda: service.handle_track(icao24, time, callsign))

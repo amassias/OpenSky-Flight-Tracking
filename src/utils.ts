@@ -339,6 +339,24 @@ export function flightNumberForCallsign(callsign?: string | null): string | null
   return iata ? `${iata}${match[2]}` : null;
 }
 
+/** Reject cached traces from another flight before they can reach the map. */
+export function matchingFlightTrack(track: TrackResponse | undefined, flight: Flight | null, nowSeconds = Date.now() / 1000): TrackResponse | undefined {
+  if (!track || !flight || flight.data_source === "scheduled") return undefined;
+  const path = track.track.path;
+  if (!path?.length) return track;
+  const normalize = (value: string) => value.replace(/\s/g, "").toUpperCase();
+  if (track.track.icao24 && normalize(track.track.icao24) !== normalize(flight.icao24)) return undefined;
+  if (track.track.callsign && flight.callsign && normalize(track.track.callsign) !== normalize(flight.callsign)) return undefined;
+  const first = path[0][0];
+  const last = path[path.length - 1][0];
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return undefined;
+  const requestedTime = flight.primary_time ?? flight.first_seen ?? 0;
+  if (requestedTime === 0 || flight.data_source === "live-nearby") {
+    if (nowSeconds - last > 15 * 60 || last > nowSeconds + 60) return undefined;
+  } else if (requestedTime < first - 15 * 60 || requestedTime > last + 60) return undefined;
+  return currentLegTrack(track, flight.on_ground);
+}
+
 /** Minutes on the ground after which a trace's earlier flight is a previous leg. */
 const TURNAROUND_MINUTES = 20;
 

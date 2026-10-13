@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
         // fresh query instead of keeping the first viewport's snapshot.
         const wideViewport = returnWideViewport || returnDenseViewport;
         const count = returnDenseViewport ? 900 : wideViewport ? 301 : 300;
-        return { count, states: Array.from({length: count}, (_, i) => ({ icao24: i.toString(16).padStart(6, '0'), callsign: `TEST${i}`, latitude: wideViewport && i === 300 ? 52 : 48.8 + i / 1000, longitude: wideViewport && i === 300 ? 7 : 2.3 + i / 1000, true_track: 90 })) };
+        return { count, states: Array.from({length: count}, (_, i) => ({ icao24: i.toString(16).padStart(6, '0'), callsign: `TEST${i}`, latitude: returnWideViewport && i === 300 ? 52 : 48.8 + i / 1000, longitude: returnWideViewport && i === 300 ? 7 : 2.3 + i / 1000, true_track: 90 })) };
       })()
       : [airport];
     await route.fulfill({ json: body });
@@ -104,4 +104,30 @@ test('keeps the last live snapshot when a zoom refresh fails', async ({page, isM
   await expect(page.locator('.map-status')).toContainText('Refresh delayed · last snapshot kept');
   await expect(page.locator('.map-status')).not.toContainText('Your search is preserved');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
+});
+
+test('creates a label only after selecting an aircraft in busy traffic', async ({ page }) => {
+  await expect(page.locator('.aircraft-marker')).toHaveCount(300);
+  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Search flights and airports" }).fill("TEST32");
+  await page.getByRole("option", { name: /TEST32/ }).click();
+  await expect(page.locator('.aircraft-label')).toHaveCount(1);
+  await expect(page.locator('.aircraft-label')).toBeVisible();
+  await expect(page.locator('.aircraft-label b')).toHaveText('TEST32');
+  await page.getByRole('button', { name: 'Close flight details', exact: true }).click();
+  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+});
+
+test('keeps dense traffic on canvas and a single selected label on every device', async ({ page }) => {
+  returnDenseViewport = true;
+  await page.reload();
+  await expect(page.locator('.map-status')).toContainText('900 aircraft');
+  await expect(page.locator('.leaflet-overlay-pane canvas')).toHaveCount(1);
+  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Search flights and airports' }).fill('TEST32');
+  await page.getByRole('option', { name: /TEST32/ }).first().click();
+  await expect(page.locator('.aircraft-label')).toHaveCount(1);
+  await expect(page.locator('.aircraft-label')).toBeVisible();
+  await expect(page.locator('.aircraft-marker')).toHaveCount(1);
+  await expect(page.locator('.leaflet-overlay-pane canvas')).toHaveCount(1);
 });

@@ -276,6 +276,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json_response(200, self.handle_aircraft_lookup(query_params.get("q", [""])[0]))
                 return
 
+            if path == "/api/emergencies":
+                self.send_json_response(200, self.handle_emergencies())
+                return
+
             if path == "/api/callsign-lookup":
                 self.send_json_response(200, self.handle_callsign_lookup(query_params.get("callsign", [""])[0]))
                 return
@@ -314,7 +318,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             if path == "/api/track":
                 icao24 = query_params.get("icao24", [""])[0]
                 time_param = query_params.get("time", ["0"])[0]
-                payload = self.handle_track(icao24, time_param)
+                payload = self.handle_track(icao24, time_param, query_params.get("callsign", [""])[0])
                 self.send_json_response(200, payload)
                 return
 
@@ -959,6 +963,12 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             raise ValueError(f"No aircraft found for {text}.")
         return {"success": True, "icao24": code, "registration": (registry or {}).get("registration") or text, "registry": registry}
 
+    def handle_emergencies(self):
+        payload = api_client.get_emergency_states()
+        states = self._parse_states(payload.get("states", []))
+        self._enrich_live_states(states)
+        return {"success": True, "states": states, "count": len(states), "time": payload["time"], "provider": payload["provider"]}
+
     def handle_callsign_lookup(self, callsign):
         """Find the aircraft flying a callsign right now, so a scheduled flight can be followed live."""
         ident = "".join(ch for ch in str(callsign or "").upper() if ch.isalnum())
@@ -966,7 +976,9 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             raise ValueError("Enter a flight callsign.")
         states = api_client.get_live_callsign_states(ident)
         parsed = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
-        parsed = [item for item in parsed if item.get("latitude") is not None and item.get("longitude") is not None]
+        parsed = [item for item in parsed if item.get("latitude") is not None and item.get("longitude") is not None
+                  and "".join(str(item.get("callsign") or "").upper().split()) == ident
+                  and isinstance(item.get("last_contact"), (int, float)) and 0 <= time.time() - item["last_contact"] <= 90]
         if parsed:
             self._enrich_live_states(parsed)
         return {"success": True, "found": bool(parsed), "aircraft": parsed[0] if parsed else None}
@@ -1365,54 +1377,35 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
         return best_empty, attempted, None
 
-    def handle_track(self, icao24, time_param):
+    def handle_track(self, icao24, time_param, callsign=""):
         code = _validate_icao24(icao24)
         track_time = _safe_int(time_param, default=0)
         if track_time is None:
             raise ValueError("time must be an integer Unix timestamp")
 
-        if os.getenv("VERCEL") and not os.getenv("OPEN_SKY_PROXY_SECRET"):
-            return {
-                "success": True,
-                "track": {},
-                "path_count": 0,
-                "message": "Historical tracks are unavailable from the serverless deployment.",
-                "attempted_times": [],
-            }
+        # A serverless ADS-B trace is the latest airframe trace, not an
+        # archive for the requested flight. Never use it for historical dates.
+        if os.getenv("VERCEL") and track_time != 0:
+            return {"success": True, "track": {}, "path_count": 0,
+                    "message": "Historical tracks are unavailable from the serverless deployment.",
+                    "attempted_times": []}
 
-        # Try the requested timestamp first, then fall back to live track (time=0).
-        first_candidates = [track_time]
-        if track_time != 0:
-            first_candidates.append(0)
-
-        track_data, attempted_times, resolved_time = self._track_for_candidate_times(code, first_candidates)
-
-        # If still empty, use recent aircraft flights to infer better timestamps.
-        if not track_data or not track_data.get("path"):
-            try:
-                end_time = int(time.time())
-                begin_time = end_time - 24 * 3600
-                flights = api_client.get_flights_by_aircraft(code, begin_time, end_time)
-
-                if flights:
-                    recent = sorted(flights, key=lambda f: _safe_int(f.get("lastSeen"), 0), reverse=True)[:3]
-                    inferred_candidates = []
-                    for flight in recent:
-                        first_seen = _safe_int(flight.get("firstSeen"), default=None)
-                        last_seen = _safe_int(flight.get("lastSeen"), default=None)
-                        if first_seen is not None:
-                            inferred_candidates.extend([first_seen, first_seen + 60])
-                        if last_seen is not None:
-                            inferred_candidates.extend([last_seen, max(0, last_seen - 60)])
-
-                    inferred_track, inferred_attempts, inferred_resolved = self._track_for_candidate_times(code, inferred_candidates)
-                    attempted_times.extend(inferred_attempts)
-                    if inferred_track and inferred_track.get("path"):
-                        track_data = inferred_track
-                        resolved_time = inferred_resolved
-            except OpenSkyAPIError:
-                # Secondary flight lookup failed; continue with what we have
-                pass
+        # Do not borrow another flight's timestamp when this trace is missing.
+        track_data, attempted_times, resolved_time = self._track_for_candidate_times(code, [track_time])
+        path = (track_data or {}).get("path") or []
+        expected_callsign = "".join(str(callsign or "").upper().split())
+        actual_callsign = "".join(str((track_data or {}).get("callsign") or "").upper().split())
+        actual_code = str((track_data or {}).get("icao24") or code).lower()
+        valid_times = [p[0] for p in path if isinstance(p, (list, tuple)) and p and isinstance(p[0], (int, float))]
+        wrong_identity = actual_code != code or (expected_callsign and actual_callsign and expected_callsign != actual_callsign)
+        wrong_time = bool(path) and (not valid_times or (
+            time.time() - max(valid_times) > 15 * 60 or max(valid_times) > time.time() + 60
+            if track_time == 0 else not min(valid_times) - 15 * 60 <= track_time <= max(valid_times) + 60
+        ))
+        if wrong_identity or wrong_time:
+            return {"success": True, "track": {}, "path_count": 0,
+                    "message": "No matching track for this flight. An earlier flight's trace was excluded.",
+                    "attempted_times": attempted_times}
 
         if not track_data or not track_data.get("path"):
             return {
@@ -1424,9 +1417,15 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             }
 
         full_path = track_data.get("path", [])
+        leg_start = track_data.get("leg_start")
+        if track_time == 0 and isinstance(leg_start, (int, float)):
+            full_path = [p for p in full_path if p[0] >= leg_start]
         path = _extract_current_flight_leg(full_path)
         current_leg_track = dict(track_data)
         current_leg_track["path"] = path
+        current_leg_track["emergency_events"] = [event for event in track_data.get("emergency_events", [])
+            if path and event.get("last_seen", 0) >= path[0][0]
+            and (not expected_callsign or "".join(str(event.get("callsign") or "").upper().split()) == expected_callsign)]
         if path:
             current_leg_track["startTime"] = path[0][0]
             current_leg_track["endTime"] = path[-1][0]

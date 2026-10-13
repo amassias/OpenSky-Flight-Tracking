@@ -7,6 +7,8 @@ import { bearingDeg, compassPoint, distanceKm, emergencyInfo, flightNumberForCal
 import { distanceText, useUnits, verticalRateText } from "../units";
 import { AirframeHistory } from "./AirframeHistory";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
+import { confirmedDiversion } from "../flightEvents";
+import { FlightEvents } from "./FlightEvents";
 import { AltitudeChart } from "./AltitudeChart";
 
 interface FlightDetailsProps {
@@ -164,7 +166,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
   const path = track?.track.path ?? [];
   // An aircraft in the air cannot be on a leg that has already arrived: that
   // record is the previous flight under the same callsign, so leave it out.
-  const operations = flight.on_ground === false && flight.flightaware?.actual_in ? null : flight.flightaware;
+  const operations = (flight.on_ground === false && flight.flightaware?.actual_in) || (flight.flightaware?.diverted && !confirmedDiversion(flight)) ? null : flight.flightaware;
   const emergency = emergencyInfo(flight);
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
@@ -225,6 +227,8 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         {flight.aircraft_type && <span className="details-chip mono">{flight.aircraft_type}</span>}
         {flight.registration && flight.registration_source !== "schedule" && <span className="details-chip mono">{flight.registration}</span>}
       </div>
+
+      <FlightEvents flight={flight} track={track} airports={airports} />
 
       <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
 
@@ -312,7 +316,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       </Section>
 
       <Section title="Altitude profile" aside={trackLoading ? "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
-        {trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
+        {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
       </Section>
 
       {operations && (

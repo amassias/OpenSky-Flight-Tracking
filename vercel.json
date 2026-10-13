@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "regions": ["fra1"],
   "rewrites": [
+    { "source": "/api/emergencies", "destination": "/api/index" },
     { "source": "/api/health", "destination": "/api/index" },
     { "source": "/api/search-airports", "destination": "/api/index" },
     { "source": "/api/map-airports", "destination": "/api/index" },

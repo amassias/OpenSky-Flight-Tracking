@@ -53,14 +53,14 @@ describe("OmniSearch", () => {
     const { input } = renderSearch();
     await userEvent.click(input);
     expect(await screen.findByRole("option", { name: /Paris Charles de Gaulle/ })).toBeInTheDocument();
-    expect(screen.getByText(/flight numbers such as AF1234 search the aircraft on the map/i)).toBeInTheDocument();
+    expect(screen.getByText(/Complete callsigns such as BAW52T search live aircraft worldwide/i)).toBeInTheDocument();
   });
 
   it("explains an empty result instead of staying silent", async () => {
     const { input } = renderSearch({ aircraft: [] });
     vi.stubGlobal("fetch", vi.fn(async () => new Response("[]", { headers: { "Content-Type": "application/json" } })));
     await userEvent.type(input, "zzzz");
-    expect(await screen.findByText(/No aircraft in view or airport matches/)).toBeInTheDocument();
+    expect(await screen.findByText(/No live aircraft or airport matches/)).toBeInTheDocument();
   });
 
   it("recognises what can name one airframe and leaves callsigns alone", () => {
@@ -87,4 +87,19 @@ describe("OmniSearch", () => {
     expect(onSelectAirframe).toHaveBeenCalledWith("3986e0", "F-HBXA", { owner: "Air France HOP", type: "EMB-170 STD" });
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("callsign"))).toBe(false);
   });
+  it("finds a complete callsign outside the map without substituting a past aircraft", async () => {
+    const selected = vi.fn();
+    renderSearch({ onSelectAircraft: selected });
+    const distant = { icao24: "406a02", callsign: "BAW52T", latitude: 48.6, longitude: -3, squawk: "2021" };
+    vi.stubGlobal("fetch", vi.fn(async input => {
+      const url = new URL(String(input));
+      const body = url.pathname === "/api/callsign-lookup" ? { success: true, found: true, aircraft: distant } : [];
+      return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+    }));
+    await userEvent.type(screen.getByRole("combobox"), "BAW52T");
+    await userEvent.click(await screen.findByRole("option", { name: /BAW52T/ }));
+    expect(selected).toHaveBeenCalledWith(distant);
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("callsign=BAW52T"))).toBe(true);
+  });
+
 });

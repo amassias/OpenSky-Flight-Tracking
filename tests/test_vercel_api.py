@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -84,7 +85,7 @@ def test_live_flights_are_cached_at_the_cdn_unless_degraded():
 
 
 def test_callsign_lookup_finds_the_aircraft_flying_a_callsign():
-    aircraft = {"icao24": "406a3d", "callsign": "BAW557H", "latitude": 49.1, "longitude": 3.3}
+    aircraft = {"icao24": "406a3d", "callsign": "BAW557H", "latitude": 49.1, "longitude": 3.3, "last_contact": time.time()}
     row = ["406a3d", "BAW557H"]
     with patch.object(server.api_client, "get_live_callsign_states", return_value={"states": [row]}), \
          patch.object(server.FlightServerHandler, "_parse_states", return_value=[aircraft]), \
@@ -100,3 +101,14 @@ def test_static_airport_answers_are_cdn_cacheable():
         response = client.get(path, params=params)
         assert response.status_code == 200
         assert "s-maxage=86400" in response.headers["cache-control"]
+
+
+def test_global_emergency_route_returns_open_data_and_cache_headers():
+    now = int(time.time())
+    row = ["abc123", "TEST1", "Unknown", now, now, 2, 49, 9000, False, 220, 90, 0, None, 9100, "7700", False, 0]
+    with patch.object(server.api_client, "get_emergency_states", return_value={"time": now, "provider": "adsb.lol", "states": [row]}):
+        response = client.get("/api/emergencies")
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert response.json()["states"][0]["squawk"] == "7700"
+    assert "s-maxage=60" in response.headers["cache-control"]

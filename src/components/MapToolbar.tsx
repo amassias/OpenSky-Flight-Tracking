@@ -104,7 +104,7 @@ export function MapToolbar({ filters, onFiltersChange, labelsEnabled, onLabelsCh
             ))}
           </div>
         </div>
-        <Switch label="Aircraft labels" hint="Callsign and level beside each aircraft when zoomed in" checked={labelsEnabled} onChange={onLabelsChange} />
+        <Switch label="Selected aircraft label" hint="Callsign, altitude and speed for the aircraft you select" checked={labelsEnabled} onChange={onLabelsChange} />
         {onTrailsChange && <Switch label="Aircraft trails" hint="Where each aircraft has been since you opened the page" checked={trailsEnabled} onChange={onTrailsChange} />}
         <Switch label="Favourite airports only" hint={favoriteCount ? `${favoriteCount} saved · applies to map markers` : "No favourites yet. Save an airport using the heart in airport search."} checked={favoritesOnly} onChange={onFavoritesOnlyChange} />
         <Switch label="Airport markers" hint="Click one to open its departures and arrivals" checked={airportsEnabled} onChange={onAirportsChange} />

@@ -465,3 +465,41 @@ def test_flightaware_keeps_a_fresh_arrival_over_tomorrows_schedule():
     tomorrow = {"ident": "BAW33", "atc_ident": "BAW33", "status": "Scheduled", "scheduled_out": _iso(20 * 3600)}
     picked = OpenSkyClient._pick_flightaware_flight({"flights": [tomorrow, arrived]}, "BAW33")
     assert picked is arrived
+
+
+def test_global_emergency_feed_is_cached_and_excludes_stale_or_regular_codes():
+    client = OpenSkyClient()
+    now = 1_800_000_000
+    response = _json_response({"now": now * 1000, "ac": [
+        {"hex": "abc123", "flight": "TEST1", "squawk": "7700", "seen": 1, "lat": 49, "lon": 2},
+        {"hex": "abc124", "squawk": "7600", "seen": 180},
+        {"hex": "abc125", "squawk": "2021", "seen": 1},
+    ]})
+    client.session.get = Mock(return_value=response)
+    with patch("api_client.time.time", return_value=now):
+        first = client.get_emergency_states()
+        second = client.get_emergency_states()
+    assert len(first["states"]) == 1
+    assert first == second
+    assert first["states"][0][0] == "abc123"
+    client.session.get.assert_called_once()
+
+
+def test_global_emergency_feed_rejects_an_old_snapshot():
+    client = OpenSkyClient()
+    client.session.get = Mock(return_value=_json_response({"now": 1_700_000_000_000, "ac": []}))
+    with patch("api_client.time.time", return_value=1_800_000_000), pytest.raises(OpenSkyAPIError):
+        client.get_emergency_states()
+
+
+def test_adsb_trace_keeps_emergency_observations_and_leg_boundary(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    client.session.get = Mock(return_value=_json_response({"timestamp": 1_800_000_000, "trace": [
+        [0, 49, 2, 9000, 200, 90, 2, 0, {"flight": "BAW52T", "squawk": "7700", "emergency": "general"}],
+        [30, 49.1, 2.1, 8000, 200, 90, 0, 0, {"flight": "BAW52T", "squawk": "7700"}],
+        [60, 49.2, 2.2, 7000, 200, 90, 0, 0, {"flight": "BAW52T", "squawk": "2021", "emergency": "none"}],
+    ]}))
+    result = client.get_track("abc123", 0)
+    assert result["leg_start"] == 1_800_000_000
+    assert result["emergency_events"] == [{"code": "7700", "callsign": "BAW52T", "first_seen": 1_800_000_000, "last_seen": 1_800_000_030, "ended_at": 1_800_000_060}]

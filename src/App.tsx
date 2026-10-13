@@ -7,6 +7,7 @@ import { List } from "./components/customIcons";
 import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportTab, type AirportView } from "./components/AirportTab";
 import { FlightList } from "./components/FlightList";
+import { GlobalAlerts } from "./components/GlobalAlerts";
 import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
 import { Onboarding } from "./components/Onboarding";
@@ -19,7 +20,7 @@ import { usePersistentState } from "./hooks/usePersistentState";
 import { getUnits, setUnits } from "./units";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
 import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme, MapView } from "./types";
-import { currentLegTrack, emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
+import { matchingFlightTrack, emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
 
 interface FlightRequest {
   airport: Airport;
@@ -210,26 +211,31 @@ export function App() {
   const sharedFlight = useQuery({
     queryKey: ["shared-flight", sharedIcao24],
     queryFn: ({ signal }) => api.flightInfo(sharedIcao24!.toLowerCase(), undefined, signal),
-    enabled: Boolean(sharedIcao24),
+    enabled: Boolean(sharedIcao24) && initialParams.get("scheduled") !== "1",
     staleTime: Infinity,
     retry: false,
   });
+  useEffect(() => {
+    if (restoredFlight.current || !sharedIcao24 || initialParams.get("scheduled") !== "1") return;
+    restoredFlight.current = true;
+    setSelectedFlight({ icao24: sharedIcao24.toLowerCase(), callsign: initialParams.get("callsign") || sharedIcao24.toUpperCase(), registration: initialParams.get("registration"), primary_time: 0, data_source: "scheduled", status: "unknown" });
+  }, [initialParams, sharedIcao24]);
   useEffect(() => {
     if (restoredFlight.current || !sharedFlight.data) return;
     restoredFlight.current = true;
     const { success: _success, ...info } = sharedFlight.data;
     void _success;
     setSelectedFlight({ ...info, callsign: info.callsign || sharedIcao24!.toUpperCase(), primary_time: 0, data_source: "live-nearby" } as Flight);
-  }, [sharedFlight.data, sharedIcao24]);
+  }, [initialParams, sharedFlight.data, sharedIcao24]);
 
   const flightInfo = useQuery({
-    queryKey: ["flight-info", selectedFlight?.icao24],
+    queryKey: ["flight-info", selectedFlight?.icao24, selectedFlight?.callsign],
     queryFn: ({ signal }) => api.flightInfo(selectedFlight!.icao24, selectedFlight!.callsign, signal),
     // A selected historical card can still have a current operational record
     // (and a useful aircraft profile), so use the same on-demand enrichment
     // path for every selected aircraft. The server keeps the provider calls
     // outside the map polling loop and caches them per identifier.
-    enabled: Boolean(selectedFlight),
+    enabled: Boolean(selectedFlight) && selectedFlight?.data_source !== "scheduled",
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
     retry: false,
@@ -239,14 +245,14 @@ export function App() {
   // from the live map or board is the current one; a recorded flight from an
   // earlier date must not borrow today's position for the same airframe.
   const liveSelected = useMemo(() => {
-    if (!selectedFlight || !(selectedFlight.primary_time === 0 || selectedFlight.data_source === "live-nearby")) return null;
+    if (!selectedFlight || selectedFlight.data_source === "scheduled" || !(selectedFlight.primary_time === 0 || selectedFlight.data_source === "live-nearby")) return null;
     return liveFallbackSnapshot?.data.states.find((aircraft) => aircraft.icao24 === selectedFlight.icao24) ?? null;
   }, [liveFallbackSnapshot, selectedFlight]);
 
   const detailsFlight = useMemo(() => {
     if (!selectedFlight) return null;
     const current = liveSelected ? withLiveKinematics(selectedFlight, liveSelected) : selectedFlight;
-    if (!flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return current;
+    if (selectedFlight.data_source === "scheduled" || !flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return current;
     const info = flightInfo.data;
     // Airframe identity, most to least reliable: the transponder profile from
     // flight-info, then the transponder registration the live feed already
@@ -256,7 +262,7 @@ export function App() {
     const liveAirframe = scheduledOnly && Boolean(current.registration);
     return {
       ...current,
-      callsign: info.callsign || current.callsign,
+      callsign: current.callsign && current.callsign !== current.registration && current.callsign.toLowerCase() !== current.icao24 ? current.callsign : info.callsign || current.callsign,
       airline_code: info.airline_code || current.airline_code,
       airline_name: info.airline_name || current.airline_name,
       departure_airport: info.departure_airport ?? current.departure_airport,
@@ -299,13 +305,13 @@ export function App() {
   }, [flightInfo.data, liveSelected, selectedFlight]);
 
   const track = useQuery({
-    queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0],
-    queryFn: ({ signal }) => api.track(detailsFlight!.icao24, detailsFlight!.primary_time ?? detailsFlight!.first_seen ?? 0, signal),
-    enabled: Boolean(detailsFlight),
+    queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0, detailsFlight?.callsign, detailsFlight?.data_source],
+    queryFn: ({ signal }) => api.track(detailsFlight!.icao24, detailsFlight!.primary_time ?? detailsFlight!.first_seen ?? 0, signal, detailsFlight!.callsign),
+    enabled: Boolean(detailsFlight) && detailsFlight?.data_source !== "scheduled",
     retry: false,
   });
 
-  const currentTrack = useMemo(() => currentLegTrack(track.data, detailsFlight?.on_ground), [detailsFlight?.on_ground, track.data]);
+  const currentTrack = useMemo(() => matchingFlightTrack(track.data, detailsFlight), [detailsFlight, track.data]);
 
   // Only the selected aircraft is looked up, never every marker, to keep the
   // photo provider's traffic reasonable. The registration usually arrives a
@@ -340,6 +346,11 @@ export function App() {
     }
     if (selectedFlight) {
       params.set("icao24", selectedFlight.icao24);
+      if (selectedFlight.data_source === "scheduled") {
+        params.set("scheduled", "1");
+        params.set("callsign", selectedFlight.callsign);
+        if (selectedFlight.registration) params.set("registration", selectedFlight.registration);
+      }
       const time = selectedFlight.primary_time ?? selectedFlight.first_seen;
       if (time) params.set("time", String(time));
     }
@@ -516,6 +527,8 @@ export function App() {
     for (const [icao, airport] of knownAirports) byIcao.set(icao, airport);
     return [...byIcao.values()];
   }, [airportCatalog.data, knownAirports]);
+
+  const detailAirports = useMemo(() => new Map(mapAirports.map(airport => [airport.icao, airport])), [mapAirports]);
 
   const selectFlight = useCallback((flight: Flight) => {
     setPreviewFlight(null);
@@ -704,7 +717,7 @@ export function App() {
               photo={photo.data}
               photoLoading={photo.isPending && photo.fetchStatus !== "idle"}
               photoError={photo.isError}
-              airports={knownAirports}
+              airports={detailAirports}
               onRetryTrack={() => track.refetch()}
               onClose={() => setSelectedFlight(null)}
               onShare={shareView}
@@ -731,6 +744,7 @@ export function App() {
                 onClose={() => setTrafficOpen(false)}
                 liveCount={liveSummary.total}
                 airportLabel={airportCode}
+                alerts={<GlobalAlerts onSelect={selectFlight} />}
                 live={(
                   <>
                     <div className="stats-row">

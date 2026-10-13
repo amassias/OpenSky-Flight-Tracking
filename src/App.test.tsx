@@ -134,6 +134,38 @@ describe("App", () => {
     await waitFor(() => expect(window.location.search).toContain("icao24=3944aa"));
   });
 
+  it("keeps a scheduled flight without a detected position separate from the airframe's old trace", async () => {
+    window.history.replaceState(null, "", "/");
+    const soon = new Date(Date.now() + 20 * 60_000).toISOString();
+    mockApi({
+      "/api/airport-schedule": () => json({ success: true, airport: "LFPG", direction: "departure", available: true,
+        flights: [{ provider: "FlightAware", ident: "AFR990", ident_iata: "AF990", atc_ident: "AFR990", registration: "F-HABC", origin: { code_icao: "LFPG" }, destination: { code_icao: "FAOR", city: "Johannesburg" }, scheduled_out: soon }],
+      }),
+      "/api/callsign-lookup": () => json({ success: true, found: false, aircraft: null }),
+      "/api/aircraft-lookup": () => json({ success: true, icao24: "39abcd", registration: "F-HABC" }),
+      "/api/track": () => json({ success: true, path_count: 2, track: { icao24: "39abcd", callsign: "AFR990", path: [[1, 49, 2, 9000, 90, false], [2, 50, 3, 8000, 90, false]] } }),
+      "/api/flight-info": () => json({ success: true, icao24: "39abcd", callsign: "AFROLD", arrival_airport: "EGLL" }),
+    });
+    renderApp();
+    await openAirportFromSearch();
+    await userEvent.click(await screen.findByRole("button", { name: /AF990/ }));
+    expect(await screen.findByRole("heading", { name: "AFR990" })).toBeInTheDocument();
+    expect(await screen.findByText(/Live position not detected for this flight/)).toBeInTheDocument();
+    expect(window.location.search).toContain("scheduled=1");
+    const paths = vi.mocked(fetch).mock.calls.map(([input]) => new URL(String(input)).pathname);
+    expect(paths).not.toContain("/api/track");
+    expect(paths).not.toContain("/api/flight-info");
+  });
+
+  it("does not restore an old aircraft position when sharing an undetected scheduled flight", async () => {
+    window.history.replaceState(null, "", "/?icao24=39abcd&scheduled=1&callsign=AFR990");
+    mockApi();
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "AFR990" })).toBeInTheDocument();
+    expect(await screen.findByText(/Live position not detected/)).toBeInTheDocument();
+    expect(vi.mocked(fetch).mock.calls.map(([input]) => new URL(String(input)).pathname)).not.toContain("/api/track");
+  });
+
   it("selects a live board flight with this airport as one end of its route", async () => {
     window.history.replaceState(null, "", "/");
     mockApi();

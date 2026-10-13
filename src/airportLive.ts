@@ -247,7 +247,7 @@ export function scheduledOnlyFlight(entry: ScheduleEntry, icao24: string): Fligh
     icao24,
     callsign: flight.atc_ident || flight.ident || flight.ident_iata || icao24.toUpperCase(),
     primary_time: 0,
-    data_source: "live-nearby",
+    data_source: "scheduled",
     status: "unknown",
     airline_name: flight.airline_name || "",
     registration: flight.registration ?? null,

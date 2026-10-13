@@ -7,7 +7,7 @@ import type { AirframeRegistry, Airport, LiveAircraft } from "../types";
 import { callsignsForFlightNumber, flightNumberForCallsign } from "../utils";
 
 interface OmniSearchProps {
-  /** Aircraft currently on the map; the live feed has no global lookup. */
+  /** Aircraft currently on the map; complete callsigns can also be resolved globally. */
   aircraft: readonly LiveAircraft[];
   recent: Airport[];
   popular: Airport[];
@@ -73,6 +73,22 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
   });
 
   const aircraftMatches = useMemo(() => matchAircraft(aircraft, trimmed), [aircraft, trimmed]);
+  const liveCallsign = debounced.toUpperCase();
+  const completeCallsign = /^(?:[A-Z]{3}\d[A-Z0-9]{0,4}|[A-Z0-9]{2}\d{1,4}[A-Z]?)$/.test(liveCallsign) && !looksLikeRegistration(liveCallsign);
+  const globalAircraft = useQuery({
+    queryKey: ["global-callsign", liveCallsign],
+    queryFn: async ({ signal }) => {
+      const candidates = [...new Set([...callsignsForFlightNumber(liveCallsign), liveCallsign])].slice(0, 2);
+      for (const callsign of candidates) {
+        const answer = await api.callsignLookup(callsign.toUpperCase(), signal);
+        if (answer.found && answer.aircraft) return answer.aircraft;
+      }
+      return null;
+    },
+    enabled: open && trimmed === debounced && completeCallsign && !aircraftMatches.length,
+    staleTime: 30_000,
+    retry: false,
+  });
   // A registration can be looked up even when the aircraft is not in view.
   const airframeQuery = Boolean(onSelectAirframe) && looksLikeRegistration(debounced) && trimmed === debounced;
   const airframe = useQuery({
@@ -91,12 +107,13 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
       ? [{ kind: "airframe" as const, id: `r-${airframe.data.icao24}`, icao24: airframe.data.icao24, registration: airframe.data.registration, registry: airframe.data.registry }]
       : [];
     return [
+      ...(trimmed === debounced && globalAircraft.data && !aircraftMatches.some(flight => flight.icao24 === globalAircraft.data!.icao24) ? [{ kind: "aircraft" as const, id: `g-${globalAircraft.data.icao24}`, flight: globalAircraft.data }] : []),
       ...aircraftMatches.map((flight) => ({ kind: "aircraft" as const, id: `a-${flight.icao24}`, flight })),
       ...found,
       ...airports.map((airport) => ({ kind: "airport" as const, id: `p-${airport.icao}`, airport })),
     ];
-  }, [aircraftMatches, airframe.data, airframeQuery, airportData, debounced, popular, recent, trimmed]);
-  const searching = trimmed.length >= 2 && (trimmed !== debounced || airportSearch.isFetching);
+  }, [aircraftMatches, globalAircraft.data, airframe.data, airframeQuery, airportData, debounced, popular, recent, trimmed]);
+  const searching = trimmed.length >= 2 && (trimmed !== debounced || airportSearch.isFetching || globalAircraft.isFetching);
 
   useEffect(() => {
     setActive((current) => Math.min(current, Math.max(options.length - 1, 0)));
@@ -133,12 +150,12 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
     }
   }
 
-  const aircraftCount = aircraftMatches.length;
+  const aircraftCount = options.filter(option => option.kind === "aircraft").length;
   const airframeCount = options.filter((option) => option.kind === "airframe").length;
   const showAircraftGroup = aircraftCount > 0;
   const airportStart = aircraftCount + airframeCount;
   const showAirportGroup = options.length > airportStart;
-  const empty = trimmed.length >= 2 && !searching && !(airframeQuery && airframe.isFetching) && options.length === 0;
+  const empty = trimmed.length >= 2 && !globalAircraft.isError && !searching && !(airframeQuery && airframe.isFetching) && options.length === 0;
 
   return (
     <div className="omni-search" role="search" ref={container}>
@@ -172,7 +189,7 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
         // Keep input focus during pointer selection: Safari otherwise blurs it
         // with no relatedTarget and closes the list before click fires.
         <div className="omni-results" id={listboxId} role="listbox" onMouseDown={(event) => event.preventDefault()}>
-          {showAircraftGroup && <div className="omni-group">Aircraft on the map</div>}
+          {showAircraftGroup && <div className="omni-group">{globalAircraft.data ? "Live aircraft" : "Aircraft on the map"}</div>}
           {options.map((option, index) => (
             <div key={option.id}>
               {option.kind === "airframe" && index === aircraftCount && <div className="omni-group">Airframe by registration</div>}
@@ -220,9 +237,10 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
             </div>
           ))}
           {searching && options.length === 0 && <p className="omni-empty">Searching…</p>}
-          {empty && <p className="omni-empty">No aircraft in view or airport matches “{trimmed}”.</p>}
+          {empty && <p className="omni-empty">No live aircraft or airport matches “{trimmed}”.</p>}
+          {globalAircraft.isError && <p className="omni-empty" role="alert">Worldwide aircraft lookup is unavailable right now. Aircraft on the map can still be searched.</p>}
           {airportSearch.isError && trimmed.length >= 2 && !searching && <p className="omni-empty" role="alert">Airport search is unavailable right now.</p>}
-          <p className="omni-hint">Callsigns and flight numbers such as AF1234 search the aircraft on the map. A registration such as F-HBXA or N283VA opens that airframe's history anywhere.</p>
+          <p className="omni-hint">Complete callsigns such as BAW52T search live aircraft worldwide. Ticket flight numbers also try the airline’s numeric callsign; some flights use a different ATC callsign. A registration such as F-HBXA or N283VA opens that airframe's history anywhere.</p>
         </div>
       )}
     </div>

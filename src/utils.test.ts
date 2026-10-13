@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, bearingDeg, boundsEqual, callsignsForFlightNumber, currentLegTrack, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
+import { ALTITUDE_UNKNOWN_COLOR, aircraftIconKind, altitudeColor, bearingDeg, boundsEqual, callsignsForFlightNumber, currentLegTrack, matchingFlightTrack, flightNumberForCallsign, distanceKm, emergencyInfo, expandBounds, extent, formatAltitude, formatSpeed, parseMapView, quantizeBounds, splitBoundsIntoTiles, verticalTrend, viewportTileCount } from "./utils";
 import type { TrackPoint, TrackResponse } from "./types";
 
 describe("altitude colour scale", () => {
@@ -223,5 +223,24 @@ describe("currentLegTrack", () => {
     const justLanded = response([...cruise, [3_900, 51.41, 1.2, 0, 180, true]]);
     expect(currentLegTrack(justLanded, true)!.track.path).toHaveLength(4);
     expect(currentLegTrack(justLanded, false)!.track.path).toHaveLength(4);
+  });
+});
+
+
+describe("matchingFlightTrack", () => {
+  const now = 1_800_000_000;
+  const flight = { icao24: "39abcd", callsign: "AFR123", primary_time: 0, data_source: "live-nearby" as const };
+  const track: TrackResponse = { success: true, path_count: 2, track: { icao24: "39abcd", callsign: "AFR123", path: [[now - 120, 49, 2, 1000, 90, false], [now - 10, 49.1, 2.1, 2000, 90, false]] } };
+  it("keeps the current flight's trace", () => expect(matchingFlightTrack(track, flight, now)).toBe(track));
+  it("rejects a previous day's cached trace with the same callsign", () => expect(matchingFlightTrack(track, flight, now + 86400)).toBeUndefined());
+  it("rejects another aircraft or callsign", () => {
+    expect(matchingFlightTrack(track, { ...flight, icao24: "abc123" }, now)).toBeUndefined();
+    expect(matchingFlightTrack(track, { ...flight, callsign: "AFR999" }, now)).toBeUndefined();
+  });
+  it("does not borrow a detected airframe's path for a scheduled-only flight", () => expect(matchingFlightTrack(track, { ...flight, data_source: "scheduled" }, now)).toBeUndefined());
+  it("keeps historical traces only for their requested time", () => {
+    const historical = { ...flight, primary_time: now - 120, data_source: "opensky" as const };
+    expect(matchingFlightTrack(track, historical, now + 86400)).toBe(track);
+    expect(matchingFlightTrack(track, { ...historical, primary_time: now - 86400 }, now)).toBeUndefined();
   });
 });

@@ -114,7 +114,7 @@ export interface Flight {
   time_position?: number | null;
   status?: FlightStatus;
   origin_country?: string | null;
-  data_source?: "opensky" | "live-nearby";
+  data_source?: "opensky" | "live-nearby" | "scheduled";
   route_source?: RouteSource;
   route_provider?: string | null;
   registration?: string | null;
@@ -250,6 +250,8 @@ export interface TrackResponse {
     endTime?: number;
     path?: TrackPoint[];
     trace_kind?: "full" | "recent" | string;
+    source?: string;
+    emergency_events?: Array<{ code: string; callsign: string; first_seen: number; last_seen: number; ended_at: number | null }>;
   };
   path_count: number;
   message?: string;

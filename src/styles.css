@@ -430,8 +430,8 @@ input { caret-color: var(--accent); }
 @keyframes marker-pop { from { transform: rotate(calc(var(--heading) - 90deg)) scale(.55); box-shadow: 0 0 0 0 var(--accent-soft); } }
 .aircraft-label { position: absolute; left: 31px; top: 50%; display: none; gap: 0; transform: translateY(-50%); color: var(--text); font: 600 11px/1.2 var(--body); white-space: nowrap; letter-spacing: 0; text-shadow: 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 4px var(--halo); pointer-events: none; }
 .aircraft-label i { display: none; color: var(--muted); font-style: normal; font-weight: 500; font-variant-numeric: tabular-nums; }
-.show-labels .aircraft-label { display: grid; }
-.show-label-detail .aircraft-label i { display: block; }
+.show-labels .aircraft-marker-selected .aircraft-label { display: grid; }
+.show-labels .aircraft-marker-selected .aircraft-label i { display: block; }
 .aircraft-marker-selected .aircraft-label { color: var(--accent); }
 
 /* Docked panels -------------------------------------------------------- */
@@ -850,3 +850,31 @@ input { caret-color: var(--accent); }
 }
 .board-resolve-notice { margin: 6px 4px; padding: 8px 10px; color: var(--muted); border-radius: var(--r-md); background: var(--fill); font-size: 12px; }
 .board-row.is-resolving { opacity: .6; pointer-events: none; }
+
+.weather-guide { margin-top: 10px; }
+.weather-guide h3 { margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--text); }
+.weather-guide p { margin: 0 0 10px; line-height: 1.5; }
+.weather-guide code { overflow-wrap: anywhere; }
+.weather-code-list { margin: 0; }
+.weather-code-list dt { margin-top: 10px; font-weight: 600; color: var(--text); }
+.weather-code-list dd { margin: 3px 0 10px; line-height: 1.5; }
+.weather-guide a { color: var(--accent); }
+
+.weather-guide > summary, .weather-guide .conditions-more-body { min-width: 0; }
+.weather-guide .conditions-more-body > * { min-width: 0; overflow-wrap: anywhere; }
+.weather-guide .panel-section-chevron { flex-shrink: 0; }
+
+.global-alerts { padding: 16px; }
+.global-alerts h2, .flight-events h3 { font-size: 14px; margin: 0 0 10px; font-weight: 600; }
+.global-alerts > p { font-size: 12px; line-height: 1.5; }
+.global-alerts > a { color: var(--accent); font-size: 12px; }
+.global-alert-row { appearance: none; background: transparent; border: 0; font: inherit; cursor: pointer; width: 100%; text-align: left; display: grid; gap: 5px; padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--text); }
+.global-alert-row > span { color: var(--danger); font-size: 12px; }
+.global-alert-row > small { color: var(--muted); font-size: 12px; }
+.global-alert-row:hover { background: var(--fill); }
+.flight-events { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+.flight-events p, .flight-events li { display: grid; gap: 5px; margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
+.flight-events span { color: var(--muted); }
+.flight-events ul { list-style: none; margin: 0; padding: 0; }
+
+.weather-guide .conditions-more-body { grid-template-columns: minmax(0, 1fr); }

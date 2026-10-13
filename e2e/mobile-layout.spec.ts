@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     if (path === "/api/live-flights") {
       return route.fulfill({ json: { count: 2, time: 1, states: [0, 1].map((i) => ({ icao24: `39abc${i}`, callsign: `AFR12${i}`, latitude: 48.9 + i / 20, longitude: 2.4, true_track: 90, baro_altitude: 4000, velocity: 200, on_ground: false })) } });
     }
-    if (path === "/api/track") return route.fulfill({ json: { success: true, track: { icao24: "39abc0", path: [[1, 48.8, 2.3, 3000, 90, false], [2, 48.9, 2.4, 4000, 90, false]] } } });
+    if (path === "/api/track") return route.fulfill({ json: { success: true, track: { icao24: "39abc0", path: [[Math.floor(Date.now()/1000)-60, 48.8, 2.3, 3000, 90, false], [Math.floor(Date.now()/1000), 48.9, 2.4, 4000, 90, false]] } } });
     return route.fulfill({ json: path.endsWith("airports") || path === "/api/search-airports" ? [] : { success: true } });
   });
 });

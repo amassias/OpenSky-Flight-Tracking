@@ -28,7 +28,10 @@ async function mockApi(page: Page, options: { historyUnavailable?: boolean } = {
     else if (path === "/api/aircraft-lookup") body = { success: true, icao24: "39abcd", registration: "F-HABC", registry: { owner: "Air France", type: "A350-941" } };
     else if (path === "/api/aircraft-flights") body = { success: true, registration: "FHABC", provider: "FlightAware AeroAPI", available: true, flights: [{ fa_flight_id: "x1", ident: "AFR23", ident_iata: "AF23", origin: { code_iata: "CDG" }, destination: { code_iata: "ICN" }, actual_out: "2026-10-08T10:00:00Z", status: "Arrived / Gate Arrival" }] };
     else if (path === "/api/flight-info") body = { success: true, icao24: "39abcd", callsign: "AFR123", airline_code: "AFR", airline_name: "Air France", departure_airport: "LFPG", departure_airport_name: airport.name, arrival_airport: "RKSI", arrival_airport_name: "Incheon International Airport", route_source: "callsign", route_provider: "ADSBDB", registration: "F-HABC", aircraft_type: "A359", aircraft_description: "AIRBUS A-350-941", aircraft_owner: "Air France", aircraft_year: "2020", aircraft_category: "A5", messages: 12345, rssi: -12.5, seen_seconds: 0.7, seen_position_seconds: 1.2, nav_modes: ["autopilot", "althold"], flightaware: { provider: "FlightAware", status: "En Route", origin: { code_icao: "LFPG", name: airport.name }, destination: { code_icao: "RKSI", name: "Incheon International Airport" }, progress_percent: 64, scheduled_out: "2026-07-10T08:00:00Z", estimated_in: "2026-07-10T17:00:00Z", departure_delay: 0, route: "DCT" } };
-    else if (path === "/api/track") body = { success: true, path_count: 3, track: { path: [[1_752_000_000, 49.0, 2.55, 1000, 60, false], [1_752_001_000, 49.1, 2.7, 5000, 70, false], [1_752_002_000, 49.3, 3.0, 8400, 72, false]] } };
+    else if (path === "/api/track") {
+      const start = Number(new URL(route.request().url()).searchParams.get("time")) || Math.floor(Date.now() / 1000) - 2000;
+      body = { success: true, path_count: 3, track: { path: [[start, 49.0, 2.55, 1000, 60, false], [start + 1000, 49.1, 2.7, 5000, 70, false], [start + 1990, 49.3, 3.0, 8400, 72, false]] } };
+    }
     else return route.fulfill({ status: 404, json: { success: false, error: "Not found" } });
     await route.fulfill({ json: body });
   });
@@ -309,4 +312,36 @@ test("a registration typed in the search opens that airframe's history", async (
   const drawer = page.getByRole("complementary", { name: "Selected flight details" });
   await expect(drawer.locator(".airframe-registration")).toHaveText("F-HABC");
   await expect(page).toHaveURL(/icao24=39abcd/);
+});
+
+test('keeps the weather guide separate from actual reports and readable on mobile', async ({ page }) => {
+  await page.getByRole('combobox', { name: 'Search flights and airports' }).fill('Paris');
+  await page.getByRole('option', { name: /Paris Charles de Gaulle/ }).click();
+  const guide = page.locator('.weather-guide');
+  await expect(guide).not.toHaveAttribute('open', '');
+  await guide.locator('summary').click();
+  await expect(guide.getByRole('heading', { name: 'Read a METAR' })).toBeVisible();
+  await expect(guide.getByRole('heading', { name: 'Read a TAF' })).toBeVisible();
+  await expect.poll(() => guide.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await guide.locator('summary').click();
+  await expect(guide.getByRole('heading', { name: 'Read a TAF' })).not.toBeVisible();
+});
+
+test('does not request or draw a previous path for a scheduled flight without live detection', async ({ page }) => {
+  const calls: string[] = [];
+  page.on('request', request => calls.push(new URL(request.url()).pathname));
+  await page.route('**/api/airport-schedule**', route => route.fulfill({ json: {
+    success: true, airport: 'LFPG', direction: 'departure', available: true,
+    flights: [{ provider: 'FlightAware', ident: 'AFR990', ident_iata: 'AF990', atc_ident: 'AFR990', registration: 'F-HABC', scheduled_out: new Date(Date.now()+20*60_000).toISOString(), origin: {code_icao:'LFPG'}, destination: {code_icao:'FAOR',city:'Johannesburg'} }],
+  } }));
+  await page.route('**/api/callsign-lookup**', route => route.fulfill({ json: { success:true, found:false, aircraft:null } }));
+  await page.getByRole('combobox', { name: 'Search flights and airports' }).fill('Paris');
+  await page.getByRole('option', { name: /Paris Charles de Gaulle/ }).click();
+  await page.getByRole('button', { name: /AF990/ }).click();
+  await expect(page.getByRole('heading', { name: 'AFR990' })).toBeVisible();
+  await expect(page.getByText(/Live position not detected for this flight/)).toBeVisible();
+  expect(calls).not.toContain('/api/track');
+  expect(calls).not.toContain('/api/flight-info');
+  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Show route', exact: true })).not.toBeVisible();
 });
