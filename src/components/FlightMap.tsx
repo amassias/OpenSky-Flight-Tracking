@@ -1,3 +1,7 @@
+import { airlineLogo } from "../aircraftIdentity";
+import { AircraftHoverStore } from "../aircraftHover";
+import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
+import { headingProjection } from "../headingProjection";
 import { sameLiveFlight } from "../flightTelemetry";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +18,7 @@ import { filterAircraft, type MapFilters } from "../mapFilters";
 import { projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
 import { distanceText, flightLevelText, speedText, useUnits } from "../units";
 import { AltitudeLegend } from "./AltitudeLegend";
+import { AircraftHoverPreview } from "./AircraftHoverPreview";
 
 /** Recent positions kept per aircraft for its trail. */
 const TRAIL_POINTS = 8;
@@ -36,10 +41,10 @@ const LIGHT_PLANE_PATH = "M12 2.2c.7 0 1.2.9 1.2 2.1v5.4l9 1.5v2.1l-9-.9v4.7l1.9
 // heading rotation points it where it is flying: main rotor blades, cabin,
 // tail boom and tail rotor.
 const HELICOPTER_SVG = [
-  '<path class="aircraft-svg-rotor" d="M6.2 5.2 19.8 18.8M6.2 18.8 19.8 5.2"/>',
   '<ellipse class="aircraft-svg-fill" cx="13.4" cy="12" rx="4.6" ry="3.1"/>',
   '<path class="aircraft-svg-fill" d="M2.6 11.2h7v1.6h-7z"/>',
   '<path class="aircraft-svg-fill" d="M2 8.8h1.5v6.4H2z"/>',
+  '<path class="aircraft-svg-rotor" d="M6.2 5.2 19.8 18.8M6.2 18.8 19.8 5.2"/>',
 ].join("");
 
 function aircraftIconSvg(kind: AircraftIconKind): string {
@@ -52,8 +57,14 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
       return '<path d="M12 2a6.2 6.2 0 0 1 6.2 6.2c0 3.2-2 5.4-4.2 7.1l-.8.6h-2.4l-.8-.6c-2.2-1.7-4.2-3.9-4.2-7.1A6.2 6.2 0 0 1 12 2Zm-1.2 14h2.4v2.1h-2.4zM9.8 20h4.4v2H9.8z"/>';
     case "small":
       return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${LIGHT_PLANE_PATH}"/>`;
+    case "turboprop":
+      return '<g transform="rotate(90 12 12)"><path d="M11 2h2v7l9 3v2l-9-1v6l3 1v2l-4-1-4 1v-2l3-1v-6l-9 1v-2l9-3z"/><path d="M6 7h1v8H6zM17 7h1v8h-1z"/><path class="aircraft-svg-stroke" d="M4 8h5m6 0h5"/></g>';
+    case "regional":
+      return '<g transform="rotate(90 12 12)"><path d="M12 1l1 3v6l7 5v2l-7-3v5l3 2v1l-4-1-4 1v-1l3-2v-5l-7 3v-2l7-5V4z"/><path d="M8 16h2v4H8zm6 0h2v4h-2z"/></g>';
     case "heavy":
-      return `<path class="aircraft-svg-fill" transform="rotate(90 12 12) translate(-1.2 -1.2) scale(1.1)" d="${AIRLINER_PATH}"/>`;
+      return '<g transform="rotate(90 12 12)"><path d="M12 1c1 0 2 1 2 3v5l9 6v2l-9-3v4l3 3v2l-5-2-5 2v-2l3-3v-4l-9 3v-2l9-6V4c0-2 1-3 2-3z"/><path d="M5 11h2v5H5zm12 0h2v5h-2z"/></g>';
+    case "unknown":
+      return '<path d="m21 12-17 6 4-6-4-6z"/>';
     default:
       return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${AIRLINER_PATH}"/>`;
   }
@@ -70,16 +81,17 @@ interface PlaneIconOptions {
   icao24?: string;
   kind?: AircraftIconKind;
   emergency?: boolean;
-  label?: { primary: string; secondary: string };
+  label?: { primary: string; secondary: string; logo?: string | null; level?: LabelLevel };
+  airborne?: boolean;
 }
 
-function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", emergency = false, label }: PlaneIconOptions) {
+function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", emergency = false, label, airborne = false }: PlaneIconOptions) {
   const labelHtml = label
-    ? `<span class="aircraft-label"><b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
+    ? `<span class="aircraft-label label-level-${label.level ?? 3}">${label.logo ? `<img class="airline-logo" src="${escapeHtml(label.logo)}" alt="" width="20" height="20" referrerpolicy="no-referrer" />` : ""}<b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
     : "";
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
-    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>${labelHtml}`,
+    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${airborne ? "airborne" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>${labelHtml}`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -178,7 +190,10 @@ interface AircraftMarkerProps {
   aircraft: LiveAircraft;
   active: boolean;
   selected?: boolean;
+  labelLevel?: LabelLevel;
   onSelect: (flight: Flight) => void;
+  onHover?: (aircraft: LiveAircraft, pointer: { x: number; y: number }) => void;
+  onLeave?: (icao24: string) => void;
   theme?: MapTheme;
 }
 
@@ -186,7 +201,7 @@ function areMarkersEqual(
   previous: AircraftMarkerProps,
   next: AircraftMarkerProps,
 ) {
-  if (previous.selected !== next.selected || previous.active !== next.active || previous.onSelect !== next.onSelect || previous.theme !== next.theme) return false;
+  if (previous.labelLevel !== next.labelLevel || previous.selected !== next.selected || previous.active !== next.active || previous.onSelect !== next.onSelect || previous.theme !== next.theme) return false;
   const a = previous.aircraft;
   const b = next.aircraft;
   // Every poll returns fresh objects, so compare the fields the marker draws
@@ -197,6 +212,7 @@ function areMarkersEqual(
     && a.time_position === b.time_position
     && a.true_track === b.true_track
     && a.on_ground === b.on_ground
+    && a.airline_code === b.airline_code
     && a.callsign === b.callsign
     && a.registration === b.registration
     && a.baro_altitude === b.baro_altitude
@@ -209,19 +225,20 @@ function areMarkersEqual(
     && a.emergency === b.emergency;
 }
 
-const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected, onSelect }: AircraftMarkerProps) {
+const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected, labelLevel = 0, onSelect, onHover, onLeave }: AircraftMarkerProps) {
   const units = useUnits();
   const iconKind = aircraftIconKind(aircraft);
   const heading = aircraft.true_track ?? 0;
   const emergency = emergencyInfo(aircraft) !== null;
+  const logo = airlineLogo(aircraft);
   const labelPrimary = aircraft.callsign || aircraft.registration || aircraft.icao24.toUpperCase();
   const labelSecondary = [
     aircraft.baro_altitude != null && !aircraft.on_ground ? flightLevelText(aircraft.baro_altitude, units) : null,
     aircraft.velocity != null && !aircraft.on_ground ? speedText(aircraft.velocity, units).replace(" ", "") : null,
   ].filter(Boolean).join(" · ");
   const icon = useMemo(
-    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, label: selected ? { primary: labelPrimary, secondary: labelSecondary } : undefined }),
-    [aircraft.icao24, aircraft.on_ground, active, selected, iconKind, heading, emergency, labelPrimary, labelSecondary],
+    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, airborne: aircraft.on_ground === false, label: selected || labelLevel ? { primary: labelPrimary, secondary: labelSecondary, level: selected ? 3 : labelLevel, logo: selected || labelLevel >= 2 ? logo : null } : undefined }),
+    [aircraft.icao24, aircraft.on_ground, active, selected, labelLevel, iconKind, heading, emergency, labelPrimary, labelSecondary, logo],
   );
   // A fresh fix is already some seconds old when it arrives, so start from
   // where the aircraft is now rather than where it was reported.
@@ -244,13 +261,24 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   const eventHandlers = useMemo(() => ({
     mousedown: selectAircraft,
     click: selectAircraft,
-  }), [selectAircraft]);
+    mouseover: (event: L.LeafletMouseEvent) => {
+      if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        onHover?.(aircraftRef.current, { x: event.originalEvent.clientX, y: event.originalEvent.clientY });
+      }
+    },
+    mouseout: () => onLeave?.(aircraftRef.current.icao24),
+  }), [selectAircraft, onHover, onLeave]);
 
   useEffect(() => {
     const element = markerRef.current?.getElement();
     element?.setAttribute("aria-label", `View ${labelPrimary}`);
     element?.setAttribute("title", `View ${labelPrimary}`);
-  }, [labelPrimary]);
+    const logo = element?.querySelector<HTMLImageElement>(".airline-logo");
+    const hideLogo = () => logo?.remove();
+    logo?.addEventListener("error", hideLogo);
+    if (logo?.complete && !logo.naturalWidth) hideLogo();
+    return () => logo?.removeEventListener("error", hideLogo);
+  }, [labelPrimary, icon]);
 
   // Only dead-reckoning ticks glide. Leaflet's own camera animations must
   // position markers immediately or they visibly lag behind their map point.
@@ -271,7 +299,51 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   return <Marker ref={markerRef} position={position} icon={icon} title={`View ${labelPrimary}`} alt={`View ${labelPrimary}`} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
-const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, theme = "dark" }: AircraftMarkerProps) {
+function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense, theme, onSelect, hoverStore }: {
+  aircraft: readonly LiveAircraft[]; selectedId: string | null; previewId?: string; labelsEnabled: boolean;
+  dense: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; hoverStore: AircraftHoverStore;
+}) {
+  const map = useMap();
+  const showHover = useCallback((item: LiveAircraft, pointer: { x: number; y: number }) => {
+    const rect = map.getContainer().getBoundingClientRect();
+    const point = { x: pointer.x - rect.left, y: pointer.y - rect.top };
+    const insets = getSafeInsets(map);
+    hoverStore.show({ aircraft: item, x: point.x, y: point.y, width: rect.width, height: rect.height,
+      insetLeft: insets.left, insetRight: insets.right });
+  }, [hoverStore, map]);
+  const leaveHover = useCallback((icao24: string) => hoverStore.hideLater(icao24), [hoverStore]);
+  useEffect(() => {
+    const clear = () => hoverStore.clear();
+    const resume = () => hoverStore.resume();
+    map.getContainer().addEventListener("pointermove", resume, { passive: true });
+    map.on("movestart zoomstart", clear);
+    return () => { map.getContainer().removeEventListener("pointermove", resume); map.off("movestart zoomstart", clear); hoverStore.clear(); };
+  }, [hoverStore, map]);
+  const [view, setView] = useState(() => ({ zoom: map.getZoom(), bounds: map.getBounds() }));
+  useEffect(() => {
+    const update = () => setView({ zoom: map.getZoom(), bounds: map.getBounds() });
+    map.on("zoomend moveend resize", update);
+    return () => { map.off("zoomend moveend resize", update); };
+  }, [map]);
+  const level = labelsEnabled && !dense ? labelLevelForZoom(view.zoom) : 0;
+  const shown = useMemo(() => {
+    if (!level) return new Set<string>();
+    return placeLabels(aircraft.flatMap(item => {
+      if (item.latitude == null || item.longitude == null || !view.bounds.contains([item.latitude, item.longitude])) return [];
+      const point = map.latLngToContainerPoint([item.latitude, item.longitude]);
+      const selected = item.icao24 === selectedId;
+      const detail = selected || level >= 3;
+      return [{ id: item.icao24, x: point.x + 18, y: point.y - (detail ? 21 : 14),
+        width: detail ? 172 : Math.max(85, (item.callsign || item.registration || item.icao24).length * 8 + (level >= 2 ? 38 : 16)), height: detail ? 44 : 30 }];
+    }), selectedId);
+  }, [aircraft, level, map, selectedId, view]);
+  return <>{aircraft.map(item => dense && item.icao24 !== selectedId
+    ? <AircraftDot key={item.icao24} aircraft={item} active={item.icao24 === previewId} theme={theme} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />
+    : <AircraftMarker key={item.icao24} aircraft={item} active={item.icao24 === selectedId || item.icao24 === previewId}
+      selected={item.icao24 === selectedId} labelLevel={shown.has(item.icao24) ? level : 0} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}</>;
+}
+
+const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, onHover, onLeave, theme = "dark" }: AircraftMarkerProps) {
   const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
   // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
   const color = active ? MAP_COLORS[theme].accent : emergencyInfo(aircraft) ? MAP_COLORS[theme].danger : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
@@ -286,7 +358,13 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, them
   aircraftRef.current = aircraft;
   const eventHandlers = useMemo(() => ({
     click: () => onSelect(liveAircraftToFlight(aircraftRef.current)),
-  }), [onSelect]);
+    mouseover: (event: L.LeafletMouseEvent) => {
+      if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        onHover?.(aircraftRef.current, { x: event.originalEvent.clientX, y: event.originalEvent.clientY });
+      }
+    },
+    mouseout: () => onLeave?.(aircraftRef.current.icao24),
+  }), [onSelect, onHover, onLeave]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
   return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
@@ -753,9 +831,15 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
   const units = useUnits();
   const fallbackIcon = useMemo(
-    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · ") } }),
+    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · ") } }),
     [flight, units],
   );
+
+  const projection = headingProjection(live ?? flight, now, head);
+  const projectionRenderer = useMemo(() => L.svg({ padding: 0.5 }), []);
+  const arrowIcon = useMemo(() => L.divIcon({ className: "heading-arrow-wrap",
+    html: `<span class="heading-arrow" style="transform:rotate(${(live?.true_track ?? flight.true_track ?? 0) - 90}deg);color:${MAP_COLORS[theme].accent}"><svg viewBox="0 0 20 20"><path d="m5 4 9 6-9 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>`,
+    iconSize: [20, 20], iconAnchor: [10, 10] }), [live?.true_track, flight.true_track, theme]);
 
   const followStarted = useRef(false);
   useEffect(() => {
@@ -796,6 +880,12 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 
   return (
     <>
+      {projection && <>
+        <Polyline positions={projection} renderer={projectionRenderer} pathOptions={{ className: "heading-projection", color: MAP_COLORS[theme].accent, weight: 2, dashArray: "5 7", opacity: 0.8 }}>
+          <Tooltip sticky className="aircraft-tooltip">Estimated heading · next 2 min</Tooltip>
+        </Polyline>
+        <Marker position={projection[1]} icon={arrowIcon} keyboard={false} interactive={false} />
+      </>}
       {halo.length > 1 && <Polyline positions={halo} pathOptions={haloOptions} />}
       {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ ...haloOptions, opacity: haloOptions.opacity * headFade }} />}
       {baseSegments.map((segment, index) => (
@@ -887,6 +977,13 @@ export function FlightMap({
   onUserLocation,
 }: FlightMapProps) {
   const isMobile = useMediaQuery("(max-width: 900px)");
+  const hoverStore = useMemo(() => new AircraftHoverStore(), []);
+  const selectFlightAndCloseHover = useCallback((flight: Flight) => {
+    // Camera movement can enter another icon under a stationary pointer.
+    // A real pointer move re-enables previews after selection.
+    hoverStore.suspend();
+    onSelectFlight(flight);
+  }, [hoverStore, onSelectFlight]);
   const [map, setMap] = useState<L.Map | null>(null);
   const appliedInitialView = useRef(false);
   useEffect(() => {
@@ -1319,29 +1416,14 @@ export function FlightMap({
           onLocationFound={handleLocationFound}
           onLocationError={handleLocationError}
         />
-        <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={onSelectFlight} />
+        <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={selectFlightAndCloseHover} />
         {onSelectAirport && <AirportPins airports={airports} activeIcao={airport?.icao ?? null} onSelect={onSelectAirport} />}
         {selectedFlight && selectedFlight.data_source !== "scheduled" && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
         {trailsEnabled && !denseTraffic && trails.map((trail) => trail.icao24 === selectedIcao24 ? null : (
           <Polyline key={`trail-${trail.icao24}`} positions={trail.positions} interactive={false} pathOptions={{ color: trail.color, weight: 1.5, opacity: 0.5, lineCap: "round" }} />
         ))}
-        {visibleStates.map((aircraft) => denseTraffic && aircraft.icao24 !== selectedIcao24 ? (
-          <AircraftDot
-            key={aircraft.icao24}
-            aircraft={aircraft}
-            active={aircraft.icao24 === selectedIcao24 || aircraft.icao24 === previewFlight?.icao24}
-            onSelect={onSelectFlight}
-            theme={theme}
-          />
-        ) : (
-          <AircraftMarker
-            key={aircraft.icao24}
-            aircraft={aircraft}
-            active={aircraft.icao24 === selectedIcao24 || aircraft.icao24 === previewFlight?.icao24}
-            onSelect={onSelectFlight}
-            selected={aircraft.icao24 === selectedIcao24}
-          />
-        ))}
+        <TrafficAircraft aircraft={visibleStates} selectedId={selectedIcao24} previewId={previewFlight?.icao24}
+          labelsEnabled={labelsEnabled} dense={denseTraffic} theme={theme} onSelect={selectFlightAndCloseHover} hoverStore={hoverStore} />
         {userLocation && (
           <>
             <Circle
@@ -1358,6 +1440,8 @@ export function FlightMap({
           </>
         )}
       </MapContainer>
+
+      <AircraftHoverPreview store={hoverStore} />
 
       <div className="nearby-airports-control">
         <button type="button" className="toolbar-button" aria-expanded={nearbyOpen} aria-controls="nearby-airports-panel" onClick={() => {

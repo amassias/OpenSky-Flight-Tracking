@@ -100,7 +100,6 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByText("Incheon", { exact: true })).toBeVisible();
   await expect(page.getByText("F-HABC", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("F-HABC · A359")).toBeVisible();
-  await page.locator(".details-drawer summary").filter({ hasText: /^Aircraft$/ }).click();
   await expect(page.getByText("AIRBUS A-350-941")).toBeVisible();
   await expect(page.getByText("Operations", { exact: true })).toBeVisible();
   await expect(page.getByText("64% complete")).toBeVisible();
@@ -344,6 +343,6 @@ test('does not request or draw a previous path for a scheduled flight without li
   await expect(page.getByText(/Live position not detected for this flight/)).toBeVisible();
   expect(calls).not.toContain('/api/track');
   expect(calls).not.toContain('/api/flight-info');
-  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  await expect(page.locator('.aircraft-marker-selected .aircraft-label')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Show route', exact: true })).not.toBeVisible();
 });

@@ -25,6 +25,7 @@ import aircraft_history
 import airport_live
 from api_client import OpenSkyAPIError, OpenSkyClient
 from registrations import looks_like_icao24, n_number_to_icao24
+from aircraft_enrichment import AIRCRAFT_TYPES, aircraft_enrichment
 from data_loader import get_airline_name, load_airlines, load_airports, search_airports
 
 load_local_env()
@@ -63,23 +64,7 @@ HISTORY_RESPONSE_CACHE = {}
 BOARD_RESPONSE_CACHE = {}
 BOARD_STALE_SECONDS = 300
 
-AIRCRAFT_TYPE_DESCRIPTIONS = {
-    "A19N": "Airbus A319neo", "A20N": "Airbus A320neo", "A21N": "Airbus A321neo",
-    "A318": "Airbus A318", "A319": "Airbus A319", "A320": "Airbus A320", "A321": "Airbus A321",
-    "A332": "Airbus A330-200", "A333": "Airbus A330-300", "A338": "Airbus A330-800neo", "A339": "Airbus A330-900neo",
-    "A343": "Airbus A340-300", "A346": "Airbus A340-600", "A359": "Airbus A350-900", "A35K": "Airbus A350-1000", "A388": "Airbus A380-800",
-    "B37M": "Boeing 737 MAX 7", "B38M": "Boeing 737 MAX 8", "B39M": "Boeing 737 MAX 9",
-    "B733": "Boeing 737-300", "B734": "Boeing 737-400", "B735": "Boeing 737-500", "B736": "Boeing 737-600",
-    "B737": "Boeing 737-700", "B738": "Boeing 737-800", "B739": "Boeing 737-900",
-    "B744": "Boeing 747-400", "B748": "Boeing 747-8", "B752": "Boeing 757-200", "B753": "Boeing 757-300",
-    "B762": "Boeing 767-200", "B763": "Boeing 767-300", "B764": "Boeing 767-400",
-    "B772": "Boeing 777-200", "B77L": "Boeing 777-200LR", "B773": "Boeing 777-300", "B77W": "Boeing 777-300ER",
-    "B788": "Boeing 787-8", "B789": "Boeing 787-9", "B78X": "Boeing 787-10",
-    "BCS1": "Airbus A220-100", "BCS3": "Airbus A220-300", "CRJ2": "Bombardier CRJ200", "CRJ7": "Bombardier CRJ700", "CRJ9": "Bombardier CRJ900",
-    "E170": "Embraer E170", "E175": "Embraer E175", "E190": "Embraer E190", "E195": "Embraer E195", "E290": "Embraer E190-E2", "E295": "Embraer E195-E2",
-    "AT43": "ATR 42-300", "AT45": "ATR 42-500", "AT72": "ATR 72-200", "AT75": "ATR 72-500", "AT76": "ATR 72-600",
-    "DH8D": "De Havilland Canada Dash 8-400", "C172": "Cessna 172 Skyhawk", "C208": "Cessna 208 Caravan",
-}
+AIRCRAFT_TYPE_DESCRIPTIONS = AIRCRAFT_TYPES
 
 
 def _describe_aircraft_type(type_code):
@@ -335,6 +320,14 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
                 payload = self.handle_live_flights(lamin, lomin, lamax, lomax, time_param, fallback_only)
                 self.send_json_response(200, payload)
+                return
+
+            if path == "/api/flight-route":
+                self.send_json_response(200, self.handle_flight_route(query_params.get("callsign", [""])[0]))
+                return
+
+            if path == "/api/aircraft-enrichment":
+                self.send_json_response(200, aircraft_enrichment(query_params.get("operator", [""])[0], query_params.get("type", [""])[0], query_params.get("registration", [""])[0]))
                 return
 
             if path == "/api/flight-info":
@@ -1157,6 +1150,13 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             payload["notice"] = states.get("notice") or "Live refresh delayed. Showing the last snapshot for this viewport."
         return payload
 
+    def handle_flight_route(self, callsign):
+        ident = str(callsign or "").strip().upper()
+        if not re.fullmatch(r"[A-Z0-9]{2,8}", ident):
+            raise ValueError("Invalid callsign.")
+        route = api_client.get_callsign_route(ident)
+        return {"success": True, "callsign": ident, **(route or {})}
+
     def handle_flight_info(self, icao24, callsign_param=""):
         code = _validate_icao24(icao24)
         provided_callsign = (callsign_param or "").strip()
@@ -1354,6 +1354,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             "last_seen_iso": _iso_from_timestamp((most_recent or {}).get("lastSeen")),
             "route_source": route_source,
             "route_provider": route_provider,
+            "departure_latitude": (callsign_route or {}).get("departure_latitude") if departure_airport == (callsign_route or {}).get("departure_airport") else None,
+            "departure_longitude": (callsign_route or {}).get("departure_longitude") if departure_airport == (callsign_route or {}).get("departure_airport") else None,
+            "arrival_latitude": (callsign_route or {}).get("arrival_latitude") if arrival_airport == (callsign_route or {}).get("arrival_airport") else None,
+            "arrival_longitude": (callsign_route or {}).get("arrival_longitude") if arrival_airport == (callsign_route or {}).get("arrival_airport") else None,
             "live_state": current_state,
             "flightaware": flightaware,
             "registration": resolved_registration,

@@ -65,3 +65,19 @@ describe("FlightDetails", () => {
   });
 
 });
+
+describe("route availability", () => {
+  it("hides unknown progression rather than displaying an empty bar", () => {
+    renderDetails();
+    expect(screen.queryByText("Progress unavailable")).toBeNull();
+    expect(document.querySelector('.route-progress')).toBeNull();
+  });
+  it("uses route coordinates immediately and labels callsign progress as estimated", () => {
+    renderDetails({ route_source: "callsign", departure_airport: "LFPG", arrival_airport: "EGLL",
+      departure_latitude: 49, departure_longitude: 2.5, arrival_latitude: 51.47, arrival_longitude: -0.45,
+      latitude: 50, longitude: 1, velocity: 200 });
+    expect(screen.getByText(/Usual callsign route · estimated progress/)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Flight progress/ })).toBeInTheDocument();
+    expect(screen.queryByText(/to go/)).toBeNull();
+  });
+});

@@ -106,16 +106,18 @@ test('keeps the last live snapshot when a zoom refresh fails', async ({page, isM
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
 });
 
-test('creates a label only after selecting an aircraft in busy traffic', async ({ page }) => {
+test('keeps labels sparse and gives the selected aircraft priority in busy traffic', async ({ page }) => {
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
-  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  expect(await page.locator('.aircraft-label').count()).toBeLessThan(30);
   await page.getByRole("combobox", { name: "Search flights and airports" }).fill("TEST32");
   await page.getByRole("option", { name: /TEST32/ }).click();
-  await expect(page.locator('.aircraft-label')).toHaveCount(1);
-  await expect(page.locator('.aircraft-label')).toBeVisible();
-  await expect(page.locator('.aircraft-label b')).toHaveText('TEST32');
+  const selected = page.locator('.aircraft-marker-selected .aircraft-label');
+  await expect(selected).toHaveCount(1);
+  await expect(selected).toBeVisible();
+  await expect(selected.locator('b')).toHaveText('TEST32');
+  expect(await page.locator('.aircraft-label').count()).toBeLessThan(30);
   await page.getByRole('button', { name: 'Close flight details', exact: true }).click();
-  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  await expect(selected).toHaveCount(0);
 });
 
 test('keeps dense traffic on canvas and a single selected label on every device', async ({ page }) => {

@@ -54,6 +54,24 @@ describe("aircraftPhoto", () => {
     expect(await aircraftPhoto("aa0003")).toBeNull();
     expect(await aircraftPhoto("aa0004")).toBeNull();
   });
+
+  it("falls back to a licensed Commons photo only for an exact registration match", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.hostname === "api.planespotters.net") return new Response('{"error":"forbidden"}', { status: 403 });
+      expect(url.hostname).toBe("commons.wikimedia.org");
+      expect(url.searchParams.get("origin")).toBe("*");
+      return new Response(JSON.stringify({ query: { pages: {
+        1: { index: 1, title: "File:Airbus A380 A6-API.jpg", imageinfo: [{ thumburl: "https://thumb.wikimedia.org/wrong.jpg", descriptionurl: "https://commons.wikimedia.org/wiki/File:Wrong.jpg", extmetadata: { Artist: { value: "Wrong" }, LicenseShortName: { value: "CC BY-SA 4.0" } } }] },
+        2: { index: 2, title: "File:Airbus A380 A7-API.pdf", imageinfo: [{ thumburl: "https://thumb.wikimedia.org/wrong.jpg", descriptionurl: "https://commons.wikimedia.org/wiki/File:Wrong.pdf" }] },
+        3: { index: 3, title: "File:Airbus A380 A7-API.jpg", imageinfo: [{ thumburl: "https://thumb.wikimedia.org/aircraft.jpg", thumbwidth: 420, thumbheight: 280, descriptionurl: "https://commons.wikimedia.org/wiki/File:Airbus_A380_A7-API.jpg", extmetadata: { Artist: { value: '<a href="/wiki/User:Jane">Jane Spotter</a>' }, LicenseShortName: { value: "CC BY-SA 4.0" }, LicenseUrl: { value: "https://creativecommons.org/licenses/by-sa/4.0" } } }] },
+      } } }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const photo = await aircraftPhoto("bb0001", "A7-API");
+    expect(photo).toMatchObject({ src: "https://thumb.wikimedia.org/aircraft.jpg", photographer: "Jane Spotter", source: "Wikimedia Commons", licenseName: "CC BY-SA 4.0", matchLevel: "registration" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("FlightDetails photo", () => {
@@ -69,9 +87,9 @@ describe("FlightDetails photo", () => {
     expect(screen.getByText("© Andy Kruse")).toBeInTheDocument();
   });
 
-  it("says when an airframe has no photo yet", () => {
+  it("hides the photo section when no photograph is available", () => {
     render(<FlightDetails flight={flight} {...props} photo={null} />);
-    expect(screen.getByText("No photo of F-GKXA yet")).toBeInTheDocument();
+    expect(document.querySelector(".aircraft-photo")).toBeNull();
   });
 });
 

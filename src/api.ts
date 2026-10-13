@@ -1,5 +1,7 @@
 import type {
   EmergencyFeedResponse,
+  AircraftEnrichment,
+  FlightRouteResponse,
   AircraftFlightsResponse,
   AircraftLookupResponse,
   CallsignLookupResponse,
@@ -156,6 +158,8 @@ export const api = {
     return { ...response, states: listOf(response.states) };
   },
   callsignLookup: (callsign: string, signal?: AbortSignal) => request<CallsignLookupResponse>("/api/callsign-lookup", { callsign }, signal),
+  flightRoute: (callsign: string, signal?: AbortSignal) => request<FlightRouteResponse>("/api/flight-route", { callsign }, signal),
+  aircraftEnrichment: (operator: string, type: string, registration?: string | null, signal?: AbortSignal) => request<AircraftEnrichment>("/api/aircraft-enrichment", { operator, type, registration: registration ?? undefined }, signal),
   flightInfo: (icao24: string, callsign?: string, signal?: AbortSignal) => request<FlightInfoResponse>("/api/flight-info", { icao24, callsign }, signal),
   // Every reader dereferences `track.track`; a body without it (a proxy or
   // edge error answered with 200) would otherwise blank the whole page.
@@ -171,6 +175,11 @@ export interface AircraftPhoto {
   height: number;
   link: string;
   photographer: string;
+  attribution?: string;
+  source?: string;
+  licenseName?: string;
+  licenseUrl?: string;
+  matchLevel?: "icao24" | "registration";
 }
 
 // Planespotters.net public photo API. Its terms require the browser to call it
@@ -219,18 +228,91 @@ async function fetchAircraftPhoto(kind: "hex" | "reg", id: string, signal?: Abor
       height: image.size?.height ?? 280,
       link: first.link,
       photographer: first.photographer?.trim() || "Unknown photographer",
+      attribution: `© ${first.photographer?.trim() || "Unknown photographer"}`,
+      source: "Planespotters.net",
+      matchLevel: kind === "hex" ? "icao24" as const : "registration" as const,
     }
     : null;
   photoCache.set(key, { expiresAt: Date.now() + PHOTO_CACHE_MS, photo });
   return photo;
 }
 
+interface CommonsFile {
+  index?: number;
+  title?: string;
+  imageinfo?: Array<{
+    thumburl?: string;
+    thumbwidth?: number;
+    thumbheight?: number;
+    descriptionurl?: string;
+    extmetadata?: Record<string, { value?: string }>;
+  }>;
+}
+
+function plainMetadata(value?: string): string {
+  if (!value) return "";
+  return new DOMParser().parseFromString(value, "text/html").body.textContent?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+/** Commons is a registration-level fallback, never presented as a hex-confirmed airframe. */
+async function commonsAircraftPhoto(registration: string, signal?: AbortSignal): Promise<AircraftPhoto | null> {
+  if (!/^[A-Z0-9-]{3,10}$/.test(registration)) return null;
+  const url = new URL("https://commons.wikimedia.org/w/api.php");
+  Object.entries({
+    action: "query", generator: "search", gsrsearch: `"${registration}"`, gsrnamespace: "6", gsrlimit: "10",
+    prop: "imageinfo", iiprop: "url|size|extmetadata", iiurlwidth: "420", format: "json", origin: "*",
+  }).forEach(([key, value]) => url.searchParams.set(key, value));
+  const response = await fetch(url, { signal });
+  if (!response.ok) return null;
+  const payload = await response.json() as { query?: { pages?: Record<string, CommonsFile> } };
+  const escaped = registration.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const exactRegistration = new RegExp(`(?:^|[^A-Z0-9])${escaped}(?:$|[^A-Z0-9])`, "i");
+  const files = Object.values(payload.query?.pages ?? {}).sort((a, b) => (a.index ?? 99) - (b.index ?? 99));
+  for (const file of files) {
+    if (!file.title || !/\.jpe?g$/i.test(file.title) || !exactRegistration.test(file.title)) continue;
+    const image = file.imageinfo?.[0];
+    const meta = image?.extmetadata;
+    const photographer = plainMetadata(meta?.Artist?.value || meta?.Credit?.value);
+    const licenseName = plainMetadata(meta?.LicenseShortName?.value);
+    const publicDomain = /^public domain$/i.test(licenseName);
+    const creativeCommons = /^(?:CC BY(?:-SA)?|CC0) \d(?:\.\d)?$/i.test(licenseName);
+    if (!image || !isHttpsUrl(image.thumburl) || !isHttpsUrl(image.descriptionurl) || !photographer
+      || (!publicDomain && !creativeCommons) || (creativeCommons && !isHttpsUrl(meta?.LicenseUrl?.value))) continue;
+    return {
+      src: image.thumburl,
+      width: image.thumbwidth ?? 420,
+      height: image.thumbheight ?? 280,
+      link: image.descriptionurl,
+      photographer,
+      attribution: publicDomain ? photographer : `© ${photographer}`,
+      source: "Wikimedia Commons",
+      licenseName,
+      licenseUrl: isHttpsUrl(meta?.LicenseUrl?.value) ? meta?.LicenseUrl?.value : undefined,
+      matchLevel: "registration",
+    };
+  }
+  return null;
+}
+
 /** Latest photo of this airframe: by Mode S hex first, then by registration. */
 export async function aircraftPhoto(icao24: string, registration?: string | null, signal?: AbortSignal): Promise<AircraftPhoto | null> {
-  const byHex = await fetchAircraftPhoto("hex", icao24.trim().toLowerCase(), signal);
+  let byHex: AircraftPhoto | null = null;
+  let providerUnavailable = false;
+  try { byHex = await fetchAircraftPhoto("hex", icao24.trim().toLowerCase(), signal); }
+  catch (error) {
+    if (signal?.aborted) throw error;
+    providerUnavailable = !(error instanceof ApiError) || error.status === 401 || error.status === 403 || error.status === 429 || error.status >= 500;
+  }
   const reg = registration?.trim().toUpperCase();
   if (byHex || !reg) return byHex;
-  return fetchAircraftPhoto("reg", reg, signal);
+  if (!providerUnavailable) {
+    try {
+      const byRegistration = await fetchAircraftPhoto("reg", reg, signal);
+      if (byRegistration) return byRegistration;
+    } catch (error) { if (signal?.aborted) throw error; }
+  }
+  try { return await commonsAircraftPhoto(reg, signal); }
+  catch (error) { if (signal?.aborted) throw error; return null; }
 }
 
 export function readableApiError(error: unknown): string {

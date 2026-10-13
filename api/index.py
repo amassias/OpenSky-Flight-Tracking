@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from api_client import OpenSkyAPIError
 from server import FlightServerHandler
+from aircraft_enrichment import aircraft_enrichment
 
 
 app = FastAPI(
@@ -173,6 +174,18 @@ def live_flights(
     # visitors share a key: let the CDN answer them for a few seconds and keep
     # serving the last snapshot while the slow upstream call refreshes.
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=5, s-maxage=10, stale-while-revalidate=40"})
+
+
+@app.get("/flight-route")
+@app.get("/api/flight-route")
+def flight_route(callsign: str = ""):
+    return execute(lambda: service.handle_flight_route(callsign))
+
+
+@app.get("/aircraft-enrichment")
+@app.get("/api/aircraft-enrichment")
+def enrichment(operator: str = "", type: str = "", registration: str = ""):
+    return execute(lambda: aircraft_enrichment(operator, type, registration))
 
 
 @app.get("/flight-info")

@@ -1,0 +1,191 @@
+[
+  {
+    "id": "af-a359-324",
+    "operators": [
+      "AFR"
+    ],
+    "aircraft_type": "A359",
+    "total_seats": 324,
+    "classes": [
+      {
+        "name": "Business",
+        "seats": 34
+      },
+      {
+        "name": "Premium Economy",
+        "seats": 24
+      },
+      {
+        "name": "Economy",
+        "seats": 266
+      }
+    ],
+    "source": {
+      "name": "Air France",
+      "url": "https://corporate.airfrance.com/en/news/air-france-continues-modernize-its-fleet-and-takes-delivery-angers-its-twentieth-a350-900",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://wwws.airfrance.fr/information/prepare/nos-avions/a350"
+  },
+  {
+    "id": "af-a359-292",
+    "operators": [
+      "AFR"
+    ],
+    "aircraft_type": "A359",
+    "total_seats": 292,
+    "classes": [
+      {
+        "name": "Business",
+        "seats": 48
+      },
+      {
+        "name": "Premium Economy",
+        "seats": 32
+      },
+      {
+        "name": "Economy",
+        "seats": 212
+      }
+    ],
+    "source": {
+      "name": "Air France",
+      "url": "https://corporate.airfrance.com/en/news/air-frances-new-standard-travel-coming-soon-airbus-a350",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://wwws.airfrance.fr/information/prepare/nos-avions/a350",
+    "amenities": {
+      "wifi": "Wi-Fi in all cabins",
+      "power": "USB-A and USB-C in all cabins",
+      "entertainment": "Personal screens in all cabins"
+    }
+  },
+  {
+    "id": "easyjet-a320-180",
+    "operators": [
+      "EZY",
+      "EJU",
+      "EZS"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 180,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 180
+      }
+    ],
+    "source": {
+      "name": "easyJet",
+      "url": "https://www.easyjet.com/en/news/airline/story/easyjet-to-introduce-new-ultra-lightweight-next-generation-seats-to-further",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.easyjet.com/en/help/boarding-and-flying/our-fleet"
+  },
+  {
+    "id": "easyjet-a320-186",
+    "operators": [
+      "EZY",
+      "EJU",
+      "EZS"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 186,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 186
+      }
+    ],
+    "source": {
+      "name": "easyJet",
+      "url": "https://www.easyjet.com/en/news/airline/story/easyjet-takes-delivery-of-new-more-efficient-186-seat-a320",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.easyjet.com/en/help/boarding-and-flying/our-fleet"
+  },
+  {
+    "id": "easyjet-a20n-186",
+    "operators": [
+      "EZY",
+      "EJU",
+      "EZS"
+    ],
+    "aircraft_type": "A20N",
+    "total_seats": 186,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 186
+      }
+    ],
+    "source": {
+      "name": "easyJet",
+      "url": "https://www.easyjet.com/en/traveller/best-of-europe/what-planes-does-easyjet-use",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.easyjet.com/en/help/boarding-and-flying/our-fleet"
+  },
+  {
+    "id": "easyjet-a21n-235",
+    "operators": [
+      "EZY",
+      "EJU",
+      "EZS"
+    ],
+    "aircraft_type": "A21N",
+    "total_seats": 235,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 235
+      }
+    ],
+    "source": {
+      "name": "easyJet",
+      "url": "https://www.easyjet.com/en/help/boarding-and-flying/our-fleet",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.easyjet.com/en/help/boarding-and-flying/our-fleet"
+  },
+  {
+    "id": "ryanair-b738-189",
+    "operators": [
+      "RYR"
+    ],
+    "aircraft_type": "B738",
+    "total_seats": 189,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 189
+      }
+    ],
+    "source": {
+      "name": "Ryanair",
+      "url": "https://help.ryanair.com/hc/en-gb/articles/31352078107921-Seat-Information",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://help.ryanair.com/hc/en-gb/articles/31352078107921-Seat-Information"
+  },
+  {
+    "id": "ryanair-b38m-197",
+    "operators": [
+      "RYR"
+    ],
+    "aircraft_type": "B38M",
+    "total_seats": 197,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 197
+      }
+    ],
+    "source": {
+      "name": "Ryanair",
+      "url": "https://help.ryanair.com/hc/en-gb/articles/31352078107921-Seat-Information",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://help.ryanair.com/hc/en-gb/articles/31352078107921-Seat-Information"
+  }
+]

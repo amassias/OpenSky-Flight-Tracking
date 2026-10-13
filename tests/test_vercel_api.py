@@ -122,3 +122,11 @@ def test_delayed_emergency_snapshot_is_not_cached_by_the_cdn():
     assert response.json()["status"] == "delayed"
     assert response.json()["observed_at"] == now - 90
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_free_aircraft_enrichment_endpoint_and_validation():
+    result = client.get("/api/aircraft-enrichment?operator=AFR&type=A359")
+    assert result.status_code == 200
+    assert result.json()["match_level"] == "operator_type"
+    assert len(result.json()["configurations"]) == 2
+    assert client.get("/api/aircraft-enrichment?operator=AFR&type=invalid").status_code == 400

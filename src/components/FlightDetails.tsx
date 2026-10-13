@@ -10,6 +10,9 @@ import { AirframeHistory } from "./AirframeHistory";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
 import { operationsMatchFlight } from "../flightEvents";
 import { FlightEvents } from "./FlightEvents";
+import { AircraftCabin } from "./AircraftCabin";
+import { aircraftModel, aircraftManufacturer } from "../aircraftIdentity";
+import { aircraftIconKind } from "../utils";
 import { AltitudeChart } from "./AltitudeChart";
 
 interface FlightDetailsProps {
@@ -152,7 +155,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
   // type of an airframe opened from a registration search.
   const airframe = useAirframeHistory(liveFlight.icao24).data;
   const flight = useMemo(() => {
-    if (!airframe) return liveFlight;
+    if (!airframe) return { ...liveFlight, aircraft_description: liveFlight.aircraft_description || aircraftModel(liveFlight.aircraft_type) };
     const facts = airframe.airframe;
     const registry = airframe.registry;
     const tail = liveFlight.registration_source === "schedule" ? null : liveFlight.registration;
@@ -187,14 +190,15 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
   const endTime = flight.last_seen ?? null;
   const coordinates = (airport?: Airport, fallback?: { latitude?: number | null; longitude?: number | null } | null) =>
     airport?.latitude != null && airport.longitude != null ? airport : fallback;
-  const geometry = flight.route_source === "callsign" || (flight.on_ground === true && !flight.departure_airport) ? null : routeProgress(
-    coordinates(origin, operations?.origin),
-    coordinates(destination, operations?.destination),
+  const usualRoute = flight.route_source === "callsign";
+  const geometry = (flight.on_ground === true && !flight.departure_airport) ? null : routeProgress(
+    coordinates(origin, flight.departure_latitude != null ? { latitude: flight.departure_latitude, longitude: flight.departure_longitude } : operations?.origin),
+    coordinates(destination, flight.arrival_latitude != null ? { latitude: flight.arrival_latitude, longitude: flight.arrival_longitude } : operations?.destination),
     flight,
   );
   const flightawareProgress = operations?.progress_percent != null && operations.progress_percent >= 0 ? operations.progress_percent : null;
-  const progress = geometry?.percent ?? flightawareProgress;
-  const remaining = geometry?.etaSeconds != null && statusKey === "airborne" ? formatDuration(geometry.etaSeconds) : null;
+  const progress = flightawareProgress ?? geometry?.percent ?? null;
+  const remaining = !usualRoute && geometry?.etaSeconds != null && statusKey === "airborne" ? formatDuration(geometry.etaSeconds) : null;
 
   // An airframe opened from a registration search has no live position or
   // route unless it happens to be flying: say so instead of "Resolving…".
@@ -208,10 +212,10 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       layout="position"
       className="details-drawer dock-panel"
       aria-label="Selected flight details"
-      initial={{ opacity: 0, x: -28 }}
+      initial={{ opacity: 1, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20, transition: { duration: 0.16, ease: "easeIn" } }}
-      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="dock-content" id="selected-flight-content" key={flight.icao24}>
       <div className="drawer-handle" aria-hidden="true" />
@@ -222,7 +226,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       <header className="details-heading">
         <div className="details-title">
           <h2 className="mono">{flight.callsign || flight.icao24.toUpperCase()}</h2>
-          <p>{flight.airline_name || [flight.aircraft_owner, flight.aircraft_type].filter(Boolean).join(" · ") || "Operator not published"}</p>
+          {(flight.airline_name || flight.aircraft_owner || flight.aircraft_type) && <p>{flight.airline_name || [flight.aircraft_owner, flight.aircraft_type].filter(Boolean).join(" · ")}</p>}
         </div>
         <div className="details-actions">
           <button type="button" className="icon-button" onClick={onShare} aria-label="Copy share link" title="Copy share link"><Share2 size={16} /></button>
@@ -254,14 +258,14 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </section>
       ) : (
         <>
-      <section className="route-hero" aria-label="Route">
+      {(hasRoute || routeLoading) && <section className="route-hero" aria-label="Route">
         <div className="route-hero-ends">
           <RouteEndpoint
             role="Origin"
             icao={routeLoading && !flight.departure_airport ? "···" : flight.departure_airport}
             iata={origin?.iata || operations?.origin?.code_iata}
             name={routeLoading && !flight.departure_airport ? "Resolving origin…" : flight.departure_airport_name || (hasRoute ? "Unknown origin" : "Unknown")}
-            time={formatTime(startTime)}
+            time={startTime && !usualRoute ? formatTime(startTime) : undefined}
             align="start"
           />
           <RouteEndpoint
@@ -269,45 +273,48 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
             icao={routeLoading && !flight.arrival_airport ? "···" : flight.arrival_airport}
             iata={destination?.iata || operations?.destination?.code_iata}
             name={routeLoading && !flight.arrival_airport ? "Resolving destination…" : flight.arrival_airport_name || (hasRoute ? "Unknown destination" : "Unknown")}
-            time={formatTime(endTime)}
+            time={endTime && !usualRoute ? formatTime(endTime) : undefined}
             align="end"
           />
         </div>
-        <RouteProgressBar progress={progress} pending={routeLoading} />
-        <div className="route-hero-foot mono">
-          <span>{geometry ? `${Math.round(geometry.percent)}% · ${distanceText(geometry.flownKm)} flown` : progress != null ? `${Math.round(progress)}% reported progress` : "Progress unavailable"}</span>
-          <span>{remaining ? `${remaining} to go` : geometry ? `${distanceText(geometry.remainingKm)} to go` : ""}</span>
-        </div>
-      </section>
+        {progress != null && <>
+          <RouteProgressBar key={`${flight.icao24}:${flight.callsign}`} progress={progress} pending={false} />
+          <div className="route-hero-foot mono">
+            <span>{Math.round(progress)}% {flightawareProgress != null ? "reported progress" : "estimated progress"}</span>
+            {geometry && <span>{distanceText(geometry.remainingKm)} remaining{remaining ? ` · ~${remaining}` : ""}</span>}
+          </div>
+        </>}
+        {routeLoading && !hasRoute && <p className="conditions-note" role="status">Looking up route…</p>}
+      </section>}
 
-      {flight.route_source === "callsign" && <p className="conditions-note route-source-note">Usual callsign route · may differ from this flight. Distance and arrival estimates are unavailable for this route.</p>}
+      {usualRoute && <p className="conditions-note route-source-note">Usual callsign route{geometry ? " · estimated progress" : ""} · may differ from this flight.</p>}
       {flight.route_source === "flightaware" && <p className="conditions-note route-source-note">Route reported by FlightAware for this flight.</p>}
       <div className="live-readouts" aria-label="Last reported flight readouts">
-        <div>
+        {(flight.on_ground || flight.baro_altitude != null || flight.geo_altitude != null) && <div>
           <span>Altitude</span>
           {/* Barometric altitude on the ground reads a few hundred feet off with QNH; say "Ground" instead. */}
           <strong className="mono">{flight.on_ground ? "Ground" : formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</strong>
           <small className="mono">
             {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-hidden="true" />}
             {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-hidden="true" />}
-            {flight.vertical_rate != null && !flight.on_ground ? verticalRateText(flight.vertical_rate) : "—"}
+            {flight.vertical_rate != null && !flight.on_ground ? verticalRateText(flight.vertical_rate) : null}
           </small>
-        </div>
-        <div>
+        </div>}
+        {flight.velocity != null && <div>
           <span>Speed</span>
           <strong className="mono">{formatSpeed(flight.velocity)}</strong>
-          <small className="mono">{flight.nav_altitude_mcp != null ? `Sel. ${formatFeet(flight.nav_altitude_mcp)}` : "—"}</small>
-        </div>
-        <div>
+          <small className="mono">{flight.nav_altitude_mcp != null ? `Sel. ${formatFeet(flight.nav_altitude_mcp)}` : null}</small>
+        </div>}
+        {heading != null && <div>
           <span>Track</span>
           <strong className="mono">{heading != null ? `${Math.round(heading)}°` : "—"}</strong>
           <small className="mono">{heading != null ? compassPoint(heading) : "—"}</small>
-        </div>
-        <div>
+        </div>}
+        {flight.squawk && <div>
           <span>Squawk</span>
           <strong className={`mono ${emergency ? "signal-alert-text" : ""}`}>{profileValue(flight.squawk)}</strong>
           <small className="mono">{flight.icao24.toUpperCase()}</small>
-        </div>
+        </div>}
       </div>
       {fromYou && <p className="from-you mono">{fromYou}</p>}
 
@@ -323,14 +330,14 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
             </span>
           </div>
           <div className="operations-grid">
-            <div><span>Scheduled departure</span><strong className="mono">{formatOperationalTime(operations.scheduled_out)}</strong></div>
-            <div><span>Estimated departure</span><strong className="mono">{formatOperationalTime(operations.estimated_out)}</strong></div>
-            <div><span>Actual off-block</span><strong className="mono">{formatOperationalTime(operations.actual_out)}</strong></div>
-            <div><span>Departure delay</span><strong className="mono">{formatDelay(operations.departure_delay)}</strong></div>
-            <div><span>Scheduled arrival</span><strong className="mono">{formatOperationalTime(operations.scheduled_in)}</strong></div>
-            <div><span>Estimated arrival</span><strong className="mono">{formatOperationalTime(operations.estimated_in)}</strong></div>
-            <div><span>Actual in-gate</span><strong className="mono">{formatOperationalTime(operations.actual_in)}</strong></div>
-            <div><span>Arrival delay</span><strong className="mono">{formatDelay(operations.arrival_delay)}</strong></div>
+            {operations.scheduled_out != null && <div><span>Scheduled departure</span><strong className="mono">{formatOperationalTime(operations.scheduled_out)}</strong></div>}
+            {operations.estimated_out != null && <div><span>Estimated departure</span><strong className="mono">{formatOperationalTime(operations.estimated_out)}</strong></div>}
+            {operations.actual_out != null && <div><span>Actual off-block</span><strong className="mono">{formatOperationalTime(operations.actual_out)}</strong></div>}
+            {operations.departure_delay != null && <div><span>Departure delay</span><strong className="mono">{formatDelay(operations.departure_delay)}</strong></div>}
+            {operations.scheduled_in != null && <div><span>Scheduled arrival</span><strong className="mono">{formatOperationalTime(operations.scheduled_in)}</strong></div>}
+            {operations.estimated_in != null && <div><span>Estimated arrival</span><strong className="mono">{formatOperationalTime(operations.estimated_in)}</strong></div>}
+            {operations.actual_in != null && <div><span>Actual in-gate</span><strong className="mono">{formatOperationalTime(operations.actual_in)}</strong></div>}
+            {operations.arrival_delay != null && <div><span>Arrival delay</span><strong className="mono">{formatDelay(operations.arrival_delay)}</strong></div>}
             {(operations.gate_orig || operations.terminal_orig) && <div><span>Origin gate / terminal</span><strong className="mono">{[operations.gate_orig, operations.terminal_orig].filter(Boolean).join(" · ")}</strong></div>}
             {(operations.gate_dest || operations.terminal_dest) && <div><span>Destination gate / terminal</span><strong className="mono">{[operations.gate_dest, operations.terminal_dest].filter(Boolean).join(" · ")}</strong></div>}
           </div>
@@ -338,16 +345,19 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </Section>
       )}
 
-      <Section title="Aircraft">
+      {hasProfile && <Section title="Aircraft" open>
         <div className="aircraft-profile-grid">
-          <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
-          <div><span>Type code</span><strong className="mono">{profileValue(flight.aircraft_type)}</strong></div>
-          <div className="aircraft-profile-wide"><span>Aircraft</span><strong>{profileValue(flight.aircraft_description, "Type not published")}</strong></div>
-          <div className="aircraft-profile-wide"><span>Operator / owner</span><strong>{profileValue(flight.aircraft_owner, "Not published")}</strong></div>
-          <div><span>Build year</span><strong className="mono">{profileValue(flight.aircraft_year)}</strong></div>
-          <div><span>Category</span><strong className="mono">{profileValue(flight.aircraft_category ?? flight.category)}</strong></div>
+          {flight.registration && <div><span>Registration</span><strong className="mono">{flight.registration}{flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>}
+          {flight.aircraft_type && <div><span>Type code</span><strong className="mono">{flight.aircraft_type}</strong></div>}
+          {flight.aircraft_description && <div className="aircraft-profile-wide"><span>Aircraft</span><strong>{flight.aircraft_description}</strong></div>}
+          {aircraftManufacturer(flight.aircraft_description) && <div><span>Manufacturer</span><strong>{aircraftManufacturer(flight.aircraft_description)}</strong></div>}
+          {(flight.airline_name || flight.aircraft_owner) && <div className="aircraft-profile-wide"><span>{flight.airline_name ? "Operator" : "Registered owner"}</span><strong>{flight.airline_name || flight.aircraft_owner}</strong></div>}
+          {flight.aircraft_year && <div><span>Build year</span><strong className="mono">{flight.aircraft_year}</strong>{Number(flight.aircraft_year) >= 1900 && Number(flight.aircraft_year) <= new Date().getUTCFullYear() && <small>About {new Date().getUTCFullYear() - Number(flight.aircraft_year)} years old</small>}</div>}
+          {aircraftIconKind(flight) !== "unknown" && <div><span>Category</span><strong>{({ helicopter: "Helicopter", glider: "Glider", balloon: "Balloon / airship", small: "Light aircraft", turboprop: "Turboprop", regional: "Regional jet", airliner: "Narrow-body jet", heavy: "Wide-body / heavy", unknown: "" })[aircraftIconKind(flight)]}</strong></div>}
         </div>
-      </Section>
+      </Section>}
+
+      <AircraftCabin key={`${flight.icao24}:${flight.aircraft_type}`} flight={flight} />
 
       <Section title="Airframe history" aside="Owners · registrations">
         <AirframeHistory flight={flight} />
@@ -359,17 +369,17 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
 
       <Section title="Signal and navigation" aside={emergency ? emergency.label : undefined}>
         <div className="signal-profile-grid">
-          <div><span>Last position</span><strong className="mono">{formatAge(flight.seen_position_seconds)}</strong></div>
-          <div><span>Last message</span><strong className="mono">{formatAge(flight.seen_seconds)}</strong></div>
-          <div><span>Selected altitude</span><strong className="mono">{formatFeet(flight.nav_altitude_mcp)}</strong></div>
-          <div><span>QNH</span><strong className="mono">{flight.nav_qnh == null ? "—" : `${flight.nav_qnh} hPa`}</strong></div>
-          <div><span>Selected heading</span><strong className="mono">{flight.nav_heading == null ? "—" : `${Math.round(flight.nav_heading)}°`}</strong></div>
-          <div><span>Nav modes</span><strong className="mono">{flight.nav_modes?.length ? flight.nav_modes.join(" · ") : "—"}</strong></div>
-          <div><span>Messages</span><strong className="mono">{flight.messages == null ? "—" : flight.messages.toLocaleString("en-US")}</strong></div>
-          <div><span>Signal</span><strong className="mono">{flight.rssi == null ? "—" : `${flight.rssi.toFixed(1)} dBFS`}</strong></div>
-          <div><span>Emergency</span><strong className={flight.emergency && flight.emergency !== "none" ? "signal-alert-text" : ""}>{profileValue(flight.emergency, "None reported")}</strong></div>
-          <div><span>NIC / NACp</span><strong className="mono">{flight.nic == null && flight.nac_p == null ? "—" : `${profileValue(flight.nic)} / ${profileValue(flight.nac_p)}`}</strong></div>
-          <div><span>Accuracy radius</span><strong className="mono">{flight.rc == null ? "—" : `${Math.round(flight.rc)} m`}</strong></div>
+          {(flight.seen_position_seconds != null) && <div><span>Last position</span><strong className="mono">{formatAge(flight.seen_position_seconds)}</strong></div>}
+          {(flight.seen_seconds != null) && <div><span>Last message</span><strong className="mono">{formatAge(flight.seen_seconds)}</strong></div>}
+          {(flight.nav_altitude_mcp != null) && <div><span>Selected altitude</span><strong className="mono">{formatFeet(flight.nav_altitude_mcp)}</strong></div>}
+          {(flight.nav_qnh != null) && <div><span>QNH</span><strong className="mono">{flight.nav_qnh == null ? "—" : `${flight.nav_qnh} hPa`}</strong></div>}
+          {(flight.nav_heading != null) && <div><span>Selected heading</span><strong className="mono">{flight.nav_heading == null ? "—" : `${Math.round(flight.nav_heading)}°`}</strong></div>}
+          {(Boolean(flight.nav_modes?.length)) && <div><span>Nav modes</span><strong className="mono">{flight.nav_modes?.length ? flight.nav_modes.join(" · ") : "—"}</strong></div>}
+          {(flight.messages != null) && <div><span>Messages</span><strong className="mono">{flight.messages == null ? "—" : flight.messages.toLocaleString("en-US")}</strong></div>}
+          {(flight.rssi != null) && <div><span>Signal</span><strong className="mono">{flight.rssi == null ? "—" : `${flight.rssi.toFixed(1)} dBFS`}</strong></div>}
+          {(Boolean(flight.emergency)) && <div><span>Emergency</span><strong className={flight.emergency && flight.emergency !== "none" ? "signal-alert-text" : ""}>{profileValue(flight.emergency, "None reported")}</strong></div>}
+          {(flight.nic != null || flight.nac_p != null) && <div><span>NIC / NACp</span><strong className="mono">{flight.nic == null && flight.nac_p == null ? "—" : `${profileValue(flight.nic)} / ${profileValue(flight.nac_p)}`}</strong></div>}
+          {(flight.rc != null) && <div><span>Accuracy radius</span><strong className="mono">{flight.rc == null ? "—" : `${Math.round(flight.rc)} m`}</strong></div>}
           <div><span>ICAO24</span><strong className="mono"><CopyHex icao24={flight.icao24} /></strong></div>
         </div>
       </Section>
@@ -392,18 +402,11 @@ interface AircraftPhotoFigureProps {
   error: boolean;
 }
 
-function AircraftPhotoFigure({ flight, photo, loading, error }: AircraftPhotoFigureProps) {
+function AircraftPhotoFigure({ flight, photo, loading }: AircraftPhotoFigureProps) {
   const airframe = flight.registration_source === "schedule" ? null : flight.registration;
   const identity = [airframe, flight.aircraft_type].filter(Boolean).join(" · ");
   if (loading && !photo) return <div className="aircraft-photo aircraft-photo-loading" role="status" aria-label="Loading aircraft photo" />;
-  if (!photo) {
-    return (
-      <div className="aircraft-photo aircraft-photo-empty">
-        <Plane size={22} aria-hidden="true" />
-        <span>{error ? "Photo service unavailable" : `No photo of ${airframe || "this aircraft"} yet`}</span>
-      </div>
-    );
-  }
+  if (!photo) return null;
   return (
     <figure className="aircraft-photo">
       {/* Planespotters terms: a plain, followable link to the photo page. */}
@@ -420,7 +423,11 @@ function AircraftPhotoFigure({ flight, photo, loading, error }: AircraftPhotoFig
         {identity && <span className="aircraft-photo-identity mono">{identity}</span>}
       </a>
       <figcaption>
-        <a href={photo.link} target="_blank" rel="noopener">© {photo.photographer}</a>
+        <a href={photo.link} target="_blank" rel="noopener"><span>{photo.attribution ?? `© ${photo.photographer}`}</span> · {photo.source ?? "Planespotters.net"}</a>
+        {photo.licenseName && (photo.licenseUrl
+          ? <a href={photo.licenseUrl} target="_blank" rel="noopener">{photo.licenseName}</a>
+          : <span>{photo.licenseName}</span>)}
+        {photo.source === "Wikimedia Commons" && <span>Registration match</span>}
       </figcaption>
     </figure>
   );

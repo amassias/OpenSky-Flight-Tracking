@@ -3,6 +3,7 @@ import re
 import time
 import logging
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from math import asin, ceil, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
@@ -1437,6 +1438,42 @@ class OpenSkyClient:
         """Fetch one provider-safe live tile without waiting on OpenSky."""
         return self._get_airplanes_live_states(bbox=bbox)
 
+    def _emergency_payload(self, code, refresh=False):
+        # Some edge caches retain an old empty response. Retry with a changing
+        # query key rather than presenting that old snapshot as a current result.
+        response = self.session.get(f"https://api.adsb.lol/v2/sqk/{code}", timeout=(2, 4),
+                                    params={"_": int(time.time())} if refresh else None)
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
+            raise ValueError("invalid_payload")
+        raw_time = float(payload["now"])
+        feed_time = int(raw_time / 1000 if raw_time > 10_000_000_000 else raw_time)
+        if abs(time.time() - feed_time) > 120:
+            raise ValueError("stale_snapshot")
+        return payload, feed_time
+
+    def _separate_emergency_payload(self):
+        # A complete snapshot requires all three codes. A failed code cannot
+        # silently turn into an empty global result.
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            results = list(executor.map(lambda code: self._emergency_payload(code, True), ("7500", "7600", "7700")))
+        newest_time = max(timestamp for _, timestamp in results)
+        aircraft = {}
+        for payload, timestamp in results:
+            for item in payload["ac"]:
+                if not isinstance(item, dict):
+                    continue
+                hex_code = str(item.get("hex") or "").lower()
+                if not re.fullmatch(r"[0-9a-f]{6}", hex_code) or not isinstance(item.get("seen"), (int, float)):
+                    continue
+                adjusted = {**item, "seen": item["seen"] + newest_time - timestamp}
+                if isinstance(item.get("seen_pos"), (int, float)):
+                    adjusted["seen_pos"] = item["seen_pos"] + newest_time - timestamp
+                if hex_code not in aircraft or adjusted["seen"] < aircraft[hex_code]["seen"]:
+                    aircraft[hex_code] = adjusted
+        return {"ac": list(aircraft.values())}, newest_time
+
     def get_emergency_states(self):
         """Share a bounded global request; keep failures distinct from empty skies."""
         with self._emergency_lock:
@@ -1450,24 +1487,24 @@ class OpenSkyClient:
             retry_seconds = 30
             for attempt in range(2):
                 try:
-                    response = self.session.get("https://api.adsb.lol/v2/sqk/7500,7600,7700", timeout=(2, 4))
-                    response.raise_for_status()
-                    payload = response.json()
-                    if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
-                        raise ValueError("invalid_payload")
-                    raw_time = float(payload["now"])
-                    feed_time = int(raw_time / 1000 if raw_time > 10_000_000_000 else raw_time)
+                    if attempt and failure in {"http_400", "http_404", "http_422", "invalid_payload", "stale_snapshot"}:
+                        payload, feed_time = self._separate_emergency_payload()
+                    else:
+                        payload, feed_time = self._emergency_payload("7500,7600,7700", refresh=attempt > 0)
                     completed_at = time.time()
-                    if abs(completed_at - feed_time) > 120:
-                        raise ValueError("stale_snapshot")
                     rows = []
+                    seen_codes = set()
                     for item in payload["ac"]:
                         if not isinstance(item, dict) or str(item.get("squawk")) not in {"7500", "7600", "7700"}:
                             continue
                         if not isinstance(item.get("seen"), (int, float)) or not 0 <= item["seen"] <= 60:
                             continue
                         try:
-                            rows.append(self._airplanes_live_row(item, feed_time))
+                            row = self._airplanes_live_row(item, feed_time)
+                            if not re.fullmatch(r"[0-9a-f]{6}", str(row[0])) or row[0] in seen_codes:
+                                continue
+                            seen_codes.add(row[0])
+                            rows.append(row)
                         except (ValueError, TypeError, OverflowError):
                             logging.warning("emergency_feed invalid_aircraft_row")
                     result = {"time": feed_time, "observed_at": feed_time, "last_success_at": int(completed_at),
@@ -1486,7 +1523,7 @@ class OpenSkyClient:
                         except (ValueError, TypeError):
                             pass
                         break
-                    if status and status < 500:
+                    if status and status < 500 and status not in {400, 404, 422}:
                         break
                 except requests.RequestException:
                     failure = "connection"

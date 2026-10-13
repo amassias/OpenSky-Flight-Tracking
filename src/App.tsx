@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
@@ -7,6 +7,7 @@ import { List } from "./components/customIcons";
 import { sameLiveFlight, withLiveKinematics } from "./flightTelemetry";
 import { aircraftPhoto, api, readableApiError } from "./api";
 import { AirportTab, type AirportView } from "./components/AirportTab";
+import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
 import { GlobalAlerts } from "./components/GlobalAlerts";
 import { FlightMap } from "./components/FlightMap";
@@ -42,11 +43,6 @@ function liveSnapshotSummary(flights: readonly Flight[]) {
     unique_airlines: new Set(flights.map((flight) => flight.airline_code).filter(Boolean)).size,
   };
 }
-
-// Only needed once an aircraft is selected, so it loads on demand and keeps
-// the first screen's script smaller.
-const loadFlightDetails = () => import("./components/FlightDetails").then((module) => ({ default: module.FlightDetails }));
-const FlightDetails = lazy(loadFlightDetails);
 
 const FAVORITE_LIMIT = 8;
 const THEME_COLORS: Record<MapTheme, string> = { dark: "#0b0b0c", light: "#f5f5f7" };
@@ -212,6 +208,13 @@ export function App() {
     setSelectedFlight({ ...info, callsign: info.callsign || sharedIcao24!.toUpperCase(), primary_time: 0, data_source: "live-nearby" } as Flight);
   }, [initialParams, sharedFlight.data, sharedIcao24]);
 
+  const route = useQuery({
+    queryKey: ["flight-route", selectedFlight?.callsign],
+    queryFn: ({ signal }) => api.flightRoute(selectedFlight!.callsign, signal),
+    enabled: Boolean(selectedFlight?.callsign && /^[A-Z]{3}[A-Z0-9]{1,5}$/i.test(selectedFlight.callsign)) && selectedFlight?.data_source !== "scheduled" && selectedFlight?.data_source !== "opensky" && !selectedFlight?.primary_time,
+    staleTime: 15 * 60_000, gcTime: 30 * 60_000, retry: false,
+  });
+
   const flightInfo = useQuery({
     queryKey: ["flight-info", selectedFlight?.icao24, selectedFlight?.callsign],
     queryFn: ({ signal }) => api.flightInfo(selectedFlight!.icao24, selectedFlight!.callsign, signal),
@@ -235,7 +238,10 @@ export function App() {
 
   const detailsFlight = useMemo(() => {
     if (!selectedFlight) return null;
-    const current = liveSelected ? withLiveKinematics(selectedFlight, liveSelected) : selectedFlight;
+    const base = liveSelected ? withLiveKinematics(selectedFlight, liveSelected) : selectedFlight;
+    const fastRoute = route.data?.callsign?.toUpperCase() === selectedFlight.callsign.toUpperCase() && route.data.route_source === "callsign" ? route.data : null;
+    const current = fastRoute && !selectedFlight.primary_time && (!base.route_source || base.route_source === "unknown" || base.route_source === "callsign")
+      ? { ...base, ...fastRoute, icao24: base.icao24, callsign: base.callsign } as Flight : base;
     if (selectedFlight.data_source === "scheduled" || !flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return current;
     const info = flightInfo.data;
     const historical = selectedFlight.data_source !== "live-nearby" && (selectedFlight.primary_time ?? selectedFlight.first_seen ?? 0) > 0;
@@ -260,7 +266,11 @@ export function App() {
       arrival_airport_name: routeInfo.arrival_airport_name ?? current.arrival_airport_name,
       first_seen: routeInfo.first_seen ?? current.first_seen,
       last_seen: routeInfo.last_seen ?? current.last_seen,
-      route_source: routeInfo.route_source ?? current.route_source,
+      departure_latitude: routeInfo.departure_latitude ?? (routeInfo.departure_airport && routeInfo.departure_airport !== current.departure_airport ? null : current.departure_latitude),
+      departure_longitude: routeInfo.departure_longitude ?? (routeInfo.departure_airport && routeInfo.departure_airport !== current.departure_airport ? null : current.departure_longitude),
+      arrival_latitude: routeInfo.arrival_latitude ?? (routeInfo.arrival_airport && routeInfo.arrival_airport !== current.arrival_airport ? null : current.arrival_latitude),
+      arrival_longitude: routeInfo.arrival_longitude ?? (routeInfo.arrival_airport && routeInfo.arrival_airport !== current.arrival_airport ? null : current.arrival_longitude),
+      route_source: routeInfo.route_source && routeInfo.route_source !== "unknown" ? routeInfo.route_source : current.route_source,
       route_provider: routeInfo.route_provider ?? current.route_provider,
       registration: liveAirframe ? current.registration : info.registration ?? current.registration,
       registration_source: liveAirframe ? "adsb" : info.registration ? info.registration_source : current.registration_source,
@@ -291,7 +301,7 @@ export function App() {
       time_position: telemetry.time_position ?? current.time_position,
       flightaware: routeInfo.flightaware ?? current.flightaware,
     };
-  }, [flightInfo.data, liveSelected, selectedFlight]);
+  }, [flightInfo.data, liveSelected, selectedFlight, route.data]);
 
   const track = useQuery({
     queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0, detailsFlight?.callsign, detailsFlight?.data_source],
@@ -365,19 +375,6 @@ export function App() {
   useEffect(() => {
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme] ?? THEME_COLORS.dark);
   }, [theme]);
-
-  // Fetch the flight drawer while the browser is idle, so the first click
-  // on an aircraft does not wait for it.
-  useEffect(() => {
-    const prefetch = () => { void loadFlightDetails(); };
-    // Safari has no requestIdleCallback; a short delay does the same job there.
-    if (typeof window.requestIdleCallback === "function") {
-      const handle = window.requestIdleCallback(prefetch, { timeout: 4000 });
-      return () => window.cancelIdleCallback(handle);
-    }
-    const timer = setTimeout(prefetch, 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const update = () => document.documentElement.classList.toggle("page-hidden", document.hidden);
@@ -719,13 +716,12 @@ export function App() {
         <AnimatePresence>
           {detailsFlight && !mapExpanded && (
             <PanelBoundary key="details" label="flight details" resetKey={detailsFlight.icao24} frameClassName="details-drawer dock-panel">
-            <Suspense fallback={<div className="details-drawer dock-panel" aria-busy="true" />}>
             <FlightDetails
               flight={detailsFlight}
               track={currentTrack}
               trackLoading={track.isFetching}
               trackError={track.error ? readableApiError(track.error) : undefined}
-              routeLoading={(flightInfo.isFetching && !flightInfo.data) || endAirports.isFetching}
+              routeLoading={!detailsFlight.departure_airport && !detailsFlight.arrival_airport && (route.isFetching || flightInfo.isFetching)}
               photo={photo.data}
               photoLoading={photo.isPending && photo.fetchStatus !== "idle"}
               photoError={photo.isError}
@@ -739,7 +735,6 @@ export function App() {
               onShare={shareView}
               observer={userPosition}
             />
-            </Suspense>
             </PanelBoundary>
           )}
         </AnimatePresence>

@@ -118,6 +118,10 @@ export interface Flight {
   data_source?: "opensky" | "live-nearby" | "scheduled";
   route_source?: RouteSource;
   route_provider?: string | null;
+  departure_latitude?: number | null;
+  departure_longitude?: number | null;
+  arrival_latitude?: number | null;
+  arrival_longitude?: number | null;
   registration?: string | null;
   registration_source?: "adsb" | "schedule" | null;
   aircraft_type?: string | null;
@@ -208,6 +212,10 @@ export interface FlightInfoResponse {
   last_seen_iso?: string | null;
   route_source?: RouteSource;
   route_provider?: string | null;
+  departure_latitude?: number | null;
+  departure_longitude?: number | null;
+  arrival_latitude?: number | null;
+  arrival_longitude?: number | null;
   live_state?: LiveAircraft | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -467,3 +475,24 @@ export interface MapView {
   longitude: number;
   zoom: number;
 }
+
+export interface DataSource { name: string; url: string; checked_at: string }
+export interface CabinConfiguration {
+  id: string;
+  aircraft_type: string;
+  total_seats: number;
+  classes: { name: string; seats: number }[];
+  source: DataSource;
+  seat_map_url: string;
+  assignment_source?: DataSource;
+  amenities?: { wifi?: string; power?: string; entertainment?: string };
+}
+export interface AircraftEnrichment {
+  success: boolean;
+  operator_code: string;
+  aircraft_type: string;
+  model?: string | null;
+  match_level: "airframe" | "operator_type" | null;
+  configurations: CabinConfiguration[];
+}
+export type FlightRouteResponse = Partial<Flight> & { success: boolean; callsign: string };

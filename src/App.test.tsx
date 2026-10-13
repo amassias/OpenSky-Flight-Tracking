@@ -266,7 +266,8 @@ describe("App", () => {
     await openAirportFromSearch();
     await openHistory();
     await userEvent.click(await screen.findByRole("button", { name: /AFR28VV/ }));
-    expect(await screen.findByText("No photo of F-HBQE yet")).toBeInTheDocument();
+    expect(await screen.findAllByText("F-HBQE")).not.toHaveLength(0);
+    expect(screen.queryByText(/No photo of/)).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText("F-HBQE").length).toBeGreaterThan(0));
     expect(screen.queryByText(/F-HBQD/)).not.toBeInTheDocument();
   });

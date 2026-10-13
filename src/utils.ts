@@ -1,3 +1,4 @@
+import { aircraftModel } from "./aircraftIdentity";
 import { AIRLINE_ICAO_BY_IATA } from "./airlineCodes";
 import type { Bounds, Flight, FlightStatus, LiveAircraft, MapView, TrackPoint, TrackResponse } from "./types";
 import { altitudeText, speedText } from "./units";
@@ -12,7 +13,7 @@ export const ALTITUDE_COLOR_BANDS = [
   { maxMeters: Number.POSITIVE_INFINITY, label: "36k+ ft", color: "#ff375f" },
 ] as const;
 
-export type AircraftIconKind = "helicopter" | "glider" | "balloon" | "small" | "airliner" | "heavy" | "unknown";
+export type AircraftIconKind = "helicopter" | "glider" | "balloon" | "small" | "turboprop" | "regional" | "airliner" | "heavy" | "unknown";
 
 type AircraftIconSource = Pick<Flight, "category" | "aircraft_category" | "aircraft_type" | "aircraft_description">;
 
@@ -22,25 +23,29 @@ type AircraftIconSource = Pick<Flight, "category" | "aircraft_category" | "aircr
  * OpenSky and commonly encoded as A1…A7 by public fallback feeds.
  */
 export function aircraftIconKind(aircraft: AircraftIconSource): AircraftIconKind {
-  const category = aircraft.aircraft_category ?? aircraft.category;
-  const categoryText = String(category ?? "").trim().toUpperCase();
-  const categoryMatch = categoryText.match(/(?:^|[A-Z])([0-9]{1,2})$/);
-  const categoryNumber = categoryMatch ? Number(categoryMatch[1]) : Number(categoryText);
-
+  const type = aircraft.aircraft_type?.trim().toUpperCase() ?? "";
+  const profile = `${type} ${aircraft.aircraft_description ?? aircraftModel(type) ?? ""}`.toLowerCase();
+  // A known type is more specific than an emitter weight category.
+  if (/helicopter|rotorcraft|gyrocopter|autogyro/.test(profile) || /^(H1[23456]5|EC[123][0-9]{2}|AS[35][0-9]{2}|R22|R44|R66|B06|B407|B429|S76|S92|A109|A139|A169|A189|UH60)$/.test(type)) return "helicopter";
+  if (/glider|sailplane/.test(profile)) return "glider";
+  if (/balloon|airship|blimp|dirigible/.test(profile)) return "balloon";
+  if (/^(AT[47][0-9]|DH8[A-D]|DHC[67]|C208|PC12|TBM[789]|BE[123][0-9]|B350|SF34|SB20)$/.test(type) || /turboprop|dash 8|king air/.test(profile)) return "turboprop";
+  if (/^(E1[789][0-9]|E29[05]|CRJ[1279X]|ERJ[134][0-9]|E[135]45|BCS[13])$/.test(type)) return "regional";
+  if (/^(A3[345][0-9K]|A388|B74[478]|B76[234]|B77[237WL]|B78[89X])$/.test(type)) return "heavy";
+  if (/^(A(19N|20N|21N|31[89]|32[01])|B73[0-9]|B3[789]M|B75[23])$/.test(type)) return "airliner";
+  if (/cessna|piper|cirrus|diamond|beech|pilatus|ultralight|uav|drone/.test(profile)) return "small";
+  const categoryText = String(aircraft.aircraft_category ?? aircraft.category ?? "").trim().toUpperCase();
+  if (categoryText === "B1") return "glider";
+  if (categoryText === "B2") return "balloon";
+  const categoryNumber = Number(categoryText.replace(/^A/, ""));
   if (categoryNumber === 7) return "helicopter";
   if (categoryNumber === 8) return "glider";
   if (categoryNumber === 9) return "balloon";
   if ([1, 2, 11, 13, 14].includes(categoryNumber)) return "small";
   if (categoryNumber === 5) return "heavy";
   if ([3, 4, 6].includes(categoryNumber)) return "airliner";
-
-  const profile = `${aircraft.aircraft_type ?? ""} ${aircraft.aircraft_description ?? ""}`.toLowerCase();
-  if (/helicopter|rotorcraft|gyrocopter|autogyro/.test(profile)) return "helicopter";
-  if (/glider|sailplane/.test(profile)) return "glider";
-  if (/balloon|airship|blimp|dirigible/.test(profile)) return "balloon";
-  if (/^\s*(a[2345]\d|a380|b3\d|b7\d|e1(7|8|9)|e29|e95|crj|at4|at7|dh8)/.test(profile)) return "airliner";
-  if (/airbus|boeing|embraer|bombardier|atr |dash 8/.test(profile)) return "airliner";
-  if (/cessna|piper|cirrus|diamond|beech|king air|pilatus|tbm|pc-?12|pc-?24|ultralight|uav|drone/.test(profile)) return "small";
+  if (/airbus|boeing/.test(profile)) return "airliner";
+  if (/embraer|bombardier/.test(profile)) return "regional";
   return "unknown";
 }
 
@@ -283,11 +288,12 @@ export function routeProgress(
   position: { latitude?: number | null; longitude?: number | null; velocity?: number | null },
 ): RouteProgress | null {
   const points = [origin, destination, position];
-  if (points.some((point) => point?.latitude == null || point?.longitude == null)) return null;
+  if (points.some((point) => point?.latitude == null || point?.longitude == null || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude) || Math.abs(point.latitude) > 90 || Math.abs(point.longitude) > 180)) return null;
   const flownKm = distanceKm([origin!.latitude!, origin!.longitude!], [position.latitude!, position.longitude!]);
   const remainingKm = distanceKm([position.latitude!, position.longitude!], [destination!.latitude!, destination!.longitude!]);
   const total = flownKm + remainingKm;
-  if (total < 1) return null;
+  const directKm = distanceKm([origin!.latitude!, origin!.longitude!], [destination!.latitude!, destination!.longitude!]);
+  if (total < 1 || directKm < 1 || total / directKm > 1.6) return null;
   const speed = position.velocity;
   return {
     percent: (flownKm / total) * 100,

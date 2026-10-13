@@ -567,3 +567,35 @@ def test_emergency_requests_are_shared_across_threads():
         results = list(pool.map(lambda _: client.get_emergency_states(), range(4)))
     assert all(result["status"] == "fresh" for result in results)
     client.session.get.assert_called_once()
+
+
+def test_emergency_feed_falls_back_to_individual_codes_and_deduplicates():
+    client = OpenSkyClient()
+    now = 1_800_000_000
+    def get(url, **kwargs):
+        if "," in url:
+            response = _json_response({}, 400)
+            response.raise_for_status.side_effect = requests.HTTPError(response=response)
+            return response
+        return _json_response({"now": now * 1000, "ac": [
+            {"hex": "abc123", "flight": "TEST1", "squawk": "7700", "seen": 1, "lat": 49, "lon": 2},
+        ]})
+    client.session.get = Mock(side_effect=get)
+    with patch("api_client.time.time", return_value=now), patch("api_client.time.sleep"):
+        result = client.get_emergency_states()
+    assert len(result["states"]) == 1
+    assert client.session.get.call_count == 4
+    assert {call.args[0].rsplit("/", 1)[-1] for call in client.session.get.call_args_list} == {"7500,7600,7700", "7500", "7600", "7700"}
+
+
+def test_incomplete_individual_emergency_queries_do_not_claim_empty_skies():
+    client = OpenSkyClient()
+    def get(url, **kwargs):
+        if "," in url:
+            return _json_response({"ac": []})  # malformed combined response
+        if url.endswith("7500"):
+            raise requests.Timeout()
+        return _json_response({"now": 1_800_000_000_000, "ac": []})
+    client.session.get = Mock(side_effect=get)
+    with patch("api_client.time.time", return_value=1_800_000_000), patch("api_client.time.sleep"), pytest.raises(OpenSkyAPIError):
+        client.get_emergency_states()
