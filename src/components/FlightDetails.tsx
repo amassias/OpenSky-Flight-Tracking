@@ -238,6 +238,8 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         {flight.registration && flight.registration_source !== "schedule" && <span className="details-chip mono">{flight.registration}</span>}
       </div>
 
+      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
+
       <PositionObservation flight={flight} />
       <FlightEvents flight={flight} track={track} airports={airports} />
 
@@ -335,8 +337,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           {operations.route && <p className="operations-route"><span>Filed route</span><strong className="mono">{operations.route}</strong></p>}
         </Section>
       )}
-
-      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
 
       <Section title="Aircraft">
         <div className="aircraft-profile-grid">
