@@ -187,5 +187,608 @@
       "checked_at": "2026-10-13"
     },
     "seat_map_url": "https://help.ryanair.com/hc/en-gb/articles/31352078107921-Seat-Information"
+  },
+  {
+    "id": "southwest-b737-137",
+    "operators": [
+      "SWA"
+    ],
+    "aircraft_type": "B737",
+    "total_seats": 137,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 137
+      }
+    ],
+    "source": {
+      "name": "Southwest Airlines",
+      "url": "https://support.southwest.com/helpcenter/article/airplane-specifications",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://support.southwest.com/helpcenter/article/airplane-specifications"
+  },
+  {
+    "id": "southwest-b738-175",
+    "operators": [
+      "SWA"
+    ],
+    "aircraft_type": "B738",
+    "total_seats": 175,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 175
+      }
+    ],
+    "source": {
+      "name": "Southwest Airlines",
+      "url": "https://support.southwest.com/helpcenter/article/airplane-specifications",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://support.southwest.com/helpcenter/article/airplane-specifications"
+  },
+  {
+    "id": "southwest-b38m-175",
+    "operators": [
+      "SWA"
+    ],
+    "aircraft_type": "B38M",
+    "total_seats": 175,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 175
+      }
+    ],
+    "source": {
+      "name": "Southwest Airlines",
+      "url": "https://support.southwest.com/helpcenter/article/airplane-specifications",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://support.southwest.com/helpcenter/article/airplane-specifications"
+  },
+  {
+    "id": "united-b738-166",
+    "operators": [
+      "UAL"
+    ],
+    "aircraft_type": "B738",
+    "total_seats": 166,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 16
+      },
+      {
+        "name": "Economy",
+        "seats": 150
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/ua-738-1",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/ua-738-1",
+    "note": "Economy Plus seats are included in Economy."
+  },
+  {
+    "id": "united-b38m-166",
+    "operators": [
+      "UAL"
+    ],
+    "aircraft_type": "B38M",
+    "total_seats": 166,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 16
+      },
+      {
+        "name": "Economy",
+        "seats": 150
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/ua-37e",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/ua-37e",
+    "note": "Economy Plus seats are included in Economy."
+  },
+  {
+    "id": "delta-b738-160",
+    "operators": [
+      "DAL"
+    ],
+    "aircraft_type": "B738",
+    "total_seats": 160,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 16
+      },
+      {
+        "name": "Economy",
+        "seats": 144
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/dl-73h",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/dl-73h",
+    "note": "Comfort+ seats are included in Economy."
+  },
+  {
+    "id": "delta-a321-191",
+    "operators": [
+      "DAL"
+    ],
+    "aircraft_type": "A321",
+    "total_seats": 191,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 20
+      },
+      {
+        "name": "Economy",
+        "seats": 171
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/dl-321",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/dl-321",
+    "note": "Comfort+ seats are included in Economy."
+  },
+  {
+    "id": "delta-a21n-194",
+    "operators": [
+      "DAL"
+    ],
+    "aircraft_type": "A21N",
+    "total_seats": 194,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 20
+      },
+      {
+        "name": "Economy",
+        "seats": 174
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/dl-3ne",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/dl-3ne",
+    "note": "Comfort+ seats are included in Economy."
+  },
+  {
+    "id": "american-a21n-196",
+    "operators": [
+      "AAL"
+    ],
+    "aircraft_type": "A21N",
+    "total_seats": 196,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 20
+      },
+      {
+        "name": "Economy",
+        "seats": 176
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/aa-a321nx",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/aa-a321nx",
+    "note": "Main Cabin Extra seats are included in Economy."
+  },
+  {
+    "id": "british-airways-a388-469",
+    "operators": [
+      "BAW"
+    ],
+    "aircraft_type": "A388",
+    "total_seats": 469,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 14
+      },
+      {
+        "name": "Business",
+        "seats": 97
+      },
+      {
+        "name": "Premium Economy",
+        "seats": 55
+      },
+      {
+        "name": "Economy",
+        "seats": 303
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/ba-38a",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/ba-38a"
+  },
+  {
+    "id": "lufthansa-a20n-180",
+    "operators": [
+      "DLH"
+    ],
+    "aircraft_type": "A20N",
+    "total_seats": 180,
+    "classes": [
+      {
+        "name": "Flexible Business / Economy",
+        "seats": 180
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/lh-32n",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/lh-32n",
+    "note": "Business and Economy are separated by a movable curtain; the split varies by flight."
+  },
+  {
+    "id": "lufthansa-a359-318",
+    "operators": [
+      "DLH"
+    ],
+    "aircraft_type": "A359",
+    "total_seats": 318,
+    "classes": [
+      {
+        "name": "Business",
+        "seats": 30
+      },
+      {
+        "name": "Premium Economy",
+        "seats": 26
+      },
+      {
+        "name": "Economy",
+        "seats": 262
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/lh-35s",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/lh-35s"
+  },
+  {
+    "id": "lufthansa-a359-293",
+    "operators": [
+      "DLH"
+    ],
+    "aircraft_type": "A359",
+    "total_seats": 293,
+    "classes": [
+      {
+        "name": "Business",
+        "seats": 48
+      },
+      {
+        "name": "Premium Economy",
+        "seats": 21
+      },
+      {
+        "name": "Economy",
+        "seats": 224
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/lh-359",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/lh-359"
+  },
+  {
+    "id": "lufthansa-a359-267",
+    "operators": [
+      "DLH"
+    ],
+    "aircraft_type": "A359",
+    "total_seats": 267,
+    "classes": [
+      {
+        "name": "First",
+        "seats": 4
+      },
+      {
+        "name": "Business",
+        "seats": 38
+      },
+      {
+        "name": "Premium Economy",
+        "seats": 24
+      },
+      {
+        "name": "Economy",
+        "seats": 201
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/lh-35p",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/lh-35p"
+  },
+  {
+    "id": "air-france-a320-174",
+    "operators": [
+      "AFR"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 174,
+    "classes": [
+      {
+        "name": "Flexible Business / Economy",
+        "seats": 174
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/af",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/af",
+    "note": "The Business / Economy split varies by flight."
+  },
+  {
+    "id": "air-france-a320-178",
+    "operators": [
+      "AFR"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 178,
+    "classes": [
+      {
+        "name": "Flexible Business / Economy",
+        "seats": 178
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/af-a320-metro",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/af-a320-metro",
+    "note": "The Business / Economy split varies by flight."
+  },
+  {
+    "id": "air-france-e190-110",
+    "operators": [
+      "AFR"
+    ],
+    "aircraft_type": "E190",
+    "total_seats": 110,
+    "classes": [
+      {
+        "name": "Flexible Business / Economy",
+        "seats": 110
+      }
+    ],
+    "source": {
+      "name": "Air France",
+      "url": "https://corporate.airfrance.com/en/press-releases/air-france-inaugurates-new-cabin-its-embraer-190",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://corporate.airfrance.com/en/press-releases/air-france-inaugurates-new-cabin-its-embraer-190",
+    "note": "The Business / Economy split varies by flight."
+  },
+  {
+    "id": "klm-b738-186",
+    "operators": [
+      "KLM"
+    ],
+    "aircraft_type": "B738",
+    "total_seats": 186,
+    "classes": [
+      {
+        "name": "Flexible Business / Economy",
+        "seats": 186
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/kl",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/kl",
+    "note": "The Business / Economy split varies by flight."
+  },
+  {
+    "id": "transavia-b738-189",
+    "operators": [
+      "TRA"
+    ],
+    "aircraft_type": "B738",
+    "total_seats": 189,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 189
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/hv-738",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/hv-738"
+  },
+  {
+    "id": "vueling-a320-180",
+    "operators": [
+      "VLG"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 180,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 180
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/vy",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/vy"
+  },
+  {
+    "id": "vueling-a320-186",
+    "operators": [
+      "VLG"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 186,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 186
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/vy-320-1",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/vy-320-1"
+  },
+  {
+    "id": "vueling-a20n-186",
+    "operators": [
+      "VLG"
+    ],
+    "aircraft_type": "A20N",
+    "total_seats": 186,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 186
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/vy",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/vy"
+  },
+  {
+    "id": "wizz-a321-230",
+    "operators": [
+      "WZZ"
+    ],
+    "aircraft_type": "A321",
+    "total_seats": 230,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 230
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/w6-321",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/w6-321"
+  },
+  {
+    "id": "wizz-a21n-239",
+    "operators": [
+      "WZZ"
+    ],
+    "aircraft_type": "A21N",
+    "total_seats": 239,
+    "classes": [
+      {
+        "name": "Economy",
+        "seats": 239
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/w6",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/w6"
+  },
+  {
+    "id": "air-canada-a320-146",
+    "operators": [
+      "ACA"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 146,
+    "classes": [
+      {
+        "name": "Business",
+        "seats": 14
+      },
+      {
+        "name": "Economy",
+        "seats": 132
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/ac-320-1",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/ac-320-1"
+  },
+  {
+    "id": "air-canada-a320-152",
+    "operators": [
+      "ACA"
+    ],
+    "aircraft_type": "A320",
+    "total_seats": 152,
+    "classes": [
+      {
+        "name": "Business",
+        "seats": 8
+      },
+      {
+        "name": "Economy",
+        "seats": 144
+      }
+    ],
+    "source": {
+      "name": "AeroLOPA",
+      "url": "https://www.aerolopa.com/ac-320-3",
+      "checked_at": "2026-10-13"
+    },
+    "seat_map_url": "https://www.aerolopa.com/ac-320-3"
   }
 ]

@@ -479,6 +479,7 @@ export interface MapView {
 export interface DataSource { name: string; url: string; checked_at: string }
 export interface CabinConfiguration {
   id: string;
+  note?: string;
   aircraft_type: string;
   total_seats: number;
   classes: { name: string; seats: number }[];

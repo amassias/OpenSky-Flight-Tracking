@@ -321,6 +321,8 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </>
       )}
 
+      <AircraftCabin key={`${flight.icao24}:${flight.aircraft_type}`} flight={flight} />
+
       {operations && (
         <Section title="Operations" open>
           <div className="operations-status-row">
@@ -356,8 +358,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           {aircraftIconKind(flight) !== "unknown" && <div><span>Category</span><strong>{({ helicopter: "Helicopter", glider: "Glider", balloon: "Balloon / airship", small: "Light aircraft", turboprop: "Turboprop", regional: "Regional jet", airliner: "Narrow-body jet", heavy: "Wide-body / heavy", unknown: "" })[aircraftIconKind(flight)]}</strong></div>}
         </div>
       </Section>}
-
-      <AircraftCabin key={`${flight.icao24}:${flight.aircraft_type}`} flight={flight} />
 
       <Section title="Airframe history" aside="Owners · registrations">
         <AirframeHistory flight={flight} />

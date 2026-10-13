@@ -2,6 +2,7 @@ import { airlineLogo } from "../aircraftIdentity";
 import { AircraftHoverStore } from "../aircraftHover";
 import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
+import { destinationGuide } from "../futurePath";
 import { sameLiveFlight } from "../flightTelemetry";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -836,6 +837,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   );
 
   const projection = headingProjection(live ?? flight, now, head);
+  const futurePath = destinationGuide({ ...flight, ...live }, now, head);
   const projectionRenderer = useMemo(() => L.svg({ padding: 0.5 }), []);
   const arrowIcon = useMemo(() => L.divIcon({ className: "heading-arrow-wrap",
     html: `<span class="heading-arrow" style="transform:rotate(${(live?.true_track ?? flight.true_track ?? 0) - 90}deg);color:${MAP_COLORS[theme].accent}"><svg viewBox="0 0 20 20"><path d="m5 4 9 6-9 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>`,
@@ -880,7 +882,9 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 
   return (
     <>
-      {projection && <>
+      {futurePath ? <Polyline positions={futurePath} renderer={projectionRenderer} pathOptions={{ className: "estimated-future-path", color: theme === "dark" ? "#a1a1a6" : "#515154", weight: 2, dashArray: "10 12", opacity: 0.8, interactive: true }}>
+        <Tooltip sticky className="aircraft-tooltip">Estimated direct line to destination · not a filed route</Tooltip>
+      </Polyline> : projection && <>
         <Polyline positions={projection} renderer={projectionRenderer} pathOptions={{ className: "heading-projection", color: MAP_COLORS[theme].accent, weight: 2, dashArray: "5 7", opacity: 0.8 }}>
           <Tooltip sticky className="aircraft-tooltip">Estimated heading · next 2 min</Tooltip>
         </Polyline>

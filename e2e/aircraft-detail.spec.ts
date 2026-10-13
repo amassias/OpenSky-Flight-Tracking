@@ -51,7 +51,8 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   await expect(page.locator('.route-source-note')).toContainText('estimated progress');
   await expect(page.locator('.route-progress')).toBeVisible();
   await expect(page.getByText('Progress unavailable')).toHaveCount(0);
-  await expect(page.locator('.heading-projection')).toHaveCount(1);
+  await expect(page.locator('.estimated-future-path')).toHaveCount(1);
+  await expect(page.locator('.heading-projection')).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Cabin configurations' })).toContainText('324 seats');
   await page.getByText('292 seats', { exact: false }).click();
   await expect(page.getByText('USB-A and USB-C in all cabins')).toBeVisible();

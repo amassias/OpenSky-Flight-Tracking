@@ -526,6 +526,13 @@ export function App() {
   }, [airportCatalog.data, knownAirports]);
 
   const detailAirports = useMemo(() => new Map(mapAirports.map(airport => [airport.icao, airport])), [mapAirports]);
+  const mapSelectedFlight = useMemo(() => {
+    if (!detailsFlight || detailsFlight.arrival_latitude != null && detailsFlight.arrival_longitude != null) return detailsFlight;
+    const destination = detailAirports.get(detailsFlight.arrival_airport ?? "");
+    return destination?.latitude != null && destination.longitude != null
+      ? { ...detailsFlight, arrival_latitude: destination.latitude, arrival_longitude: destination.longitude }
+      : detailsFlight;
+  }, [detailAirports, detailsFlight]);
 
   const selectFlight = useCallback((flight: Flight) => {
     restoredFlight.current = true;
@@ -654,7 +661,7 @@ export function App() {
           airportCatalogLoading={airportCatalog.isPending}
           airportCatalogError={airportCatalog.isError}
           onRetryAirportCatalog={() => { void airportCatalog.refetch(); }}
-          selectedFlight={selectedFlight}
+          selectedFlight={mapSelectedFlight}
           previewFlight={previewFlight}
           track={currentTrack}
           theme={theme}

@@ -29,6 +29,8 @@ describe("map detail levels", () => {
   it("prefers the operating callsign and omits unknown logos", () => {
     expect(operatorCode({ callsign: "EJU123", airline_code: "AFR" })).toBe("EJU");
     expect(airlineLogo({ callsign: "EJU123" })).toContain("U2.png");
+    expect(airlineLogo({ callsign: "WZZ123" })).toContain("W6.png");
+    expect(airlineLogo({ callsign: "TRA123" })).toContain("HV.png");
     expect(airlineLogo({ callsign: "N12345" })).toBeNull();
   });
 });

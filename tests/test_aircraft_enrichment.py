@@ -11,7 +11,8 @@ def test_catalogue_totals_sources_and_unknowns():
         assert item["source"]["url"].startswith("https://")
         assert item["source"]["checked_at"]
     assert aircraft_enrichment("ZZZ", "A320")["configurations"] == []
-    assert aircraft_enrichment("AFR", "A320")["configurations"] == []
+    assert {c["total_seats"] for c in aircraft_enrichment("AFR", "A320")["configurations"]} == {174, 178}
+    assert {c["total_seats"] for c in aircraft_enrichment("SWA", "B738")["configurations"]} == {175}
 
 
 def test_variants_are_never_presented_as_airframe_matches():
