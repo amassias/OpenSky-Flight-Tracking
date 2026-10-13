@@ -72,3 +72,33 @@ test('labels a landing away from the planned destination as an estimate', async 
   await expect(page.getByText('Possible return to origin · ADS-B estimate')).toBeVisible();
   await expect(page.getByText(/This does not confirm a diversion/)).toBeVisible();
 });
+
+test('a delayed global observation is not selectable as a current emergency and recovers', async ({page}) => {
+  const open = page.getByRole('button', {name:'Open traffic panel'});
+  if (await open.isVisible()) await open.click();
+  const now = Math.floor(Date.now()/1000);
+  await page.route('**/api/emergencies', route => route.fulfill({json:{success:true,states:[{icao24:'406a02',callsign:'BAW52T',squawk:'7700',emergency:'general'}],time:now-100,status:'delayed',retry_after_seconds:30}}));
+  await page.getByRole('tab',{name:'Alerts',exact:true}).click();
+  await expect(page.getByText('Updates delayed')).toBeVisible();
+  await expect(page.locator('.global-alert-row')).toBeDisabled();
+  await page.route('**/api/emergencies', route => route.fulfill({json:{success:true,states:[],time:now,status:'fresh',retry_after_seconds:60}}));
+  await page.getByRole('button',{name:'Refresh',exact:true}).click();
+  await expect(page.getByText(/No emergency squawks reported/)).toBeVisible();
+  await expect(page.getByText('Updates delayed')).not.toBeVisible();
+});
+
+test('keyboard tabs and mobile return preserve the global alert list', async ({page}, testInfo) => {
+  const open = page.getByRole('button', {name:'Open traffic panel'});
+  if (await open.isVisible()) await open.click();
+  const live = page.getByRole('tab', {name:/In view/});
+  await live.focus();
+  await page.keyboard.press('End');
+  await expect(page.getByRole('tab',{name:'Alerts',exact:true})).toBeFocused();
+  await page.locator('.global-alert-row').click();
+  if (testInfo.project.name === 'webkit-mobile') {
+    await expect(page.locator('.traffic-slot')).not.toBeVisible();
+    await page.getByRole('button',{name:'Back to alerts',exact:true}).click();
+  } else await page.getByRole('button',{name:'Close flight details'}).click();
+  await expect(page.locator('.global-alert-row')).toBeVisible();
+  await expect(page.getByRole('tab',{name:'Alerts',exact:true})).toBeFocused();
+});

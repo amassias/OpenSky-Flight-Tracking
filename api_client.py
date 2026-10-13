@@ -1,6 +1,8 @@
 import os
 import re
 import time
+import logging
+from threading import Lock
 from datetime import datetime, timedelta, timezone
 from math import asin, ceil, cos, radians, sin, sqrt
 from typing import Any, Dict, Iterable, Optional
@@ -62,6 +64,8 @@ class OpenSkyClient:
         self._aircraft_registry_cache: Dict[str, tuple[float, Optional[Dict[str, Any]]]] = {}
         self._track_cache: Dict[str, Dict[str, Any]] = {}
         self._emergency_cache: Dict[str, Any] = {}
+        self._emergency_lock = Lock()
+        self._emergency_retry_at = 0.0
 
         if not self.client_id or not self.client_secret:
             print("Warning: OpenSky credentials not found in environment variables.")
@@ -1434,27 +1438,75 @@ class OpenSkyClient:
         return self._get_airplanes_live_states(bbox=bbox)
 
     def get_emergency_states(self):
-        """One global open-data query, shared for a minute, not one per plane."""
-        now = time.time()
-        if now < self._emergency_cache.get("expires_at", 0):
-            return self._emergency_cache["result"]
-        try:
-            response = self.session.get("https://api.adsb.lol/v2/sqk/7500,7600,7700", timeout=8)
-            response.raise_for_status()
-            payload = response.json()
-            if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
-                raise ValueError("Invalid emergency feed")
-            feed_time = int(float(payload.get("now", now * 1000)) / 1000)
-            if abs(now - feed_time) > 120:
-                raise ValueError("Emergency feed is stale")
-            rows = [self._airplanes_live_row(item, feed_time) for item in payload["ac"]
-                    if isinstance(item, dict) and str(item.get("squawk")) in {"7500", "7600", "7700"}
-                    and isinstance(item.get("seen"), (int, float)) and 0 <= item["seen"] <= 60]
-            result = {"time": feed_time, "states": rows, "provider": "adsb.lol"}
-            self._emergency_cache = {"expires_at": now + 60, "result": result}
-            return result
-        except (requests.RequestException, ValueError, TypeError) as exc:
-            raise OpenSkyAPIError("Global emergency feed is temporarily unavailable.", status_code=503) from exc
+        """Share a bounded global request; keep failures distinct from empty skies."""
+        with self._emergency_lock:
+            now = time.time()
+            cached = self._emergency_cache.get("result")
+            if cached and now < self._emergency_cache.get("expires_at", 0):
+                return dict(cached)
+            if now < self._emergency_retry_at:
+                return self._emergency_last_snapshot(now)
+            failure = "upstream"
+            retry_seconds = 30
+            for attempt in range(2):
+                try:
+                    response = self.session.get("https://api.adsb.lol/v2/sqk/7500,7600,7700", timeout=(2, 4))
+                    response.raise_for_status()
+                    payload = response.json()
+                    if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
+                        raise ValueError("invalid_payload")
+                    raw_time = float(payload["now"])
+                    feed_time = int(raw_time / 1000 if raw_time > 10_000_000_000 else raw_time)
+                    completed_at = time.time()
+                    if abs(completed_at - feed_time) > 120:
+                        raise ValueError("stale_snapshot")
+                    rows = []
+                    for item in payload["ac"]:
+                        if not isinstance(item, dict) or str(item.get("squawk")) not in {"7500", "7600", "7700"}:
+                            continue
+                        if not isinstance(item.get("seen"), (int, float)) or not 0 <= item["seen"] <= 60:
+                            continue
+                        try:
+                            rows.append(self._airplanes_live_row(item, feed_time))
+                        except (ValueError, TypeError, OverflowError):
+                            logging.warning("emergency_feed invalid_aircraft_row")
+                    result = {"time": feed_time, "observed_at": feed_time, "last_success_at": int(completed_at),
+                              "states": rows, "provider": "adsb.lol", "status": "fresh", "retry_after_seconds": 60}
+                    self._emergency_cache = {"expires_at": completed_at + 60, "result": result}
+                    self._emergency_retry_at = 0
+                    return dict(result)
+                except requests.Timeout:
+                    failure = "timeout"
+                except requests.HTTPError as exc:
+                    status = getattr(exc.response, "status_code", None)
+                    failure = f"http_{status}"
+                    if status == 429:
+                        try:
+                            retry_seconds = max(30, min(300, int(exc.response.headers.get("Retry-After", 30))))
+                        except (ValueError, TypeError):
+                            pass
+                        break
+                    if status and status < 500:
+                        break
+                except requests.RequestException:
+                    failure = "connection"
+                except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                    failure = "stale_snapshot" if str(exc) == "stale_snapshot" else "invalid_payload"
+                if attempt == 0:
+                    logging.warning("emergency_feed retry failure=%s", failure)
+                    time.sleep(0.5)
+            now = time.time()
+            self._emergency_retry_at = now + retry_seconds
+            logging.warning("emergency_feed failure=%s retry_after=%s", failure, retry_seconds)
+            return self._emergency_last_snapshot(now)
+
+    def _emergency_last_snapshot(self, now):
+        cached = self._emergency_cache.get("result")
+        retry_after = max(1, int(self._emergency_retry_at - now))
+        if cached and 0 <= now - cached["time"] <= 300:
+            return {**cached, "status": "delayed", "retry_after_seconds": retry_after}
+        raise OpenSkyAPIError("Worldwide signals could not be refreshed. Please try again shortly.",
+                              status_code=503, payload={"retry_after_seconds": retry_after})
 
     def get_live_callsign_states(self, callsign: str):
         """The aircraft currently flying under one callsign, wherever it is."""

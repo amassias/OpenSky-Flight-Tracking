@@ -49,7 +49,7 @@ export function Topbar({ health, healthPending, theme, search, onToggleTheme, on
       <div className="topbar-search">{search}</div>
 
       <div className="topbar-actions">
-        <div className="topbar-status" role="status">
+        <div className="topbar-status" aria-label="Connection status">
           <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
           <span className="topbar-channel">{channel}</span>
           <span className="separator" />

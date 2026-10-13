@@ -503,3 +503,67 @@ def test_adsb_trace_keeps_emergency_observations_and_leg_boundary(monkeypatch):
     result = client.get_track("abc123", 0)
     assert result["leg_start"] == 1_800_000_000
     assert result["emergency_events"] == [{"code": "7700", "callsign": "BAW52T", "first_seen": 1_800_000_000, "last_seen": 1_800_000_030, "ended_at": 1_800_000_060}]
+
+
+def test_emergency_feed_retries_a_timeout_and_recovers():
+    client = OpenSkyClient()
+    now = 1_800_000_000
+    client.session.get = Mock(side_effect=[requests.Timeout(), _json_response({"now": now * 1000, "ac": []})])
+    with patch("api_client.time.time", return_value=now), patch("api_client.time.sleep"):
+        result = client.get_emergency_states()
+    assert result["status"] == "fresh"
+    assert result["states"] == []
+    assert client.session.get.call_count == 2
+
+
+def test_emergency_failure_keeps_only_a_bounded_last_observation():
+    client = OpenSkyClient()
+    now = 1_800_000_000
+    client.session.get = Mock(return_value=_json_response({"now": now * 1000, "ac": []}))
+    with patch("api_client.time.time", return_value=now):
+        client.get_emergency_states()
+    client.session.get = Mock(side_effect=requests.Timeout())
+    with patch("api_client.time.time", return_value=now + 61), patch("api_client.time.sleep"):
+        delayed = client.get_emergency_states()
+        again = client.get_emergency_states()
+    assert delayed["status"] == "delayed"
+    assert delayed["time"] == now
+    assert delayed == again
+    assert client.session.get.call_count == 2  # concurrent/repeated failures respect cooldown
+    with patch("api_client.time.time", return_value=now + 301), patch("api_client.time.sleep"), pytest.raises(OpenSkyAPIError):
+        client.get_emergency_states()
+
+
+def test_emergency_rate_limit_is_not_retried_immediately():
+    client = OpenSkyClient()
+    response = _json_response({}, 429)
+    response.headers["Retry-After"] = "120"
+    response.raise_for_status.side_effect = requests.HTTPError(response=response)
+    client.session.get = Mock(return_value=response)
+    with patch("api_client.time.time", return_value=1_800_000_000), pytest.raises(OpenSkyAPIError) as error:
+        client.get_emergency_states()
+    assert error.value.payload["retry_after_seconds"] == 120
+    client.session.get.assert_called_once()
+
+
+def test_emergency_feed_accepts_seconds_and_rejects_missing_time():
+    client = OpenSkyClient()
+    now = 1_800_000_000
+    client.session.get = Mock(return_value=_json_response({"now": now, "ac": []}))
+    with patch("api_client.time.time", return_value=now):
+        assert client.get_emergency_states()["observed_at"] == now
+    client._emergency_cache = {}
+    client.session.get = Mock(return_value=_json_response({"ac": []}))
+    with patch("api_client.time.time", return_value=now), patch("api_client.time.sleep"), pytest.raises(OpenSkyAPIError):
+        client.get_emergency_states()
+
+
+def test_emergency_requests_are_shared_across_threads():
+    from concurrent.futures import ThreadPoolExecutor
+    client = OpenSkyClient()
+    now = 1_800_000_000
+    client.session.get = Mock(return_value=_json_response({"now": now * 1000, "ac": []}))
+    with patch("api_client.time.time", return_value=now), ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda _: client.get_emergency_states(), range(4)))
+    assert all(result["status"] == "fresh" for result in results)
+    client.session.get.assert_called_once()

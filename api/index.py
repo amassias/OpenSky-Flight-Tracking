@@ -27,7 +27,7 @@ def execute(operation: Callable[[], T]):
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"success": False, "error": str(exc)})
     except OpenSkyAPIError as exc:
-        status = exc.status_code if exc.status_code in (400, 401, 403, 404, 429) else 502
+        status = exc.status_code if exc.status_code in (400, 401, 403, 404, 429, 503) else 502
         payload = {"success": False, "error": str(exc)}
         if exc.payload:
             payload["details"] = exc.payload
@@ -115,7 +115,7 @@ def emergencies_route():
     result = execute(service.handle_emergencies)
     if isinstance(result, JSONResponse):
         return result
-    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=15, s-maxage=60"})
+    return JSONResponse(content=result, headers={"Cache-Control": "no-store" if result.get("status") == "delayed" else "public, max-age=15, s-maxage=60"})
 
 
 @app.get("/api/callsign-lookup")

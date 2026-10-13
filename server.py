@@ -967,7 +967,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         payload = api_client.get_emergency_states()
         states = self._parse_states(payload.get("states", []))
         self._enrich_live_states(states)
-        return {"success": True, "states": states, "count": len(states), "time": payload["time"], "provider": payload["provider"]}
+        return {"success": True, "states": states, "count": len(states), "time": payload["time"], "provider": payload["provider"],
+                "status": payload.get("status", "fresh"), "observed_at": payload.get("observed_at", payload["time"]),
+                "last_success_at": payload.get("last_success_at", payload["time"]),
+                "retry_after_seconds": payload.get("retry_after_seconds", 60)}
 
     def handle_callsign_lookup(self, callsign):
         """Find the aircraft flying a callsign right now, so a scheduled flight can be followed live."""

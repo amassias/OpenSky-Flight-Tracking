@@ -57,19 +57,19 @@ typography:
     letterSpacing: "-0.02em"
   body-strong:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
-    fontSize: "15px"
+    fontSize: "16px"
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "-0.01em"
   body:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
-    fontSize: "13px"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.45
     letterSpacing: "-0.01em"
   caption:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
-    fontSize: "12px"
+    fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.35
     letterSpacing: "0"
@@ -193,3 +193,7 @@ The map fills the window under a 48 px bar. Everything else docks to its edges:
 - Selecting an aircraft makes at most one camera move: none when it is comfortably on screen, a short pan near an edge or a panel, one eased flight when it is out of reach. The trace is then revealed from its start to the aircraft without moving the camera again. "Show route" (R) is the explicit way to frame the whole trace.
 - Aircraft glide between feed refreshes by dead reckoning along their reported track and ground speed; markers ease to each new position over the one-second tick, and a fresh fix absorbs the difference instead of snapping.
 - Panels spring in from their own edge, the selection pops, the tab and Departures/Arrivals thumbs slide. All motion respects reduced-motion settings.
+
+## Tracking clarity
+
+Panel typography uses rem units: 14 px body, 13 px secondary text, 16 px identity. Route and live measurements precede photographs and reference history. On phones, a selected flight replaces the traffic sheet and offers an explicit return. Routine panel transitions last 150–250 ms; reduced motion removes spatial travel while retaining state feedback.

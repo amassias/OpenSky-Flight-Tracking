@@ -112,3 +112,13 @@ def test_global_emergency_route_returns_open_data_and_cache_headers():
     assert response.json()["count"] == 1
     assert response.json()["states"][0]["squawk"] == "7700"
     assert "s-maxage=60" in response.headers["cache-control"]
+
+
+def test_delayed_emergency_snapshot_is_not_cached_by_the_cdn():
+    now = int(time.time())
+    with patch.object(server.api_client, "get_emergency_states", return_value={"time": now - 90, "provider": "adsb.lol", "states": [], "status": "delayed", "last_success_at": now - 90, "retry_after_seconds": 30}):
+        response = client.get("/api/emergencies")
+    assert response.status_code == 200
+    assert response.json()["status"] == "delayed"
+    assert response.json()["observed_at"] == now - 90
+    assert response.headers["cache-control"] == "no-store"

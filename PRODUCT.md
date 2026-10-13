@@ -31,6 +31,8 @@ SkyTrace brings live viewport traffic, airport movement history, an interactive 
 - Airport search supports city, airport name, IATA, ICAO, region, and country terms.
 - An airport opens on a live board: local time, sun times, METAR/TAF, wind-favoured runways, frequencies, US delays, and departures and arrivals observed by ADS-B with estimated arrival times. UTC arrival and departure history, flight filtering, sorting, status summaries, and track details remain available in the History view.
 - Selected aircraft can show origin, destination, callsign, speed, altitude, vertical rate, track, a flight-progress bar, and an altitude-coloured path with a hover readout. Aircraft keep moving between feed refreshes (dead reckoning) and can be followed.
+- An Alerts tab lists worldwide transponder codes 7500, 7600 and 7700. Delayed observations remain explicitly dated for at most five minutes and cannot be selected as live signals.
+- On phones, a selected flight replaces the traffic sheet, with a return action that preserves the list. Flight routes and live measurements appear before photos and reference history.
 - One search field finds aircraft on the map (callsign, registration, type) and airports. Filters (altitude window, ground traffic, airline/type text), aircraft labels, airport markers and units (aviation or metric) are display options stored in the browser.
 - The map supports light and dark themes, browser geolocation with an accuracy radius, responsive layouts, keyboard support, and local browser preferences.
 - OpenStreetMap provides map tiles. Live traffic uses public ADS-B fallbacks when OpenSky cannot be reached; provider limits and missing history must be presented honestly and must not erase the last useful snapshot.

@@ -244,6 +244,12 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     click: selectAircraft,
   }), [selectAircraft]);
 
+  useEffect(() => {
+    const element = markerRef.current?.getElement();
+    element?.setAttribute("aria-label", `View ${labelPrimary}`);
+    element?.setAttribute("title", `View ${labelPrimary}`);
+  }, [labelPrimary]);
+
   // Only dead-reckoning ticks glide. Leaflet's own camera animations must
   // position markers immediately or they visibly lag behind their map point.
   useEffect(() => subscribeToTick((now) => {
@@ -260,7 +266,7 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   }), []);
 
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <Marker ref={markerRef} position={position} icon={icon} eventHandlers={eventHandlers} />;
+  return <Marker ref={markerRef} position={position} icon={icon} title={`View ${labelPrimary}`} alt={`View ${labelPrimary}`} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
 const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, theme = "dark" }: AircraftMarkerProps) {
@@ -443,6 +449,7 @@ function revealPoint(map: L.Map, point: [number, number], animate: boolean) {
 }
 
 interface MapControllerProps {
+  airportFocusRequest: number;
   airport: Airport | null;
   flight: Flight | null;
   track?: TrackResponse;
@@ -452,10 +459,11 @@ interface MapControllerProps {
   onLocationError: (message: string) => void;
 }
 
-function MapController({ airport, flight, track, fitRequest, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
+function MapController({ airport, airportFocusRequest, flight, track, fitRequest, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
   const map = useMap();
   const selection = useRef<{ id: string; fitted: boolean; revealed: boolean } | null>(null);
   const centeredAirport = useRef<string | null>(null);
+  const centeredAirportRequest = useRef(-1);
   const lastFitRequest = useRef(fitRequest);
 
   // The aircraft is revealed once per selection.
@@ -494,12 +502,13 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
   const airportLatitude = airport?.latitude;
   const airportLongitude = airport?.longitude;
   useEffect(() => {
-    if (!airportIcao || airportLatitude == null || airportLongitude == null || centeredAirport.current === airportIcao) return;
-    const first = centeredAirport.current === null;
-    centeredAirport.current = airportIcao;
+    if (!airportIcao || airportLatitude == null || airportLongitude == null || (centeredAirport.current === airportIcao && centeredAirportRequest.current === airportFocusRequest)) return;
+    const first = centeredAirport.current === null && airportFocusRequest === 0;
     // A deep link can resolve its airport after its aircraft. Keep the flight
     // camera in charge until the visitor explicitly changes airport.
     if (flight) return;
+    centeredAirport.current = airportIcao;
+    centeredAirportRequest.current = airportFocusRequest;
     const insets = getSafeInsets(map);
     map.stop();
     if (first) {
@@ -510,7 +519,7 @@ function MapController({ airport, flight, track, fitRequest, locateRequest, onLo
       map.fire("viewprefetch", { bounds: boundsAt(map, target, 9) });
       map.flyTo(target, 9, { animate: !prefersReducedMotion(), duration: 0.9, easeLinearity: 0.2 });
     }
-  }, [airportIcao, airportLatitude, airportLongitude, flight, map]);
+  }, [airportIcao, airportLatitude, airportLongitude, airportFocusRequest, flight, map]);
 
   useEffect(() => {
     if (!locateRequest) return;
@@ -799,6 +808,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 }
 
 interface FlightMapProps {
+  airportFocusRequest?: number;
   airport: Airport | null;
   airports?: Airport[];
   nearbyAirports?: Airport[];
@@ -842,6 +852,7 @@ interface ProgressiveLiveState {
 
 export function FlightMap({
   airport,
+  airportFocusRequest = 0,
   airports = [],
   nearbyAirports = [],
   airportCatalogLoading = false,
@@ -1289,6 +1300,7 @@ export function FlightMap({
         <MapViewClasses labelsEnabled={labelsEnabled} />
         <MapController
           airport={airport}
+          airportFocusRequest={airportFocusRequest}
           flight={selectedFlight}
           track={track}
           fitRequest={fitRequest}

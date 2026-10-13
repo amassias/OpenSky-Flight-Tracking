@@ -187,3 +187,11 @@ Ticket flight numbers (AF1234) are matched to callsigns (AFR1234) with `src/airl
 ### Airport schedules and data coverage
 
 The map and airport board display observed traffic. No regional timetable integration is enabled: a planned-flight board needs a verified global provider. See [provider research and metadata provenance](docs/FREE_TIMETABLE_SOURCES.md).
+
+### Worldwide alert reliability and tracking clarity
+
+The worldwide squawk feed shares requests per server instance, retries transient failures once, and backs off after provider errors or rate limits. A delayed last observation is retained for at most five minutes, explicitly dated, and cannot be selected as a current live alert. Degraded responses are not CDN-cached. The feed remains dependent on public receiver coverage; no code establishes the cause of an incident.
+
+Flight details put the route, measurements and operations before photographs and reference history. On mobile, details replace the list sheet with a return action. Airport boards distinguish local scheduled, estimated and actual times; recorded history remains in UTC. Keyboard tabs, named aircraft markers, larger panel text and targeted reduced-motion behaviour support the same workflows across devices.
+
+Audit evidence and limitations: [13 October reliability and usability audit](docs/audits/2026-10-13-tracking-ux.md).

@@ -53,4 +53,15 @@ describe("FlightDetails", () => {
     expect(screen.queryByText("100% flown")).not.toBeInTheDocument();
     expect(screen.queryByText(/Arrived/)).not.toBeInTheDocument();
   });
+  it("does not infer distance or arrival time from a usual callsign route", () => {
+    renderDetails({ route_source: "callsign", latitude: 49, longitude: 2.5,
+      departure_airport: "LFPG", arrival_airport: "EGLL", velocity: 220,
+      flightaware: { provider: "FlightAware", progress_percent: 50,
+        origin: { latitude: 49, longitude: 2.5 }, destination: { latitude: 51.47, longitude: -0.45 } },
+    });
+    expect(screen.getByText(/Usual callsign route/)).toBeInTheDocument();
+    expect(screen.getByText("50% reported progress")).toBeInTheDocument();
+    expect(screen.queryByText(/NM flown|to go$/)).not.toBeInTheDocument();
+  });
+
 });

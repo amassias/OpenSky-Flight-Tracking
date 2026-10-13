@@ -112,6 +112,7 @@ export function App() {
   // The live board needs no history access, so it is the default airport view.
   const [airportView, setAirportView] = useState<AirportView>(initialParams.get("view") === "history" ? "history" : "live");
   const [request, setRequest] = useState<FlightRequest | null>(null);
+  const [airportFocusRequest, setAirportFocusRequest] = useState(0);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
   // Each notice gets its own id so repeating a message replays it and restarts
@@ -386,6 +387,13 @@ export function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const update = () => document.documentElement.classList.toggle("page-hidden", document.hidden);
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => { document.removeEventListener("visibilitychange", update); document.documentElement.classList.remove("page-hidden"); };
+  }, []);
+
   // A lost connection would otherwise look like an empty sky.
   useEffect(() => {
     const offline = () => setToast("You are offline. The map keeps the last positions until the connection returns.");
@@ -536,6 +544,8 @@ export function App() {
   }, []);
 
   const openAirport = useCallback((airport: Airport, options: { date?: string; mode?: FlightMode } = {}) => {
+    setPreviewFlight(null);
+    setAirportFocusRequest(value => value + 1);
     setRequest({ airport, date: options.date ?? date, mode: options.mode ?? mode });
     setSelectedFlight(null);
     setTab("airport");
@@ -641,6 +651,7 @@ export function App() {
         <FlightMap
           // A shared map position wins over the home airport until one is opened.
           airport={request?.airport ?? (sharedView ? null : homeAirport)}
+          airportFocusRequest={airportFocusRequest}
           initialView={sharedView}
           onViewChange={handleViewChange}
           onUserLocation={setUserPosition}
@@ -719,7 +730,9 @@ export function App() {
               photoError={photo.isError}
               airports={detailAirports}
               onRetryTrack={() => track.refetch()}
-              onClose={() => setSelectedFlight(null)}
+              onBack={() => { setTrafficOpen(true); setSelectedFlight(null); requestAnimationFrame(() => document.getElementById(`traffic-tab-${tab}`)?.focus()); }}
+              backLabel={`Back to ${tab === "alerts" ? "alerts" : tab === "airport" ? "airport" : "traffic"}`}
+              onClose={() => { setSelectedFlight(null); requestAnimationFrame(() => (document.getElementById(`traffic-tab-${tab}`) ?? document.getElementById("omni-search"))?.focus()); }}
               onShare={shareView}
               observer={userPosition}
             />
@@ -736,7 +749,7 @@ export function App() {
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 18, transition: { duration: 0.16, ease: "easeIn" } }}
-              transition={{ type: "spring", stiffness: 420, damping: 40, mass: 0.9 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
               <TrafficPanel
                 tab={tab}

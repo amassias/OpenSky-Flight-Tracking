@@ -183,6 +183,14 @@ export interface LiveFlightsResponse {
   coverage_complete?: boolean;
 }
 
+export interface EmergencyFeedResponse extends LiveFlightsResponse {
+  time: number;
+  status: "fresh" | "delayed";
+  observed_at: number;
+  last_success_at: number;
+  retry_after_seconds: number;
+}
+
 export interface FlightInfoResponse {
   success: boolean;
   icao24: string;

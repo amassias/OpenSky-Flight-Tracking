@@ -25,6 +25,8 @@ interface FlightDetailsProps {
   airports?: ReadonlyMap<string, Airport>;
   onRetryTrack: () => void;
   onClose: () => void;
+  backLabel?: string;
+  onBack?: () => void;
   onShare: () => void;
   /** The visitor's position, when shared, for "distance from you". */
   observer?: [number, number] | null;
@@ -136,7 +138,7 @@ function Section({ title, aside, open = false, children }: { title: string; asid
   );
 }
 
-export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onShare, observer = null }: FlightDetailsProps) {
+export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onBack, backLabel = "Back to traffic", onShare, observer = null }: FlightDetailsProps) {
   useUnits();
   const flightNumber = flightNumberForCallsign(liveFlight.callsign);
   const aircraftPosition: [number, number] | null = liveFlight.latitude != null && liveFlight.longitude != null ? [liveFlight.latitude, liveFlight.longitude] : null;
@@ -182,7 +184,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
   const endTime = flight.last_seen ?? null;
   const coordinates = (airport?: Airport, fallback?: { latitude?: number | null; longitude?: number | null } | null) =>
     airport?.latitude != null && airport.longitude != null ? airport : fallback;
-  const geometry = flight.on_ground === true && !flight.departure_airport ? null : routeProgress(
+  const geometry = flight.route_source === "callsign" || (flight.on_ground === true && !flight.departure_airport) ? null : routeProgress(
     coordinates(origin, operations?.origin),
     coordinates(destination, operations?.destination),
     flight,
@@ -205,10 +207,11 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       initial={{ opacity: 0, x: -28 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20, transition: { duration: 0.16, ease: "easeIn" } }}
-      transition={{ type: "spring", stiffness: 420, damping: 40, mass: 0.9 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="dock-content" key={flight.icao24}>
       <div className="drawer-handle" aria-hidden="true" />
+      <button type="button" className="mobile-back text-button" onClick={onBack ?? onClose}>{backLabel}</button>
       <header className="details-heading">
         <div className="details-title">
           <h2 className="mono">{flight.callsign || flight.icao24.toUpperCase()}</h2>
@@ -230,7 +233,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
 
       <FlightEvents flight={flight} track={track} airports={airports} />
 
-      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
 
       {offline ? (
         <section className="airframe-offline" aria-label="Live status">
@@ -263,11 +265,12 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </div>
         <RouteProgressBar progress={progress} pending={routeLoading} />
         <div className="route-hero-foot mono">
-          <span>{geometry ? `${Math.round(geometry.percent)}% · ${distanceText(geometry.flownKm)} flown` : progress != null ? `${Math.round(progress)}% flown` : "Progress unavailable"}</span>
+          <span>{geometry ? `${Math.round(geometry.percent)}% · ${distanceText(geometry.flownKm)} flown` : progress != null ? `${Math.round(progress)}% reported progress` : "Progress unavailable"}</span>
           <span>{remaining ? `${remaining} to go` : geometry ? `${distanceText(geometry.remainingKm)} to go` : ""}</span>
         </div>
       </section>
 
+      {flight.route_source === "callsign" && <p className="conditions-note route-source-note">Usual callsign route · may differ from this flight. Distance and arrival estimates are unavailable for this route.</p>}
       <div className="live-readouts" aria-label="Live readouts">
         <div>
           <span>Altitude</span>
@@ -300,25 +303,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </>
       )}
 
-      <Section title="Aircraft" open>
-        <div className="aircraft-profile-grid">
-          <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
-          <div><span>Type code</span><strong className="mono">{profileValue(flight.aircraft_type)}</strong></div>
-          <div className="aircraft-profile-wide"><span>Aircraft</span><strong>{profileValue(flight.aircraft_description, "Type not published")}</strong></div>
-          <div className="aircraft-profile-wide"><span>Operator / owner</span><strong>{profileValue(flight.aircraft_owner, "Not published")}</strong></div>
-          <div><span>Build year</span><strong className="mono">{profileValue(flight.aircraft_year)}</strong></div>
-          <div><span>Category</span><strong className="mono">{profileValue(flight.aircraft_category ?? flight.category)}</strong></div>
-        </div>
-      </Section>
-
-      <Section title="Airframe history" aside="Owners · registrations" open>
-        <AirframeHistory flight={flight} />
-      </Section>
-
-      <Section title="Altitude profile" aside={trackLoading ? "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
-        {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
-      </Section>
-
       {operations && (
         <Section title="Operations" open>
           <div className="operations-status-row">
@@ -342,6 +326,27 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           {operations.route && <p className="operations-route"><span>Filed route</span><strong className="mono">{operations.route}</strong></p>}
         </Section>
       )}
+
+      <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
+
+      <Section title="Aircraft">
+        <div className="aircraft-profile-grid">
+          <div><span>Registration</span><strong className="mono">{profileValue(flight.registration, hasProfile ? "Unknown" : "Not published")}{flight.registration && flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>
+          <div><span>Type code</span><strong className="mono">{profileValue(flight.aircraft_type)}</strong></div>
+          <div className="aircraft-profile-wide"><span>Aircraft</span><strong>{profileValue(flight.aircraft_description, "Type not published")}</strong></div>
+          <div className="aircraft-profile-wide"><span>Operator / owner</span><strong>{profileValue(flight.aircraft_owner, "Not published")}</strong></div>
+          <div><span>Build year</span><strong className="mono">{profileValue(flight.aircraft_year)}</strong></div>
+          <div><span>Category</span><strong className="mono">{profileValue(flight.aircraft_category ?? flight.category)}</strong></div>
+        </div>
+      </Section>
+
+      <Section title="Airframe history" aside="Owners · registrations">
+        <AirframeHistory flight={flight} />
+      </Section>
+
+      <Section title="Altitude profile" aside={trackLoading ? "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
+        {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
+      </Section>
 
       <Section title="Signal and navigation" aside={emergency ? emergency.label : undefined}>
         <div className="signal-profile-grid">

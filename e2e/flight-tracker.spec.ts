@@ -100,6 +100,7 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByText("Incheon", { exact: true })).toBeVisible();
   await expect(page.getByText("F-HABC", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("F-HABC · A359")).toBeVisible();
+  await page.locator(".details-drawer summary").filter({ hasText: /^Aircraft$/ }).click();
   await expect(page.getByText("AIRBUS A-350-941")).toBeVisible();
   await expect(page.getByText("Operations", { exact: true })).toBeVisible();
   await expect(page.getByText("64% complete")).toBeVisible();
@@ -292,6 +293,7 @@ test("shows who owned and operated the selected airframe, and recent flights on 
   await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
   const drawer = page.getByRole("complementary", { name: "Selected flight details" });
   await expect(drawer.getByText("Airframe history")).toBeVisible();
+  await drawer.locator("summary").filter({ hasText: "Airframe history" }).click();
   const section = drawer.locator(".airframe");
   await expect(section.locator(".airframe-registration")).toHaveText("F-HABC");
   await expect(section.getByText("Airbus A350-941")).toBeVisible();

@@ -173,6 +173,7 @@ export function AirportConditions({ airport }: { airport: Airport }) {
 interface RowViewProps {
   /** Struck-through original time above the expected one when a flight moved. */
   timeOld?: string | null;
+  timeLabel?: string;
   time: string;
   timeTone?: "warn" | "ok";
   timeNote?: string | null;
@@ -190,12 +191,13 @@ interface RowViewProps {
 }
 
 /** The one row layout of the board: time, destination and flight, status and gate. */
-function RowView({ timeOld, time, timeTone, timeNote, code, place, ident, airline, progress, chip, tone, live, aside, cancelled }: RowViewProps) {
+function RowView({ timeOld, timeLabel, time, timeTone, timeNote, code, place, ident, airline, progress, chip, tone, live, aside, cancelled }: RowViewProps) {
   return (
     <>
-      <span className="board-time">
-        {timeOld && <small className="board-time-old mono">{timeOld}</small>}
+      <span className="board-time" title={timeLabel}>
+        {timeOld && <small className="board-time-old mono">{timeOld}<span className="sr-only"> scheduled</span></small>}
         <strong className={`mono ${timeTone ? `tone-${timeTone}` : ""} ${cancelled ? "is-cancelled" : ""}`}>{time}</strong>
+        {timeLabel && <small className="board-time-kind">{timeLabel}</small>}
         {timeNote && <small className="mono">{timeNote}</small>}
       </span>
       <span className="board-main">
@@ -292,9 +294,12 @@ const ScheduleRow = memo(function ScheduleRow({ entry, mode, airport, now, selec
   const airborneArrival = mode === "arrival" && Boolean(live) && live!.on_ground === false;
   const eta = airborneArrival ? entry.liveEtaMs : null;
   const minutes = eta != null ? minutesUntil(eta / 1000, now) : null;
-  const shown = changed ? entry.expectedMs : entry.scheduledMs;
+  const shown = entry.expectedMs ?? entry.scheduledMs;
+  const actualTime = mode === "departure" ? flight.actual_out : flight.actual_in;
+  const estimatedTime = mode === "departure" ? flight.estimated_out ?? flight.estimated_off : flight.estimated_in ?? flight.estimated_on;
   const content = (
     <RowView
+      timeLabel={actualTime ? "Actual" : estimatedTime ? "Estimated" : "Scheduled"}
       timeOld={changed && entry.scheduledMs != null ? localTime(entry.scheduledMs, airport.timezone) : null}
       time={shown != null ? localTime(shown, airport.timezone) : "—"}
       timeTone={changed ? (entry.delayMinutes > 0 ? "warn" : "ok") : undefined}
@@ -429,6 +434,7 @@ export function LiveBoard({ airport, mode, selectedIcao24, liveAircraft = NO_AIR
         {toolbar}
       </div>
 
+      <p className="board-clock-note">Times are local to {airport.iata || airport.icao} ({utcOffsetLabel(now, airport.timezone)}). A crossed-out time is the original schedule.</p>
       <div className="live-board-rows" aria-busy={board.isFetching}>
         {resolveNotice && <p className="board-resolve-notice" role="status">{resolveNotice}</p>}
         {/* Placeholders only while there is nothing real to show: scheduled

@@ -1,4 +1,5 @@
 import type {
+  EmergencyFeedResponse,
   AircraftFlightsResponse,
   AircraftLookupResponse,
   CallsignLookupResponse,
@@ -91,9 +92,13 @@ function listOf<T>(value: T[] | null | undefined): T[] {
 
 export const api = {
   emergencies: async (signal?: AbortSignal) => {
-    const response = await request<LiveFlightsResponse>("/api/emergencies", undefined, signal);
+    const response = await request<EmergencyFeedResponse>("/api/emergencies", undefined, signal);
     if (!response || !Array.isArray(response.states) || !Number.isFinite(response.time)) throw new ApiError("Global emergency feed returned an unreadable snapshot.", 502);
-    return response;
+    return { ...response, status: response.status === "delayed" ? "delayed" : "fresh",
+      observed_at: response.time,
+      last_success_at: Number.isFinite(response.last_success_at) ? response.last_success_at : response.time,
+      retry_after_seconds: Number.isFinite(response.retry_after_seconds) ? Math.max(30, Math.min(300, response.retry_after_seconds)) : 60,
+    } satisfies EmergencyFeedResponse;
   },
   health: (signal?: AbortSignal) => request<HealthResponse>("/api/health", undefined, signal),
   mapAirports: async (signal?: AbortSignal) => listOf(await request<Airport[]>("/api/map-airports", undefined, signal)),

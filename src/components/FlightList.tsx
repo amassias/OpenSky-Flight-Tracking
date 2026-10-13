@@ -40,7 +40,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
   const time = flight.primary_time ?? flight.first_seen ?? flight.last_seen;
   const emergency = emergencyInfo(flight);
   const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
-  const airframe = [flight.registration_source === "schedule" ? null : flight.registration, flight.aircraft_type].filter(Boolean).join(" · ");
+  const airframe = [flight.registration_source === "schedule" ? null : flight.registration, flight.data_source === "live-nearby" ? null : flight.aircraft_type].filter(Boolean).join(" · ");
   const operator = flight.airline_name || airframe || "Unidentified operator";
   const flightNumber = flightNumberForCallsign(flight.callsign);
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");

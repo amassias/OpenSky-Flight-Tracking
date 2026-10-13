@@ -240,7 +240,7 @@ export function OmniSearch({ aircraft, recent, popular, focusRequest = 0, onSele
           {empty && <p className="omni-empty">No live aircraft or airport matches “{trimmed}”.</p>}
           {globalAircraft.isError && <p className="omni-empty" role="alert">Worldwide aircraft lookup is unavailable right now. Aircraft on the map can still be searched.</p>}
           {airportSearch.isError && trimmed.length >= 2 && !searching && <p className="omni-empty" role="alert">Airport search is unavailable right now.</p>}
-          <p className="omni-hint">Complete callsigns such as BAW52T search live aircraft worldwide. Ticket flight numbers also try the airline’s numeric callsign; some flights use a different ATC callsign. A registration such as F-HBXA or N283VA opens that airframe's history anywhere.</p>
+          <details className="omni-hint"><summary>Search worldwide · callsign, registration or airport</summary><p>Complete callsigns such as BAW52T search live aircraft worldwide. Ticket flight numbers try the airline’s numeric callsign; ATC callsigns can differ. An aircraft registration opens its history.</p></details>
         </div>
       )}
     </div>
