@@ -240,8 +240,9 @@ export function App() {
     const info = flightInfo.data;
     const historical = selectedFlight.data_source !== "live-nearby" && (selectedFlight.primary_time ?? selectedFlight.first_seen ?? 0) > 0;
     const routeInfo = historical ? current : info;
-    const telemetry = historical ? current : liveSelected ?? ((current.last_contact ?? -Infinity) > (info.last_contact ?? -Infinity) ? current : info);
-    const enriched = !historical && !liveSelected && info.live_state && (info.time_position ?? 0) > (current.time_position ?? 0) ? withLiveKinematics(current, info.live_state) : current;
+    const profileMatches = sameLiveFlight(current, info.live_state ?? info);
+    const telemetry = historical ? current : liveSelected ?? (!profileMatches ? current : ((current.last_contact ?? -Infinity) > (info.last_contact ?? -Infinity) ? current : info));
+    const enriched = !historical && profileMatches && !liveSelected && info.live_state && (info.time_position ?? 0) > (current.time_position ?? 0) ? withLiveKinematics(current, info.live_state) : current;
     // Airframe identity, most to least reliable: the transponder profile from
     // flight-info, then the transponder registration the live feed already
     // gave us, and only then FlightAware's tail, which is the aircraft

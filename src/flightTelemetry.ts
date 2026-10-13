@@ -1,7 +1,7 @@
 import type { Flight, LiveAircraft } from "./types";
 
 const normalize = (value?: string | null) => (value ?? "").replace(/\s/g, "").toUpperCase();
-export function sameLiveFlight(flight: Flight, live: LiveAircraft): boolean {
+export function sameLiveFlight(flight: Flight, live: Pick<Flight, "icao24" | "callsign">): boolean {
   if (flight.data_source === "scheduled" || flight.data_source === "opensky" || (flight.data_source !== "live-nearby" && (flight.primary_time ?? flight.first_seen ?? 0) > 0)) return false;
   if (flight.icao24.toLowerCase() !== live.icao24.toLowerCase()) return false;
   const identity = normalize(flight.callsign);

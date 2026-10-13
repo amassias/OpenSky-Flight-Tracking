@@ -324,4 +324,18 @@ describe("App", () => {
     expect(route).not.toHaveTextContent("Santiago");
   });
 
+  it("does not mark an old position fresh using another flight's profile packet", async () => {
+    window.history.replaceState(null, "", "/?icao24=39abcd");
+    const now = Math.floor(Date.now()/1000);
+    let lookups = 0;
+    mockApi({ "/api/flight-info": () => json(++lookups === 1
+      ? { success: true, icao24: "39abcd", callsign: "AFR123", latitude: 49, longitude: 2, time_position: now-180, last_contact: now-180, squawk: "2021", emergency: "none" }
+      : { success: true, icao24: "39abcd", callsign: "AFR123", aircraft_description: "Other episode packet", time_position: now, last_contact: now, squawk: "7700", emergency: "general",
+          live_state: { icao24: "39abcd", callsign: "AFR999", latitude: 50, longitude: 3, time_position: now, last_contact: now, squawk: "7700", emergency: "general" } }) });
+    renderApp();
+    expect(await screen.findByText("Other episode packet")).toBeInTheDocument();
+    expect(screen.getByText(/Position updates delayed/)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Flight alerts and events" })).not.toBeInTheDocument();
+  });
+
 });

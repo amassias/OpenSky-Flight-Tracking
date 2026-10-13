@@ -40,4 +40,6 @@ The deterministic design scan has no blocking findings. Remaining advisories con
 
 Operational data remains optional and subject to the existing provider budget. No additional lookup is performed per map marker. Matching an operational episode establishes correspondence with the provider record; it does not establish an incident's cause. Public receiver coverage can still omit positions or traces, so missing data stays explicitly unknown.
 
-Release checks passed: lint/build, 151 frontend unit tests, 124 Python tests and 165 Chromium/Firefox/mobile WebKit tests (15 platform-specific skips). Total: 440 passing release tests. The separate before/after render measurement is recorded above and is not included in that total.
+Release checks passed: lint/build, 152 frontend unit tests, 124 Python tests and 165 Chromium/Firefox/mobile WebKit tests (15 platform-specific skips). Total: 441 passing release tests. The separate before/after render measurement is recorded above and is not included in that total.
+
+A final regression check rejects telemetry from a different callsign in the profile response, preserving the age and alert state of the selected episode. The 34 observation/alert browser scenarios were rerun successfully after this guard; backend route preference was also checked on production for AFR531 (SCEL–LFPG, matching operational record).
