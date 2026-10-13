@@ -5,9 +5,10 @@ import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
 import { bearingDeg, compassPoint, distanceKm, emergencyInfo, flightNumberForCallsign, formatAltitude, formatDuration, formatSpeed, formatTime, routeProgress, statusLabel, verticalTrend } from "../utils";
 import { distanceText, useUnits, verticalRateText } from "../units";
+import { PositionObservation } from "./PositionObservation";
 import { AirframeHistory } from "./AirframeHistory";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
-import { confirmedDiversion } from "../flightEvents";
+import { operationsMatchFlight } from "../flightEvents";
 import { FlightEvents } from "./FlightEvents";
 import { AltitudeChart } from "./AltitudeChart";
 
@@ -27,6 +28,8 @@ interface FlightDetailsProps {
   onClose: () => void;
   backLabel?: string;
   onBack?: () => void;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
   onShare: () => void;
   /** The visitor's position, when shared, for "distance from you". */
   observer?: [number, number] | null;
@@ -138,7 +141,7 @@ function Section({ title, aside, open = false, children }: { title: string; asid
   );
 }
 
-export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onBack, backLabel = "Back to traffic", onShare, observer = null }: FlightDetailsProps) {
+export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onBack, expanded = false, onToggleExpanded, backLabel = "Back to traffic", onShare, observer = null }: FlightDetailsProps) {
   useUnits();
   const flightNumber = flightNumberForCallsign(liveFlight.callsign);
   const aircraftPosition: [number, number] | null = liveFlight.latitude != null && liveFlight.longitude != null ? [liveFlight.latitude, liveFlight.longitude] : null;
@@ -168,7 +171,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
   const path = track?.track.path ?? [];
   // An aircraft in the air cannot be on a leg that has already arrived: that
   // record is the previous flight under the same callsign, so leave it out.
-  const operations = (flight.on_ground === false && flight.flightaware?.actual_in) || (flight.flightaware?.diverted && !confirmedDiversion(flight)) ? null : flight.flightaware;
+  const operations = flight.data_source === "scheduled" || operationsMatchFlight(flight) ? flight.flightaware : null;
   const emergency = emergencyInfo(flight);
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
@@ -202,6 +205,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
 
   return (
     <motion.aside
+      layout="position"
       className="details-drawer dock-panel"
       aria-label="Selected flight details"
       initial={{ opacity: 0, x: -28 }}
@@ -209,9 +213,12 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       exit={{ opacity: 0, x: -20, transition: { duration: 0.16, ease: "easeIn" } }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="dock-content" key={flight.icao24}>
+      <div className="dock-content" id="selected-flight-content" key={flight.icao24}>
       <div className="drawer-handle" aria-hidden="true" />
-      <button type="button" className="mobile-back text-button" onClick={onBack ?? onClose}>{backLabel}</button>
+      <div className="mobile-sheet-toolbar">
+        <button type="button" className="mobile-back text-button" onClick={onBack ?? onClose}>{backLabel}</button>
+        {onToggleExpanded && <button type="button" className="text-button" aria-expanded={expanded} aria-controls="selected-flight-content" onClick={event => { event.currentTarget.focus({ preventScroll: true }); onToggleExpanded(); }}>{expanded ? "Show map" : "Expand details"}</button>}
+      </div>
       <header className="details-heading">
         <div className="details-title">
           <h2 className="mono">{flight.callsign || flight.icao24.toUpperCase()}</h2>
@@ -231,6 +238,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         {flight.registration && flight.registration_source !== "schedule" && <span className="details-chip mono">{flight.registration}</span>}
       </div>
 
+      <PositionObservation flight={flight} />
       <FlightEvents flight={flight} track={track} airports={airports} />
 
 
@@ -239,7 +247,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           <Plane size={18} aria-hidden="true" />
           <div>
             <strong>Not in the live feed right now</strong>
-            <p>This airframe is not transmitting within range of a receiver. Its registry history is below; if it flies, its position and route appear here.</p>
+            <p>No current position was returned by the available feeds. Receiver coverage varies; the aircraft may still be flying. Its registry history is below.</p>
           </div>
         </section>
       ) : (
@@ -271,7 +279,8 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       </section>
 
       {flight.route_source === "callsign" && <p className="conditions-note route-source-note">Usual callsign route · may differ from this flight. Distance and arrival estimates are unavailable for this route.</p>}
-      <div className="live-readouts" aria-label="Live readouts">
+      {flight.route_source === "flightaware" && <p className="conditions-note route-source-note">Route reported by FlightAware for this flight.</p>}
+      <div className="live-readouts" aria-label="Last reported flight readouts">
         <div>
           <span>Altitude</span>
           {/* Barometric altitude on the ground reads a few hundred feet off with QNH; say "Ground" instead. */}
@@ -344,8 +353,8 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         <AirframeHistory flight={flight} />
       </Section>
 
-      <Section title="Altitude profile" aside={trackLoading ? "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
-        {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading ? <div className="chart-skeleton" /> : trackError ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <AltitudeChart points={path} />}
+      <Section title="Altitude profile" aside={trackLoading ? path.length ? "Updating trace…" : "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
+        {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading && !path.length ? <div className="chart-skeleton" /> : trackError && !path.length ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <><AltitudeChart points={path} />{trackError && <div className="track-refresh-notice"><p>Trace updates delayed. The previous observations are kept.</p><button type="button" className="text-button" onClick={onRetryTrack}>Retry track</button></div>}</>}
       </Section>
 
       <Section title="Signal and navigation" aside={emergency ? emergency.label : undefined}>

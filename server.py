@@ -189,6 +189,35 @@ class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
 
+def _operations_match_current_flight(operations, callsign, state=None, now=None):
+    if not isinstance(operations, dict):
+        return False
+    normalize = lambda value: re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+    identifier = operations.get("atc_ident") or operations.get("queried_ident") or operations.get("ident")
+    if not identifier or normalize(identifier) != normalize(callsign):
+        return False
+    state = state or {}
+    if state.get("callsign") and normalize(state["callsign"]) != normalize(callsign):
+        return False
+    if state.get("registration") and operations.get("registration") and normalize(state["registration"]) != normalize(operations["registration"]):
+        return False
+    def timestamp(value):
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            return parsed.timestamp() if parsed.tzinfo is not None else None
+        except (ValueError, TypeError, OverflowError):
+            return None
+    start = timestamp(operations.get("actual_out") or operations.get("actual_off") or operations.get("scheduled_out"))
+    landed = timestamp(operations.get("actual_in") or operations.get("actual_on"))
+    now = time.time() if now is None else now
+    if start is None or not 0 <= now - start < 36 * 3600:
+        return False
+    if landed is not None:
+        if state.get("on_ground") is False or not 0 <= now - landed < 2 * 3600:
+            return False
+    return True
+
+
 class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
@@ -1234,6 +1263,14 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 # quota response must never hide the live ADS-B details.
                 flightaware = None
 
+        # A route for the current operational episode outranks a usual
+        # callsign route. Reject yesterday's flight or a different airframe.
+        operations_match = _operations_match_current_flight(flightaware, callsign, current_state)
+        if flightaware:
+            flightaware = {**flightaware, "matches_current_flight": operations_match}
+        if not operations_match:
+            flightaware = None
+
         historical_departure = (most_recent.get("estDepartureAirport") if most_recent else None) or None
         historical_arrival = (most_recent.get("estArrivalAirport") if most_recent else None) or None
         route_departure = (callsign_route or {}).get("departure_airport")
@@ -1242,10 +1279,14 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         flightaware_destination = (flightaware or {}).get("destination") if isinstance((flightaware or {}).get("destination"), dict) else {}
         flightaware_departure = flightaware_origin.get("code_icao") or flightaware_origin.get("code") or flightaware_origin.get("code_iata")
         flightaware_arrival = flightaware_destination.get("code_icao") or flightaware_destination.get("code") or flightaware_destination.get("code_iata")
-        departure_airport = historical_departure or route_departure or flightaware_departure
-        arrival_airport = historical_arrival or route_arrival or flightaware_arrival
+        departure_airport = flightaware_departure or historical_departure or route_departure
+        arrival_airport = flightaware_arrival or historical_arrival or route_arrival
 
-        if historical_departure or historical_arrival:
+        if flightaware_departure or flightaware_arrival:
+            complete = bool(flightaware_departure and flightaware_arrival)
+            route_source = "flightaware" if complete else "mixed"
+            route_provider = "FlightAware" if complete else "FlightAware + route fallback"
+        elif historical_departure or historical_arrival:
             missing_from_history = not historical_departure or not historical_arrival
             if missing_from_history and callsign_route:
                 route_source = "mixed"
@@ -1274,7 +1315,8 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 airport = flightaware_origin if key == "departure_airport_name" else flightaware_destination
                 return airport.get("name") or airport.get("city")
             local_name = self._airport_name(airport_code)
-            external_name = (callsign_route or {}).get(key)
+            route_key = "departure_airport" if key == "departure_airport_name" else "arrival_airport"
+            external_name = (callsign_route or {}).get(key) if (callsign_route or {}).get(route_key) == airport_code else None
             if external_name and local_name == str(airport_code).upper():
                 return external_name
             airport = flightaware_origin if key == "departure_airport_name" else flightaware_destination

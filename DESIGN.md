@@ -197,3 +197,5 @@ The map fills the window under a 48 px bar. Everything else docks to its edges:
 ## Tracking clarity
 
 Panel typography uses rem units: 14 px body, 13 px secondary text, 16 px identity. Route and live measurements precede photographs and reference history. On phones, a selected flight replaces the traffic sheet and offers an explicit return. Routine panel transitions last 150–250 ms; reduced motion removes spatial travel while retaining state feedback.
+
+Observation time is visible beside selected-flight information. Altitude graphs use UTC time axes and a native point inspector; missing values remain gaps. Phone reading mode expands the existing sheet, retains the flight identity and return controls, and prevents interaction with the covered map.

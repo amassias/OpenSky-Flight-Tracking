@@ -15,6 +15,7 @@ export interface FlightAwareAirport {
 }
 
 export interface FlightAwareDetails {
+  matches_current_flight?: boolean;
   provider: "FlightAware" | string;
   queried_ident?: string | null;
   fa_flight_id?: string | null;

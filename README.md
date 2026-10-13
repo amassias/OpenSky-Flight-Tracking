@@ -195,3 +195,5 @@ The worldwide squawk feed shares requests per server instance, retries transient
 Flight details put the route, measurements and operations before photographs and reference history. On mobile, details replace the list sheet with a return action. Airport boards distinguish local scheduled, estimated and actual times; recorded history remains in UTC. Keyboard tabs, named aircraft markers, larger panel text and targeted reduced-motion behaviour support the same workflows across devices.
 
 Audit evidence and limitations: [13 October reliability and usability audit](docs/audits/2026-10-13-tracking-ux.md).
+
+The second [observation-integrity audit](docs/audits/2026-10-13-observation-integrity.md) addresses matched operational route preference, historical-flight isolation, dated position observations, accessible time-scaled altitude inspection and expandable mobile details. Only the selected live trace refreshes automatically (every 90 seconds); failed refreshes retain the previous observations.

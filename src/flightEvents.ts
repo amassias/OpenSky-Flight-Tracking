@@ -1,10 +1,10 @@
 import type { Airport, Flight, TrackResponse } from "./types";
 import { distanceKm } from "./utils";
 
-/** The diversion flag must refer to this flight instance, not yesterday's callsign. */
-export function confirmedDiversion(flight: Flight, nowMs = Date.now()): boolean {
+/** Operational details must refer to this flight instance. */
+export function operationsMatchFlight(flight: Flight, nowMs = Date.now()): boolean {
   const operations = flight.flightaware;
-  if (!operations?.diverted || flight.data_source === "scheduled") return false;
+  if (!operations || operations.matches_current_flight === false || flight.data_source === "scheduled") return false;
   const normalize = (value?: string | null) => (value ?? "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
   const identifier = operations.atc_ident || operations.queried_ident || operations.ident;
   if (!identifier || normalize(identifier) !== normalize(flight.callsign)) return false;
@@ -23,9 +23,14 @@ export function confirmedDiversion(flight: Flight, nowMs = Date.now()): boolean 
     && (!Number.isFinite(landed) || (nowMs >= landed && nowMs - landed < 2 * 3600_000));
 }
 
+/** The diversion flag alone is insufficient without a matching episode. */
+export function confirmedDiversion(flight: Flight, nowMs = Date.now()): boolean {
+  return Boolean(flight.flightaware?.diverted) && operationsMatchFlight(flight, nowMs);
+}
+
 /** A conservative geographic observation, never a confirmed diversion. */
 export function possibleDiversion(flight: Flight, track: TrackResponse | undefined, airports?: ReadonlyMap<string, Airport>) {
-  if (flight.data_source !== "live-nearby" || !flight.on_ground || flight.flightaware?.diverted || !airports) return null;
+  if (flight.data_source !== "live-nearby" || !flight.on_ground || confirmedDiversion(flight) || !airports) return null;
   const destination = airports.get(flight.arrival_airport ?? "");
   const path = track?.track.path;
   if (!destination || destination.latitude == null || destination.longitude == null || !path?.length) return null;

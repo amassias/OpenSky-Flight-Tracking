@@ -219,7 +219,7 @@ def test_flight_info_uses_flightaware_route_and_operations_when_other_routes_are
         "origin": {"code_icao": "LFPG", "name": "Paris Charles de Gaulle"},
         "destination": {"code_icao": "EGLL", "name": "London Heathrow"},
         "progress_percent": 58,
-        "scheduled_out": "2026-09-12T08:00:00Z",
+        "scheduled_out": datetime.fromtimestamp(server.time.time() - 3600, timezone.utc).isoformat(),
         "estimated_in": "2026-09-12T10:00:00Z",
         "registration": "F-HTYA",
     }
@@ -427,3 +427,28 @@ def test_track_drops_previous_legs_and_their_emergency_events():
         payload = handler().handle_track("39abcd", 0, "AFR123")
     assert payload["path_count"] == 2
     assert [event["code"] for event in payload["track"]["emergency_events"]] == ["7600"]
+
+
+def test_matching_operational_route_outranks_the_usual_callsign_route():
+    now = server.time.time()
+    fake = Mock()
+    fake.get_aircraft_profile.return_value = {"state": ["3949eb", "AFR531", "France", now, now, 2, 49, 9000, False, 220, 90, 0, None, 9000, "1000", False, 0, 4, {"registration": "F-GSPL"}]}
+    fake.get_callsign_route.return_value = {"departure_airport": "DIAP", "arrival_airport": "DNMM", "departure_airport_name": "Abidjan", "route_provider": "ADSBDB"}
+    fake.get_flightaware_details.return_value = {"provider": "FlightAware", "queried_ident": "AFR531", "registration": "F-GSPL", "actual_out": datetime.fromtimestamp(now-3600,timezone.utc).isoformat(), "origin": {"code_icao": "SCEL", "name": "Santiago"}, "destination": {"code_icao": "LFPG", "name": "Paris"}}
+    with patch.object(server,"api_client",fake):
+        result = handler().handle_flight_info("3949eb","AFR531")
+    assert (result["departure_airport"],result["arrival_airport"]) == ("SCEL","LFPG")
+    assert result["route_source"] == "flightaware"
+    assert result["flightaware"]["matches_current_flight"] is True
+    assert "Abidjan" not in result["departure_airport_name"]
+
+
+@pytest.mark.parametrize("change", [
+    {"atc_ident": "AFR999"}, {"registration": "F-OTHER"},
+    {"actual_out": "2020-01-01T00:00:00Z"}, {"actual_in": "2026-01-01T00:00:00Z"},
+    {"actual_out": None},
+])
+def test_operational_episode_matching_rejects_other_flights(change):
+    now = server.time.time()
+    operations = {"queried_ident":"AFR531","registration":"F-GSPL","actual_out":datetime.fromtimestamp(now-3600,timezone.utc).isoformat(),**change}
+    assert not server._operations_match_current_flight(operations,"AFR531",{"callsign":"AFR531","registration":"F-GSPL","on_ground":False},now)

@@ -954,3 +954,32 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
   .movement-loading-radar, .list-refreshing span, .list-spinner { animation: none; }
   .map-toolbar, .map-altitude-legend, .emergency-banner { transition: none; }
 }
+
+/* Observation provenance stays readable without announcing a ticking clock. */
+.position-observation { margin: 12px 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.5; }
+.position-observation p { margin: 4px 0 0; }
+.position-observation.is-delayed { padding: 10px; background: var(--fill); border-radius: var(--r-sm); color: var(--text); }
+.mobile-sheet-toolbar { display: none; }
+.chart-scale, .chart-time-axis { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: var(--type-meta); font-variant-numeric: tabular-nums; }
+.chart-inspector { display: grid; gap: 6px; margin-top: 10px; font-size: var(--type-meta); color: var(--muted); }
+.chart-inspector input { width: 100%; min-height: 44px; margin: 0; accent-color: var(--accent); }
+.altitude-hover-readout { color: var(--text); font-size: var(--type-body); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .mobile-sheet-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .mobile-sheet-toolbar .text-button { min-height: 44px; }
+  .workspace.sheet-expanded .details-drawer { height: 85%; }
+  .app:not(.map-expanded) .workspace.sheet-expanded :is(.map-controls,.map-toolbar,.nearby-airports-control,.map-status,.emergency-banner,.location-status) { display: none; }
+  .app:not(.map-expanded) .workspace.sheet-expanded .leaflet-bottom { bottom: 85%; }
+}
+
+@media (max-width: 900px) {
+  .mobile-sheet-toolbar { position: sticky; top: -14px; z-index: 3; padding: 4px 0; background: var(--panel-solid); }
+  .details-drawer .details-heading { top: 38px; }
+}
+
+.shared-flight-notice { position: absolute; z-index: 810; top: 110px; left: var(--inset-left); max-width: min(320px, calc(100% - 24px)); padding: 12px; color: var(--text); background: var(--panel-solid); border-radius: var(--r-md); font-size: var(--type-body); line-height: 1.5; }
+.shared-flight-notice p { margin: 4px 0; }
+.track-refresh-notice { color: var(--muted); font-size: var(--type-meta); line-height: 1.5; }
+@media (max-width: 900px) { .shared-flight-notice { top: 148px; left: 12px; } }
+
+.altitude-hover-target { touch-action: pan-y; }

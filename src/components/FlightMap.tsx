@@ -1,3 +1,5 @@
+import { sameLiveFlight } from "../flightTelemetry";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
@@ -364,7 +366,10 @@ function getSafeInsets(map: L.Map): Insets {
   };
   if (window.matchMedia("(max-width: 900px)").matches) {
     // Phones show the panels as bottom sheets.
-    if (workspace.classList.contains("has-dock")) insets.bottom += Math.round(map.getSize().y * 0.5);
+    if (workspace.classList.contains("has-dock") || workspace.classList.contains("traffic-open")) {
+      const sheet = workspace.querySelector<HTMLElement>(workspace.classList.contains("has-dock") ? ".details-drawer" : ".traffic-slot");
+      insets.bottom += sheet ? sheet.getBoundingClientRect().height : Math.round(map.getSize().y * 0.5);
+    }
     return insets;
   }
   insets.top += 52;
@@ -467,7 +472,7 @@ function MapController({ airport, airportFocusRequest, flight, track, fitRequest
   const lastFitRequest = useRef(fitRequest);
 
   // The aircraft is revealed once per selection.
-  const selectedId = flight?.icao24 ?? null;
+  const selectedId = flight ? `${flight.icao24}:${flight.callsign}:${flight.primary_time ?? flight.first_seen ?? 0}:${flight.data_source ?? ""}` : null;
   const selectedLatitude = flight?.latitude;
   const selectedLongitude = flight?.longitude;
   useEffect(() => {
@@ -809,6 +814,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 
 interface FlightMapProps {
   airportFocusRequest?: number;
+  readingDetails?: boolean;
   airport: Airport | null;
   airports?: Airport[];
   nearbyAirports?: Airport[];
@@ -853,6 +859,7 @@ interface ProgressiveLiveState {
 export function FlightMap({
   airport,
   airportFocusRequest = 0,
+  readingDetails = false,
   airports = [],
   nearbyAirports = [],
   airportCatalogLoading = false,
@@ -879,6 +886,7 @@ export function FlightMap({
   onViewChange,
   onUserLocation,
 }: FlightMapProps) {
+  const isMobile = useMediaQuery("(max-width: 900px)");
   const [map, setMap] = useState<L.Map | null>(null);
   const appliedInitialView = useRef(false);
   useEffect(() => {
@@ -1204,11 +1212,14 @@ export function FlightMap({
   const displayedLiveData = liveState.data;
   const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
   const displayedLiveStates = displayedLiveData?.states ?? NO_AIRCRAFT;
-  const selectedIcao24 = selectedFlight && selectedFlight.data_source !== "scheduled" ? selectedFlight.icao24.toLowerCase() : null;
-  const selectedLive = useMemo(
-    () => selectedIcao24 ? displayedLiveStates.find((aircraft) => aircraft.icao24.toLowerCase() === selectedIcao24) ?? null : null,
-    [displayedLiveStates, selectedIcao24],
+  const selectedCandidate = useMemo(
+    () => selectedFlight ? displayedLiveStates.find(aircraft => aircraft.icao24.toLowerCase() === selectedFlight.icao24.toLowerCase()) ?? null : null,
+    [displayedLiveStates, selectedFlight],
   );
+  const selectedLive = selectedFlight && selectedCandidate && sameLiveFlight(selectedFlight, selectedCandidate) ? selectedCandidate : null;
+  const liveSelection = selectedFlight && selectedFlight.data_source !== "scheduled" && selectedFlight.data_source !== "opensky"
+    && (selectedFlight.data_source === "live-nearby" || selectedFlight.primary_time === 0);
+  const selectedIcao24 = liveSelection && (!selectedCandidate || selectedLive) ? selectedFlight.icao24.toLowerCase() : null;
   // The filters narrow the map, never the aircraft the user is looking at.
   const visibleStates = useMemo(() => {
     const kept = filterAircraft(displayedLiveStates, filters);
@@ -1287,7 +1298,7 @@ export function FlightMap({
   }, [hasTrace, selectedFlight, toggleFollowing]);
 
   return (
-    <section className="map-surface" aria-label="Live flight map">
+    <section className="map-surface" aria-label="Live flight map" inert={readingDetails && isMobile}>
       <MapContainer ref={setMap} center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -1318,7 +1329,7 @@ export function FlightMap({
           <AircraftDot
             key={aircraft.icao24}
             aircraft={aircraft}
-            active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
+            active={aircraft.icao24 === selectedIcao24 || aircraft.icao24 === previewFlight?.icao24}
             onSelect={onSelectFlight}
             theme={theme}
           />
@@ -1326,7 +1337,7 @@ export function FlightMap({
           <AircraftMarker
             key={aircraft.icao24}
             aircraft={aircraft}
-            active={aircraft.icao24 === selectedFlight?.icao24 || aircraft.icao24 === previewFlight?.icao24}
+            active={aircraft.icao24 === selectedIcao24 || aircraft.icao24 === previewFlight?.icao24}
             onSelect={onSelectFlight}
             selected={aircraft.icao24 === selectedIcao24}
           />

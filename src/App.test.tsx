@@ -309,4 +309,19 @@ describe("App", () => {
     expect(await screen.findByText(/You can keep 8 favourites/)).toBeInTheDocument();
     expect(JSON.parse(window.localStorage.getItem("skytrace-favorites")!)).toHaveLength(8);
   });
+  it("preserves a recorded route when today's aircraft metadata returns another flight", async () => {
+    mockApi({ "/api/flight-info": () => json({ success: true, icao24: "39abcd", callsign: "AFR123",
+      departure_airport: "SCEL", departure_airport_name: "Santiago", arrival_airport: "LFPG", arrival_airport_name: "Paris",
+      route_source: "flightaware", aircraft_description: "Verified selected identity", first_seen: Math.floor(Date.now()/1000),
+    }) });
+    renderApp();
+    await openAirportFromSearch();
+    await openHistory();
+    await userEvent.click(await screen.findByRole("button", { name: /AFR123/ }));
+    expect(await screen.findByText("Verified selected identity")).toBeInTheDocument();
+    const route = screen.getByRole("region", { name: "Route" });
+    expect(route).toHaveTextContent("Heathrow");
+    expect(route).not.toHaveTextContent("Santiago");
+  });
+
 });

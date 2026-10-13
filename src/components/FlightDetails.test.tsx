@@ -56,7 +56,7 @@ describe("FlightDetails", () => {
   it("does not infer distance or arrival time from a usual callsign route", () => {
     renderDetails({ route_source: "callsign", latitude: 49, longitude: 2.5,
       departure_airport: "LFPG", arrival_airport: "EGLL", velocity: 220,
-      flightaware: { provider: "FlightAware", progress_percent: 50,
+      flightaware: { provider: "FlightAware", progress_percent: 50, ident: "AFR123", actual_out: new Date(Date.now()-3600_000).toISOString(),
         origin: { latitude: 49, longitude: 2.5 }, destination: { latitude: 51.47, longitude: -0.45 } },
     });
     expect(screen.getByText(/Usual callsign route/)).toBeInTheDocument();
