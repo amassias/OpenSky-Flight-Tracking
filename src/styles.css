@@ -28,6 +28,12 @@
      category colours: both need more contrast than the defaults in dark. */
   --accent-text: #4aa3ff;
   --on-category: #0b0b0c;
+  --cabin-first: #c9a24a;
+  --cabin-business: #5e8bff;
+  --cabin-premium: #35b6b0;
+  --cabin-economy: #6b7a90;
+  --cabin-flexible: #a07be0;
+  --cabin-other: #8e8e93;
   --lifr: #bf5af2;
   --ok: #30d158;
   --warn: #ffd60a;
@@ -77,6 +83,12 @@
   --ok: #1f7a36;
   --accent-text: var(--accent);
   --on-category: #ffffff;
+  --cabin-first: #8a6a1c;
+  --cabin-business: #2f5fd6;
+  --cabin-premium: #0f7f7a;
+  --cabin-economy: #55657c;
+  --cabin-flexible: #7448c4;
+  --cabin-other: #68686d;
   --lifr: #8e3cbf;
   --warn: #b25000;
   --danger: #d70015;
@@ -1019,10 +1031,16 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .cabin-variant { border-bottom: 1px solid var(--line); padding: 12px 0; }
 .cabin-variant summary { cursor: pointer; font-weight: 600; }
 .cabin-variant summary span { color: var(--muted); font-weight: 400; margin-left: 8px; }
-.cabin-diagram { display: flex; gap: 3px; padding: 8px 18px 8px 24px; margin: 14px 0 4px; border: 1px solid var(--muted); border-radius: 60% 20% 20% 60% / 50%; height: 44px; }
-.cabin-diagram span { background: var(--accent); border-radius: 2px; }
-.cabin-diagram .cabin-premium-economy { opacity: .65; }
-.cabin-diagram .cabin-economy { opacity: .35; }
+.cabin-diagram { display: flex; gap: 2px; height: 48px; margin: 14px 0 6px; padding: 5px 10px 5px 18px; border: 1px solid var(--line-strong); border-radius: 999px 22px 22px 999px / 50%; background: var(--fill); overflow: hidden; }
+.cabin-segment { display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 4px; border-radius: 4px; color: #fff; line-height: 1.1; background: var(--cabin-other); }
+.cabin-segment b { font-size: 11px; font-weight: 600; letter-spacing: .01em; }
+.cabin-segment i { font-size: 12px; font-style: normal; font-variant-numeric: tabular-nums; opacity: .9; }
+.cabin-segment[data-tone="first"], .cabin-swatch[data-tone="first"] { background: var(--cabin-first); }
+.cabin-segment[data-tone="business"], .cabin-swatch[data-tone="business"] { background: var(--cabin-business); }
+.cabin-segment[data-tone="premium"], .cabin-swatch[data-tone="premium"] { background: var(--cabin-premium); }
+.cabin-segment[data-tone="economy"], .cabin-swatch[data-tone="economy"] { background: var(--cabin-economy); }
+.cabin-segment[data-tone="flexible"], .cabin-swatch[data-tone="flexible"] { background: var(--cabin-flexible); }
+.cabin-swatch { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 3px; background: var(--cabin-other); }
 .cabin-counts { margin: 12px 0; }
 .cabin-counts div { display: flex; justify-content: space-between; padding: 3px 0; }
 .cabin-counts dd { font-variant-numeric: tabular-nums; }

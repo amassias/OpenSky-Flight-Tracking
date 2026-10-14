@@ -1,3 +1,5 @@
+import re
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +15,22 @@ def test_catalogue_totals_sources_and_unknowns():
     assert aircraft_enrichment("ZZZ", "A320")["configurations"] == []
     assert {c["total_seats"] for c in aircraft_enrichment("AFR", "A320")["configurations"]} == {174, 178}
     assert {c["total_seats"] for c in aircraft_enrichment("SWA", "B738")["configurations"]} == {175}
+
+
+def test_catalogue_is_consistent():
+    ids = [item["id"] for item in CABINS]
+    assert len(ids) == len(set(ids))
+    variants = [(tuple(item["operators"]), item["aircraft_type"], item["total_seats"]) for item in CABINS]
+    assert len(variants) == len(set(variants))
+    known = {"First", "Business", "Premium Economy", "Economy", "Flexible Business / Economy"}
+    for item in CABINS:
+        assert item["classes"] and all(c["seats"] > 0 for c in item["classes"]), item["id"]
+        assert {c["name"] for c in item["classes"]} <= known, item["id"]
+        assert len({c["name"] for c in item["classes"]}) == len(item["classes"]), item["id"]
+        assert re.fullmatch(r"[A-Z0-9]{3,4}", item["aircraft_type"]), item["id"]
+        assert all(re.fullmatch(r"[A-Z]{3}", op) for op in item["operators"]), item["id"]
+        assert date.fromisoformat(item["source"]["checked_at"]) <= date.today(), item["id"]
+        assert item["seat_map_url"].startswith("https://"), item["id"]
 
 
 def test_variants_are_never_presented_as_airframe_matches():
