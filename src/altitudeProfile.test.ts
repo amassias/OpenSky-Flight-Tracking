@@ -29,4 +29,17 @@ describe("time-scaled altitude profile", () => {
     expect(profile.start).toBe(100);expect(profile.end).toBe(120);
     expect(profile.coordinates[1].altitude).toBeNull();
   });
+  it("blends colour stops across the samples and marks the min, middle and max", () => {
+    const profile=altitudeProfile([point(0,100),point(10,3000),point(20,9000)])!;
+    expect(profile.stops.map(stop=>stop.offset)).toEqual([0,.5,1]);
+    expect(profile.stops[0].color).not.toBe(profile.stops[2].color);
+    expect(profile.ticks.map(tick=>tick.altitude)).toEqual([100,4550,9000]);
+    expect(profile.ticks[0].y).toBeGreaterThan(profile.ticks[2].y);
+    expect([...profile.bands].sort()).toEqual(["26–36k ft","5–15k ft","<5k ft"].sort());
+  });
+  it("lists a single tick and the unknown band for a flat trace with a gap", () => {
+    const profile=altitudeProfile([point(0,500),point(10,null),point(20,500)])!;
+    expect(profile.ticks).toHaveLength(1);
+    expect(profile.bands.has("Unknown")).toBe(true);
+  });
 });

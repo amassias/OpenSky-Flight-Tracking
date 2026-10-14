@@ -1,7 +1,7 @@
 import type { TrackPoint } from "./types";
-import { altitudeColor } from "./utils";
-export const PROFILE_WIDTH = 620;
-export const PROFILE_HEIGHT = 150;
+import { altitudeBand, altitudeColor } from "./utils";
+export const PROFILE_WIDTH = 400;
+export const PROFILE_HEIGHT = 140;
 export const PROFILE_PAD = 10;
 
 /** Time-scaled geometry with bounded drawing complexity; inspection keeps every fix. */
@@ -59,7 +59,14 @@ export function altitudeProfile(input: TrackPoint[]) {
     }
   });
   closeArea();
-  return { min, max, start, end, points, coordinates, sampleCount: samples.length,
+  // Colour stops follow the plotted samples, so the line blends between bands instead of stepping.
+  const stops = samples.filter(index => coordinates[index].altitude != null).map(index => ({
+    offset: (coordinates[index].x - PROFILE_PAD) / (PROFILE_WIDTH - 2 * PROFILE_PAD), color: altitudeColor(coordinates[index].altitude),
+  }));
+  const yAt = (altitude: number) => PROFILE_HEIGHT - PROFILE_PAD - (altitude - min) / range * (PROFILE_HEIGHT - 2 * PROFILE_PAD);
+  const ticks = (max === min ? [min] : [min, (min + max) / 2, max]).map(altitude => ({ altitude, y: yAt(altitude) }));
+  const bands = new Set(coordinates.map(point => altitudeBand(point.altitude)));
+  return { min, max, start, end, points, coordinates, sampleCount: samples.length, stops, ticks, bands,
     paths: [...paths].map(([color, commands]) => ({ color, d: commands.join(" ") })), area: areas.join(" ") };
 }
 

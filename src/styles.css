@@ -291,12 +291,16 @@ input { caret-color: var(--accent); }
 .signal-alert-text { color: var(--warn) !important; }
 .profile-footnote { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--quiet); font-size: .8125rem; line-height: 1.4; }
 .profile-footnote svg { flex: 0 0 auto; color: var(--quiet); }
-.altitude-chart { display: block; width: 100%; height: 86px; margin-top: 8px; overflow: visible; touch-action: none; }
+.altitude-chart { display: block; width: 100%; height: auto; aspect-ratio: 400 / 140; margin-top: 8px; overflow: visible; touch-action: none; }
+.altitude-tick line { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 2 5; }
+.altitude-tick text { fill: var(--quiet); font: 400 14px var(--body); paint-order: stroke; stroke: var(--panel-solid); stroke-width: 3px; stroke-linejoin: round; font-variant-numeric: tabular-nums; }
+.altitude-sample { stroke: var(--panel-solid); stroke-width: 1.5; }
+.chart-sparse-note { margin: 0; color: var(--quiet); font-size: var(--type-meta); line-height: 1.4; }
 .altitude-hover-target { cursor: crosshair; }
 .altitude-hover-line { stroke: var(--muted); stroke-dasharray: 2 4; stroke-width: 1; }
 .altitude-hover-dot { stroke: var(--panel-solid); stroke-width: 2; }
 .altitude-tooltip rect { fill: var(--panel-solid); stroke: var(--line-strong); stroke-width: 1; }
-.altitude-tooltip text { fill: var(--text); font: 600 11px var(--body); }
+.altitude-tooltip text { fill: var(--text); font: 600 14px var(--body); }
  .chart-altitude-legend { justify-content: flex-start; padding: 2px 1px 0; }
 .chart-empty { display: grid; place-items: center; height: 78px; color: var(--quiet); font-size: .8125rem; }
 .chart-skeleton { height: 78px; margin-top: 8px; border-radius: var(--r-sm); background: linear-gradient(100deg, var(--fill) 30%, var(--fill-strong) 45%, var(--fill) 60%); background-size: 300% 100%; animation: shimmer 1.5s infinite; }

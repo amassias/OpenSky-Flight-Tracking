@@ -54,6 +54,12 @@ export function altitudeColor(value?: number | null): string {
   return ALTITUDE_COLOR_BANDS.find((band) => value <= band.maxMeters)?.color ?? ALTITUDE_UNKNOWN_COLOR;
 }
 
+/** Label of the legend band an altitude falls in, or "Unknown" when it has none. */
+export function altitudeBand(value?: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "Unknown";
+  return ALTITUDE_COLOR_BANDS.find((band) => value <= band.maxMeters)?.label ?? "Unknown";
+}
+
 export function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
