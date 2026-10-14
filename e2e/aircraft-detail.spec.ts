@@ -79,7 +79,7 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   expect(errors).toEqual([]);
 });
 
-test('reveals labels with zoom, hides failed logos, and animates only flying rotors', async ({ page }) => {
+test('reveals labels with zoom, hides failed logos, and animates only flying rotors', async ({ page, isMobile }) => {
   await page.goto('/?at=48.5,2.2,7');
   await expect(page.locator('.aircraft-marker')).toHaveCount(4);
   await expect(page.locator('.aircraft-label')).toHaveCount(0);
@@ -89,7 +89,8 @@ test('reveals labels with zoom, hides failed logos, and animates only flying rot
     await expect(page.locator('.aircraft-label').first()).toBeVisible();
     if (zoom < 10) await expect(page.locator('.airline-logo')).toHaveCount(0);
   }
-  await expect(page.locator('.label-level-3 i').first()).toBeVisible();
+  // On a 375 px screen collision avoidance may hide every ordinary label; the selected one is checked below.
+  if (!isMobile) await expect(page.locator('.label-level-3 i').first()).toBeVisible();
   // Collision avoidance can hide ordinary labels on a small screen; the
   // selected aircraft keeps its label and logo. Select after zooming so the
   // mobile sheet does not cover the zoom controls during this check.
