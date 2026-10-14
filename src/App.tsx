@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { TriangleAlert } from "./components/icons";
 import { List } from "./components/customIcons";
-import { sameLiveFlight, withLiveKinematics } from "./flightTelemetry";
+import { sameLiveFlight } from "./flightTelemetry";
+import { mergeFlightDetails } from "./flightDetails";
 import { aircraftPhoto, api, readableApiError } from "./api";
 import type { AirportView } from "./components/AirportTab";
 import { FlightList } from "./components/FlightList";
@@ -245,72 +246,10 @@ export function App() {
     return liveFallbackSnapshot?.data.states.find((aircraft) => sameLiveFlight(selectedFlight, aircraft)) ?? null;
   }, [liveFallbackSnapshot, selectedFlight]);
 
-  const detailsFlight = useMemo(() => {
-    if (!selectedFlight) return null;
-    const base = liveSelected ? withLiveKinematics(selectedFlight, liveSelected) : selectedFlight;
-    const fastRoute = route.data?.callsign?.toUpperCase() === selectedFlight.callsign.toUpperCase() && route.data.route_source === "callsign" ? route.data : null;
-    const current = fastRoute && !selectedFlight.primary_time && (!base.route_source || base.route_source === "unknown" || base.route_source === "callsign")
-      ? { ...base, ...fastRoute, icao24: base.icao24, callsign: base.callsign } as Flight : base;
-    if (selectedFlight.data_source === "scheduled" || !flightInfo.data || flightInfo.data.icao24 !== selectedFlight.icao24) return current;
-    const info = flightInfo.data;
-    const historical = selectedFlight.data_source !== "live-nearby" && (selectedFlight.primary_time ?? selectedFlight.first_seen ?? 0) > 0;
-    const routeInfo = historical ? current : info;
-    const profileMatches = sameLiveFlight(current, info.live_state ?? info);
-    const telemetry = historical ? current : liveSelected ?? (!profileMatches ? current : ((current.last_contact ?? -Infinity) > (info.last_contact ?? -Infinity) ? current : info));
-    const enriched = !historical && profileMatches && !liveSelected && info.live_state && (info.time_position ?? 0) > (current.time_position ?? 0) ? withLiveKinematics(current, info.live_state) : current;
-    // Airframe identity, most to least reliable: the transponder profile from
-    // flight-info, then the transponder registration the live feed already
-    // gave us, and only then FlightAware's tail, which is the aircraft
-    // *scheduled* on this flight number and differs after an aircraft swap.
-    const scheduledOnly = info.registration_source === "schedule";
-    const liveAirframe = scheduledOnly && Boolean(current.registration);
-    return {
-      ...enriched,
-      callsign: current.callsign && current.callsign !== current.registration && current.callsign.toLowerCase() !== current.icao24 ? current.callsign : info.callsign || current.callsign,
-      airline_code: info.airline_code || current.airline_code,
-      airline_name: info.airline_name || current.airline_name,
-      departure_airport: routeInfo.departure_airport ?? current.departure_airport,
-      departure_airport_name: routeInfo.departure_airport_name ?? current.departure_airport_name,
-      arrival_airport: routeInfo.arrival_airport ?? current.arrival_airport,
-      arrival_airport_name: routeInfo.arrival_airport_name ?? current.arrival_airport_name,
-      first_seen: routeInfo.first_seen ?? current.first_seen,
-      last_seen: routeInfo.last_seen ?? current.last_seen,
-      departure_latitude: routeInfo.departure_latitude ?? (routeInfo.departure_airport && routeInfo.departure_airport !== current.departure_airport ? null : current.departure_latitude),
-      departure_longitude: routeInfo.departure_longitude ?? (routeInfo.departure_airport && routeInfo.departure_airport !== current.departure_airport ? null : current.departure_longitude),
-      arrival_latitude: routeInfo.arrival_latitude ?? (routeInfo.arrival_airport && routeInfo.arrival_airport !== current.arrival_airport ? null : current.arrival_latitude),
-      arrival_longitude: routeInfo.arrival_longitude ?? (routeInfo.arrival_airport && routeInfo.arrival_airport !== current.arrival_airport ? null : current.arrival_longitude),
-      route_source: routeInfo.route_source && routeInfo.route_source !== "unknown" ? routeInfo.route_source : current.route_source,
-      route_provider: routeInfo.route_provider ?? current.route_provider,
-      registration: liveAirframe ? current.registration : info.registration ?? current.registration,
-      registration_source: liveAirframe ? "adsb" : info.registration ? info.registration_source : current.registration_source,
-      aircraft_type: (scheduledOnly ? current.aircraft_type : null) ?? info.aircraft_type ?? current.aircraft_type,
-      aircraft_description: info.aircraft_description ?? current.aircraft_description,
-      aircraft_owner: info.aircraft_owner ?? current.aircraft_owner,
-      aircraft_year: info.aircraft_year ?? current.aircraft_year,
-      aircraft_category: info.aircraft_category ?? current.aircraft_category,
-      emergency: telemetry.emergency ?? (telemetry.squawk && telemetry.squawk !== current.squawk ? null : current.emergency),
-      nav_qnh: telemetry.nav_qnh ?? current.nav_qnh,
-      nav_altitude_mcp: telemetry.nav_altitude_mcp ?? current.nav_altitude_mcp,
-      nav_heading: telemetry.nav_heading ?? current.nav_heading,
-      nav_modes: telemetry.nav_modes ?? current.nav_modes,
-      messages: telemetry.messages ?? current.messages,
-      rssi: telemetry.rssi ?? current.rssi,
-      seen_seconds: telemetry.seen_seconds ?? current.seen_seconds,
-      seen_position_seconds: telemetry.seen_position_seconds ?? current.seen_position_seconds,
-      nic: telemetry.nic ?? current.nic,
-      rc: telemetry.rc ?? current.rc,
-      nac_p: telemetry.nac_p ?? current.nac_p,
-      nac_v: telemetry.nac_v ?? current.nac_v,
-      sil: telemetry.sil ?? current.sil,
-      sil_type: telemetry.sil_type ?? current.sil_type,
-      source: telemetry.source ?? current.source,
-      squawk: telemetry.squawk ?? current.squawk,
-      category: info.category ?? current.category,
-      last_contact: telemetry.last_contact ?? current.last_contact,
-      time_position: telemetry.time_position ?? current.time_position,
-      flightaware: routeInfo.flightaware ?? current.flightaware,
-    };
-  }, [flightInfo.data, liveSelected, selectedFlight, route.data]);
+  const detailsFlight = useMemo(
+    () => mergeFlightDetails({ selectedFlight, liveSelected, route: route.data, flightInfo: flightInfo.data }),
+    [flightInfo.data, liveSelected, selectedFlight, route.data],
+  );
 
   const track = useQuery({
     queryKey: ["track", detailsFlight?.icao24, detailsFlight?.primary_time ?? detailsFlight?.first_seen ?? 0, detailsFlight?.callsign, detailsFlight?.data_source],
