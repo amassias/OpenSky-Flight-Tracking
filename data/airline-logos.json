@@ -1,0 +1,1972 @@
+[
+  {
+    "iata": "0B",
+    "url": "https://images.kiwi.com/airlines/64x64/0B.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "2A",
+    "url": "https://images.kiwi.com/airlines/64x64/2A.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "2K",
+    "url": "https://images.kiwi.com/airlines/64x64/2K.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "2P",
+    "url": "https://images.kiwi.com/airlines/64x64/2P.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "2S",
+    "url": "https://images.kiwi.com/airlines/64x64/2S.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "2W",
+    "url": "https://images.kiwi.com/airlines/64x64/2W.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "3E",
+    "url": "https://images.kiwi.com/airlines/64x64/3E.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "3O",
+    "url": "https://images.kiwi.com/airlines/64x64/3O.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "3U",
+    "url": "https://images.kiwi.com/airlines/64x64/3U.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "3V",
+    "url": "https://images.kiwi.com/airlines/64x64/3V.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "4C",
+    "url": "https://images.kiwi.com/airlines/64x64/4C.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "4M",
+    "url": "https://images.kiwi.com/airlines/64x64/4M.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "4O",
+    "url": "https://images.kiwi.com/airlines/64x64/4O.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "4S",
+    "url": "https://images.kiwi.com/airlines/64x64/4S.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "4X",
+    "url": "https://images.kiwi.com/airlines/64x64/4X.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "4Y",
+    "url": "https://images.kiwi.com/airlines/64x64/4Y.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "4Z",
+    "url": "https://images.kiwi.com/airlines/64x64/4Z.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5C",
+    "url": "https://images.kiwi.com/airlines/64x64/5C.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "CDN image depicts an earlier code holder or a different airline; use operator badge"
+  },
+  {
+    "iata": "5F",
+    "url": "https://images.kiwi.com/airlines/64x64/5F.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5H",
+    "url": "https://images.kiwi.com/airlines/64x64/5H.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "CDN image depicts an earlier code holder or a different airline; use operator badge"
+  },
+  {
+    "iata": "5J",
+    "url": "https://images.kiwi.com/airlines/64x64/5J.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5N",
+    "url": "https://images.kiwi.com/airlines/64x64/5N.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5O",
+    "url": "https://images.kiwi.com/airlines/64x64/5O.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5U",
+    "url": "https://images.kiwi.com/airlines/64x64/5U.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5X",
+    "url": "https://images.kiwi.com/airlines/64x64/5X.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "5Y",
+    "url": "https://images.kiwi.com/airlines/64x64/5Y.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "5Z",
+    "url": "https://images.kiwi.com/airlines/64x64/5Z.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "6E",
+    "url": "https://images.kiwi.com/airlines/64x64/6E.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "6H",
+    "url": "https://images.kiwi.com/airlines/64x64/6H.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "6O",
+    "url": "https://images.kiwi.com/airlines/64x64/6O.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "7C",
+    "url": "https://images.kiwi.com/airlines/64x64/7C.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "7L",
+    "url": "https://images.kiwi.com/airlines/64x64/7L.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "7R",
+    "url": "https://images.kiwi.com/airlines/64x64/7R.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "8L",
+    "url": "https://images.kiwi.com/airlines/64x64/8L.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "8M",
+    "url": "https://images.kiwi.com/airlines/64x64/8M.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "8R",
+    "url": "https://images.kiwi.com/airlines/64x64/8R.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "9C",
+    "url": "https://images.kiwi.com/airlines/64x64/9C.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "9H",
+    "url": "https://images.kiwi.com/airlines/64x64/9H.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "A3",
+    "url": "https://images.kiwi.com/airlines/64x64/A3.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "A9",
+    "url": "https://images.kiwi.com/airlines/64x64/A9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AA",
+    "url": "https://images.kiwi.com/airlines/64x64/AA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AC",
+    "url": "https://images.kiwi.com/airlines/64x64/AC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AD",
+    "url": "https://images.kiwi.com/airlines/64x64/AD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AE",
+    "url": "https://images.kiwi.com/airlines/64x64/AE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AF",
+    "url": "https://images.kiwi.com/airlines/64x64/AF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AH",
+    "url": "https://images.kiwi.com/airlines/64x64/AH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AI",
+    "url": "https://images.kiwi.com/airlines/64x64/AI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AK",
+    "url": "https://images.kiwi.com/airlines/64x64/AK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AM",
+    "url": "https://images.kiwi.com/airlines/64x64/AM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AP",
+    "url": "https://images.kiwi.com/airlines/64x64/AP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AR",
+    "url": "https://images.kiwi.com/airlines/64x64/AR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AS",
+    "url": "https://images.kiwi.com/airlines/64x64/AS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AT",
+    "url": "https://images.kiwi.com/airlines/64x64/AT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AV",
+    "url": "https://images.kiwi.com/airlines/64x64/AV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AW",
+    "url": "https://images.kiwi.com/airlines/64x64/AW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AY",
+    "url": "https://images.kiwi.com/airlines/64x64/AY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "AZ",
+    "url": "https://images.kiwi.com/airlines/64x64/AZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "B0",
+    "url": "https://images.kiwi.com/airlines/64x64/B0.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "B2",
+    "url": "https://images.kiwi.com/airlines/64x64/B2.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "B5",
+    "url": "https://images.kiwi.com/airlines/64x64/B5.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "B6",
+    "url": "https://images.kiwi.com/airlines/64x64/B6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "B7",
+    "url": "https://images.kiwi.com/airlines/64x64/B7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "B9",
+    "url": "https://images.kiwi.com/airlines/64x64/B9.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "BA",
+    "url": "https://images.kiwi.com/airlines/64x64/BA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BC",
+    "url": "https://images.kiwi.com/airlines/64x64/BC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BF",
+    "url": "https://images.kiwi.com/airlines/64x64/BF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BG",
+    "url": "https://images.kiwi.com/airlines/64x64/BG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BI",
+    "url": "https://images.kiwi.com/airlines/64x64/BI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BJ",
+    "url": "https://images.kiwi.com/airlines/64x64/BJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BK",
+    "url": "https://images.kiwi.com/airlines/64x64/BK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BP",
+    "url": "https://images.kiwi.com/airlines/64x64/BP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BR",
+    "url": "https://images.kiwi.com/airlines/64x64/BR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BS",
+    "url": "https://images.kiwi.com/airlines/64x64/BS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BT",
+    "url": "https://images.kiwi.com/airlines/64x64/BT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BW",
+    "url": "https://images.kiwi.com/airlines/64x64/BW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BX",
+    "url": "https://images.kiwi.com/airlines/64x64/BX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BY",
+    "url": "https://images.kiwi.com/airlines/64x64/BY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "BZ",
+    "url": "https://images.kiwi.com/airlines/64x64/BZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CA",
+    "url": "https://images.kiwi.com/airlines/64x64/CA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CC",
+    "url": "https://images.kiwi.com/airlines/64x64/CC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CE",
+    "url": "https://images.kiwi.com/airlines/64x64/CE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CF",
+    "url": "https://images.kiwi.com/airlines/64x64/CF.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "CI",
+    "url": "https://images.kiwi.com/airlines/64x64/CI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CK",
+    "url": "https://images.kiwi.com/airlines/64x64/CK.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "CL",
+    "url": "https://images.kiwi.com/airlines/64x64/CL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CM",
+    "url": "https://images.kiwi.com/airlines/64x64/CM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CS",
+    "url": "https://images.kiwi.com/airlines/64x64/CS.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "CU",
+    "url": "https://images.kiwi.com/airlines/64x64/CU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CV",
+    "url": "/airline-logos/CV.svg",
+    "asset_checked_at": "2026-10-14",
+    "source": "https://commons.wikimedia.org/wiki/File:Cargolux_logo.svg",
+    "brand_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CX",
+    "url": "https://images.kiwi.com/airlines/64x64/CX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CY",
+    "url": "https://images.kiwi.com/airlines/64x64/CY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "CZ",
+    "url": "https://images.kiwi.com/airlines/64x64/CZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "D0",
+    "url": "https://images.kiwi.com/airlines/64x64/D0.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "D4",
+    "url": "https://images.kiwi.com/airlines/64x64/D4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "D7",
+    "url": "https://images.kiwi.com/airlines/64x64/D7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DD",
+    "url": "https://images.kiwi.com/airlines/64x64/DD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DE",
+    "url": "https://images.kiwi.com/airlines/64x64/DE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DL",
+    "url": "https://images.kiwi.com/airlines/64x64/DL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DM",
+    "url": "https://images.kiwi.com/airlines/64x64/DM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DN",
+    "url": "https://images.kiwi.com/airlines/64x64/DN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DR",
+    "url": "https://images.kiwi.com/airlines/64x64/DR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DT",
+    "url": "https://images.kiwi.com/airlines/64x64/DT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DV",
+    "url": "https://images.kiwi.com/airlines/64x64/DV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "DY",
+    "url": "https://images.kiwi.com/airlines/64x64/DY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "E7",
+    "url": "https://images.kiwi.com/airlines/64x64/E7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "E9",
+    "url": "https://images.kiwi.com/airlines/64x64/E9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EB",
+    "url": "https://images.kiwi.com/airlines/64x64/EB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EI",
+    "url": "https://images.kiwi.com/airlines/64x64/EI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EK",
+    "url": "https://images.kiwi.com/airlines/64x64/EK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EN",
+    "url": "https://images.kiwi.com/airlines/64x64/EN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EO",
+    "url": "https://images.kiwi.com/airlines/64x64/EO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EP",
+    "url": "https://images.kiwi.com/airlines/64x64/EP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ET",
+    "url": "https://images.kiwi.com/airlines/64x64/ET.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EU",
+    "url": "https://images.kiwi.com/airlines/64x64/EU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EW",
+    "url": "https://images.kiwi.com/airlines/64x64/EW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "EY",
+    "url": "https://images.kiwi.com/airlines/64x64/EY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "F3",
+    "url": "https://images.kiwi.com/airlines/64x64/F3.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "F9",
+    "url": "https://images.kiwi.com/airlines/64x64/F9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FA",
+    "url": "https://images.kiwi.com/airlines/64x64/FA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FB",
+    "url": "https://images.kiwi.com/airlines/64x64/FB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FD",
+    "url": "https://images.kiwi.com/airlines/64x64/FD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FH",
+    "url": "https://images.kiwi.com/airlines/64x64/FH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FI",
+    "url": "https://images.kiwi.com/airlines/64x64/FI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FJ",
+    "url": "https://images.kiwi.com/airlines/64x64/FJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FM",
+    "url": "https://images.kiwi.com/airlines/64x64/FM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FN",
+    "url": "https://images.kiwi.com/airlines/64x64/FN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FR",
+    "url": "https://images.kiwi.com/airlines/64x64/FR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FS",
+    "url": "https://images.kiwi.com/airlines/64x64/FS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FU",
+    "url": "https://images.kiwi.com/airlines/64x64/FU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FV",
+    "url": "https://images.kiwi.com/airlines/64x64/FV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FX",
+    "url": "https://images.kiwi.com/airlines/64x64/FX.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "FY",
+    "url": "https://images.kiwi.com/airlines/64x64/FY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "FZ",
+    "url": "https://images.kiwi.com/airlines/64x64/FZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "G3",
+    "url": "https://images.kiwi.com/airlines/64x64/G3.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "G4",
+    "url": "https://images.kiwi.com/airlines/64x64/G4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "G5",
+    "url": "https://images.kiwi.com/airlines/64x64/G5.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "G6",
+    "url": "https://images.kiwi.com/airlines/64x64/G6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "G9",
+    "url": "https://images.kiwi.com/airlines/64x64/G9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GA",
+    "url": "https://images.kiwi.com/airlines/64x64/GA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GB",
+    "url": "https://images.kiwi.com/airlines/64x64/GB.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "GE",
+    "url": "https://images.kiwi.com/airlines/64x64/GE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GF",
+    "url": "https://images.kiwi.com/airlines/64x64/GF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GJ",
+    "url": "https://images.kiwi.com/airlines/64x64/GJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GK",
+    "url": "https://images.kiwi.com/airlines/64x64/GK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GL",
+    "url": "https://images.kiwi.com/airlines/64x64/GL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GP",
+    "url": "https://images.kiwi.com/airlines/64x64/GP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GQ",
+    "url": "https://images.kiwi.com/airlines/64x64/GQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GS",
+    "url": "https://images.kiwi.com/airlines/64x64/GS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GT",
+    "url": "https://images.kiwi.com/airlines/64x64/GT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "GX",
+    "url": "https://images.kiwi.com/airlines/64x64/GX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "H2",
+    "url": "https://images.kiwi.com/airlines/64x64/H2.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "H3",
+    "url": "https://images.kiwi.com/airlines/64x64/H3.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "H9",
+    "url": "https://images.kiwi.com/airlines/64x64/H9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HA",
+    "url": "https://images.kiwi.com/airlines/64x64/HA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HB",
+    "url": "https://images.kiwi.com/airlines/64x64/HB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HC",
+    "url": "https://images.kiwi.com/airlines/64x64/HC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HM",
+    "url": "https://images.kiwi.com/airlines/64x64/HM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HO",
+    "url": "https://images.kiwi.com/airlines/64x64/HO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HP",
+    "url": "https://images.kiwi.com/airlines/64x64/HP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HU",
+    "url": "https://images.kiwi.com/airlines/64x64/HU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HV",
+    "url": "https://images.kiwi.com/airlines/64x64/HV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HX",
+    "url": "https://images.kiwi.com/airlines/64x64/HX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "HY",
+    "url": "https://images.kiwi.com/airlines/64x64/HY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IB",
+    "url": "https://images.kiwi.com/airlines/64x64/IB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ID",
+    "url": "https://images.kiwi.com/airlines/64x64/ID.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IE",
+    "url": "https://images.kiwi.com/airlines/64x64/IE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IF",
+    "url": "https://images.kiwi.com/airlines/64x64/IF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IQ",
+    "url": "https://images.kiwi.com/airlines/64x64/IQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IR",
+    "url": "https://images.kiwi.com/airlines/64x64/IR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IW",
+    "url": "https://images.kiwi.com/airlines/64x64/IW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IX",
+    "url": "https://images.kiwi.com/airlines/64x64/IX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "IZ",
+    "url": "https://images.kiwi.com/airlines/64x64/IZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "J2",
+    "url": "https://images.kiwi.com/airlines/64x64/J2.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "J4",
+    "url": "https://images.kiwi.com/airlines/64x64/J4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "J6",
+    "url": "https://images.kiwi.com/airlines/64x64/J6.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "J7",
+    "url": "https://images.kiwi.com/airlines/64x64/J7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "J9",
+    "url": "https://images.kiwi.com/airlines/64x64/J9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JA",
+    "url": "https://images.kiwi.com/airlines/64x64/JA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JD",
+    "url": "https://images.kiwi.com/airlines/64x64/JD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JG",
+    "url": "https://images.kiwi.com/airlines/64x64/JG.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "CDN image depicts an earlier code holder or a different airline; use operator badge"
+  },
+  {
+    "iata": "JJ",
+    "url": "https://images.kiwi.com/airlines/64x64/JJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JL",
+    "url": "https://images.kiwi.com/airlines/64x64/JL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JQ",
+    "url": "https://images.kiwi.com/airlines/64x64/JQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JS",
+    "url": "https://images.kiwi.com/airlines/64x64/JS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JT",
+    "url": "https://images.kiwi.com/airlines/64x64/JT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JU",
+    "url": "https://images.kiwi.com/airlines/64x64/JU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JX",
+    "url": "https://images.kiwi.com/airlines/64x64/JX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "JZ",
+    "url": "https://images.kiwi.com/airlines/64x64/JZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "K6",
+    "url": "https://images.kiwi.com/airlines/64x64/K6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KB",
+    "url": "https://images.kiwi.com/airlines/64x64/KB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KC",
+    "url": "https://images.kiwi.com/airlines/64x64/KC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KE",
+    "url": "https://images.kiwi.com/airlines/64x64/KE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KJ",
+    "url": "https://images.kiwi.com/airlines/64x64/KJ.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "CDN image depicts an earlier code holder or a different airline; use operator badge"
+  },
+  {
+    "iata": "KL",
+    "url": "https://images.kiwi.com/airlines/64x64/KL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KM",
+    "url": "https://images.kiwi.com/airlines/64x64/KM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KN",
+    "url": "https://images.kiwi.com/airlines/64x64/KN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KP",
+    "url": "https://images.kiwi.com/airlines/64x64/KP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KQ",
+    "url": "https://images.kiwi.com/airlines/64x64/KQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KU",
+    "url": "https://images.kiwi.com/airlines/64x64/KU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KY",
+    "url": "https://images.kiwi.com/airlines/64x64/KY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "KZ",
+    "url": "https://images.kiwi.com/airlines/64x64/KZ.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "L6",
+    "url": "https://images.kiwi.com/airlines/64x64/L6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LA",
+    "url": "https://images.kiwi.com/airlines/64x64/LA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LD",
+    "url": "https://images.kiwi.com/airlines/64x64/LD.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "LG",
+    "url": "https://images.kiwi.com/airlines/64x64/LG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LH",
+    "url": "https://images.kiwi.com/airlines/64x64/LH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LJ",
+    "url": "https://images.kiwi.com/airlines/64x64/LJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LM",
+    "url": "https://images.kiwi.com/airlines/64x64/LM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LO",
+    "url": "https://images.kiwi.com/airlines/64x64/LO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LP",
+    "url": "https://images.kiwi.com/airlines/64x64/LP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LR",
+    "url": "https://images.kiwi.com/airlines/64x64/LR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LX",
+    "url": "https://images.kiwi.com/airlines/64x64/LX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "LY",
+    "url": "https://images.kiwi.com/airlines/64x64/LY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "M0",
+    "url": "https://images.kiwi.com/airlines/64x64/M0.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "M3",
+    "url": "https://images.kiwi.com/airlines/64x64/M3.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "M4",
+    "url": "https://images.kiwi.com/airlines/64x64/M4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "M7",
+    "url": "https://images.kiwi.com/airlines/64x64/M7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MB",
+    "url": "https://images.kiwi.com/airlines/64x64/MB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MD",
+    "url": "https://images.kiwi.com/airlines/64x64/MD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ME",
+    "url": "https://images.kiwi.com/airlines/64x64/ME.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MF",
+    "url": "https://images.kiwi.com/airlines/64x64/MF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MH",
+    "url": "https://images.kiwi.com/airlines/64x64/MH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MK",
+    "url": "https://images.kiwi.com/airlines/64x64/MK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MM",
+    "url": "https://images.kiwi.com/airlines/64x64/MM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MP",
+    "url": "https://images.kiwi.com/airlines/64x64/MP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MS",
+    "url": "https://images.kiwi.com/airlines/64x64/MS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "MU",
+    "url": "https://images.kiwi.com/airlines/64x64/MU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "N4",
+    "url": "https://images.kiwi.com/airlines/64x64/N4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "N7",
+    "url": "https://images.kiwi.com/airlines/64x64/N7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "N8",
+    "url": "https://images.kiwi.com/airlines/64x64/N8.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "NE",
+    "url": "https://images.kiwi.com/airlines/64x64/NE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NF",
+    "url": "https://images.kiwi.com/airlines/64x64/NF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NH",
+    "url": "https://images.kiwi.com/airlines/64x64/NH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NK",
+    "url": "https://images.kiwi.com/airlines/64x64/NK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NO",
+    "url": "https://images.kiwi.com/airlines/64x64/NO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NP",
+    "url": "https://images.kiwi.com/airlines/64x64/NP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NS",
+    "url": "https://images.kiwi.com/airlines/64x64/NS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NT",
+    "url": "https://images.kiwi.com/airlines/64x64/NT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NU",
+    "url": "https://images.kiwi.com/airlines/64x64/NU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NX",
+    "url": "https://images.kiwi.com/airlines/64x64/NX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "NZ",
+    "url": "https://images.kiwi.com/airlines/64x64/NZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "O3",
+    "url": "https://images.kiwi.com/airlines/64x64/O3.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "O8",
+    "url": "https://images.kiwi.com/airlines/64x64/O8.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OA",
+    "url": "https://images.kiwi.com/airlines/64x64/OA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OB",
+    "url": "https://images.kiwi.com/airlines/64x64/OB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OD",
+    "url": "https://images.kiwi.com/airlines/64x64/OD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OF",
+    "url": "https://images.kiwi.com/airlines/64x64/OF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OM",
+    "url": "https://images.kiwi.com/airlines/64x64/OM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ON",
+    "url": "https://images.kiwi.com/airlines/64x64/ON.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OS",
+    "url": "https://images.kiwi.com/airlines/64x64/OS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OU",
+    "url": "https://images.kiwi.com/airlines/64x64/OU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OV",
+    "url": "https://images.kiwi.com/airlines/64x64/OV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "OZ",
+    "url": "https://images.kiwi.com/airlines/64x64/OZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "P0",
+    "url": "https://images.kiwi.com/airlines/64x64/P0.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "P4",
+    "url": "https://images.kiwi.com/airlines/64x64/P4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "P5",
+    "url": "https://images.kiwi.com/airlines/64x64/P5.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "P6",
+    "url": "https://images.kiwi.com/airlines/64x64/P6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PC",
+    "url": "https://images.kiwi.com/airlines/64x64/PC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PD",
+    "url": "https://images.kiwi.com/airlines/64x64/PD.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PG",
+    "url": "https://images.kiwi.com/airlines/64x64/PG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PK",
+    "url": "https://images.kiwi.com/airlines/64x64/PK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PN",
+    "url": "https://images.kiwi.com/airlines/64x64/PN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PO",
+    "url": "https://images.kiwi.com/airlines/64x64/PO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PQ",
+    "url": "https://images.kiwi.com/airlines/64x64/PQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PR",
+    "url": "https://images.kiwi.com/airlines/64x64/PR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PU",
+    "url": "https://images.kiwi.com/airlines/64x64/PU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PW",
+    "url": "https://images.kiwi.com/airlines/64x64/PW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PX",
+    "url": "https://images.kiwi.com/airlines/64x64/PX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "PZ",
+    "url": "https://images.kiwi.com/airlines/64x64/PZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QC",
+    "url": "https://images.kiwi.com/airlines/64x64/QC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QF",
+    "url": "https://images.kiwi.com/airlines/64x64/QF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QG",
+    "url": "https://images.kiwi.com/airlines/64x64/QG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QH",
+    "url": "https://images.kiwi.com/airlines/64x64/QH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QI",
+    "url": "https://images.kiwi.com/airlines/64x64/QI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QP",
+    "url": "https://images.kiwi.com/airlines/64x64/QP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QR",
+    "url": "https://images.kiwi.com/airlines/64x64/QR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QS",
+    "url": "/airline-logos/QS.svg",
+    "asset_checked_at": "2026-10-14",
+    "source": "https://commons.wikimedia.org/wiki/File:Smartwings_logo.svg",
+    "brand_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QV",
+    "url": "https://images.kiwi.com/airlines/64x64/QV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QW",
+    "url": "https://images.kiwi.com/airlines/64x64/QW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "QY",
+    "url": "https://images.kiwi.com/airlines/64x64/QY.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "QZ",
+    "url": "https://images.kiwi.com/airlines/64x64/QZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "R5",
+    "url": "https://images.kiwi.com/airlines/64x64/R5.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RB",
+    "url": "https://images.kiwi.com/airlines/64x64/RB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RC",
+    "url": "https://images.kiwi.com/airlines/64x64/RC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RE",
+    "url": "https://images.kiwi.com/airlines/64x64/RE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RH",
+    "url": "https://images.kiwi.com/airlines/64x64/RH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RJ",
+    "url": "https://images.kiwi.com/airlines/64x64/RJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RO",
+    "url": "https://images.kiwi.com/airlines/64x64/RO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RQ",
+    "url": "https://images.kiwi.com/airlines/64x64/RQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "RX",
+    "url": "https://images.kiwi.com/airlines/64x64/RX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "S4",
+    "url": "https://images.kiwi.com/airlines/64x64/S4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "S7",
+    "url": "https://images.kiwi.com/airlines/64x64/S7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SA",
+    "url": "https://images.kiwi.com/airlines/64x64/SA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SB",
+    "url": "https://images.kiwi.com/airlines/64x64/SB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SC",
+    "url": "https://images.kiwi.com/airlines/64x64/SC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SF",
+    "url": "https://images.kiwi.com/airlines/64x64/SF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SG",
+    "url": "https://images.kiwi.com/airlines/64x64/SG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SJ",
+    "url": "https://images.kiwi.com/airlines/64x64/SJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SK",
+    "url": "https://images.kiwi.com/airlines/64x64/SK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SL",
+    "url": "https://images.kiwi.com/airlines/64x64/SL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SM",
+    "url": "https://images.kiwi.com/airlines/64x64/SM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SN",
+    "url": "https://images.kiwi.com/airlines/64x64/SN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SP",
+    "url": "https://images.kiwi.com/airlines/64x64/SP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SQ",
+    "url": "https://images.kiwi.com/airlines/64x64/SQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SS",
+    "url": "https://images.kiwi.com/airlines/64x64/SS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SU",
+    "url": "https://images.kiwi.com/airlines/64x64/SU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SV",
+    "url": "https://images.kiwi.com/airlines/64x64/SV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SY",
+    "url": "https://images.kiwi.com/airlines/64x64/SY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "SZ",
+    "url": "https://images.kiwi.com/airlines/64x64/SZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TA",
+    "url": "https://images.kiwi.com/airlines/64x64/TA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TC",
+    "url": "https://images.kiwi.com/airlines/64x64/TC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TG",
+    "url": "https://images.kiwi.com/airlines/64x64/TG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TK",
+    "url": "https://images.kiwi.com/airlines/64x64/TK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TM",
+    "url": "https://images.kiwi.com/airlines/64x64/TM.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TN",
+    "url": "https://images.kiwi.com/airlines/64x64/TN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TO",
+    "url": "https://images.kiwi.com/airlines/64x64/TO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TP",
+    "url": "https://images.kiwi.com/airlines/64x64/TP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TR",
+    "url": "https://images.kiwi.com/airlines/64x64/TR.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TS",
+    "url": "https://images.kiwi.com/airlines/64x64/TS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TU",
+    "url": "https://images.kiwi.com/airlines/64x64/TU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TV",
+    "url": "https://images.kiwi.com/airlines/64x64/TV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TW",
+    "url": "https://images.kiwi.com/airlines/64x64/TW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TX",
+    "url": "https://images.kiwi.com/airlines/64x64/TX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "TY",
+    "url": "https://images.kiwi.com/airlines/64x64/TY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "U2",
+    "url": "https://images.kiwi.com/airlines/64x64/U2.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "U6",
+    "url": "https://images.kiwi.com/airlines/64x64/U6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "U8",
+    "url": "https://images.kiwi.com/airlines/64x64/U8.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UA",
+    "url": "https://images.kiwi.com/airlines/64x64/UA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UB",
+    "url": "https://images.kiwi.com/airlines/64x64/UB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UC",
+    "url": "https://images.kiwi.com/airlines/64x64/UC.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "UF",
+    "url": "https://images.kiwi.com/airlines/64x64/UF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UJ",
+    "url": "https://images.kiwi.com/airlines/64x64/UJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UL",
+    "url": "https://images.kiwi.com/airlines/64x64/UL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UN",
+    "url": "https://images.kiwi.com/airlines/64x64/UN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UO",
+    "url": "https://images.kiwi.com/airlines/64x64/UO.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UP",
+    "url": "https://images.kiwi.com/airlines/64x64/UP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UQ",
+    "url": "https://images.kiwi.com/airlines/64x64/UQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UT",
+    "url": "https://images.kiwi.com/airlines/64x64/UT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UU",
+    "url": "https://images.kiwi.com/airlines/64x64/UU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "UX",
+    "url": "https://images.kiwi.com/airlines/64x64/UX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "V3",
+    "url": "https://images.kiwi.com/airlines/64x64/V3.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "V7",
+    "url": "https://images.kiwi.com/airlines/64x64/V7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VA",
+    "url": "https://images.kiwi.com/airlines/64x64/VA.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VE",
+    "url": "https://images.kiwi.com/airlines/64x64/VE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VF",
+    "url": "https://images.kiwi.com/airlines/64x64/VF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VJ",
+    "url": "https://images.kiwi.com/airlines/64x64/VJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VL",
+    "url": "https://images.kiwi.com/airlines/64x64/VL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VN",
+    "url": "https://images.kiwi.com/airlines/64x64/VN.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VS",
+    "url": "https://images.kiwi.com/airlines/64x64/VS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VT",
+    "url": "https://images.kiwi.com/airlines/64x64/VT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "VY",
+    "url": "https://images.kiwi.com/airlines/64x64/VY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "W2",
+    "url": "https://images.kiwi.com/airlines/64x64/W2.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "W5",
+    "url": "https://images.kiwi.com/airlines/64x64/W5.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "W6",
+    "url": "https://images.kiwi.com/airlines/64x64/W6.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "W8",
+    "url": "https://images.kiwi.com/airlines/64x64/W8.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WB",
+    "url": "https://images.kiwi.com/airlines/64x64/WB.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WF",
+    "url": "https://images.kiwi.com/airlines/64x64/WF.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WG",
+    "url": "https://images.kiwi.com/airlines/64x64/WG.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WI",
+    "url": "https://images.kiwi.com/airlines/64x64/WI.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WJ",
+    "url": "https://images.kiwi.com/airlines/64x64/WJ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WK",
+    "url": "https://images.kiwi.com/airlines/64x64/WK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WN",
+    "url": "/airline-logos/WN.png",
+    "asset_checked_at": "2026-10-14",
+    "source": "https://www.swabiz.com/html/about-southwest/trademarks.html?REF=FULLSITE",
+    "brand_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WS",
+    "url": "https://images.kiwi.com/airlines/64x64/WS.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WT",
+    "url": "https://images.kiwi.com/airlines/64x64/WT.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WV",
+    "url": "https://images.kiwi.com/airlines/64x64/WV.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WX",
+    "url": "https://images.kiwi.com/airlines/64x64/WX.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "WY",
+    "url": "https://images.kiwi.com/airlines/64x64/WY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "X3",
+    "url": "https://images.kiwi.com/airlines/64x64/X3.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "X7",
+    "url": "https://images.kiwi.com/airlines/64x64/X7.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "X9",
+    "url": "https://images.kiwi.com/airlines/64x64/X9.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "XC",
+    "url": "https://images.kiwi.com/airlines/64x64/XC.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "XK",
+    "url": "https://images.kiwi.com/airlines/64x64/XK.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "XL",
+    "url": "https://images.kiwi.com/airlines/64x64/XL.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "XQ",
+    "url": "https://images.kiwi.com/airlines/64x64/XQ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "XY",
+    "url": "https://images.kiwi.com/airlines/64x64/XY.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "XZ",
+    "url": "https://images.kiwi.com/airlines/64x64/XZ.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "Y4",
+    "url": "https://images.kiwi.com/airlines/64x64/Y4.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "Y7",
+    "url": "https://images.kiwi.com/airlines/64x64/Y7.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "Y8",
+    "url": "https://images.kiwi.com/airlines/64x64/Y8.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "YG",
+    "url": "https://images.kiwi.com/airlines/64x64/YG.png",
+    "asset_checked_at": "2026-10-14",
+    "disabled_reason": "Generic aircraft placeholder, not an airline logo"
+  },
+  {
+    "iata": "YP",
+    "url": "https://images.kiwi.com/airlines/64x64/YP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "YU",
+    "url": "https://images.kiwi.com/airlines/64x64/YU.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "YW",
+    "url": "https://images.kiwi.com/airlines/64x64/YW.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "Z2",
+    "url": "https://images.kiwi.com/airlines/64x64/Z2.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ZE",
+    "url": "https://images.kiwi.com/airlines/64x64/ZE.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ZH",
+    "url": "https://images.kiwi.com/airlines/64x64/ZH.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ZP",
+    "url": "https://images.kiwi.com/airlines/64x64/ZP.png",
+    "asset_checked_at": "2026-10-14"
+  },
+  {
+    "iata": "ZQ",
+    "url": "https://images.kiwi.com/airlines/64x64/ZQ.png",
+    "asset_checked_at": "2026-10-14"
+  }
+]

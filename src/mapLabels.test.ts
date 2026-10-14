@@ -36,7 +36,7 @@ describe("map detail levels", () => {
     expect(airlineLogo({ callsign: "ASL123" })).toContain("JU.png");
     expect(airlineLogo({ callsign: "APG123" })).toContain("Z2.png");
     expect(airlineLogo({ callsign: "CQH123" })).toContain("9C.png");
-    expect(airlineLogo({ callsign: "JAT123" })).toBeNull();
+    expect(airlineLogo({ callsign: "JAT123" })).toContain("JA.png");
     expect(airlineLogo({ callsign: "EZD123" })).toBeNull();
     expect(airlineLogo({ callsign: "N12345" })).toBeNull();
   });

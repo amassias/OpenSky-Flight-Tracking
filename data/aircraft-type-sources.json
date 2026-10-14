@@ -1,0 +1,62 @@
+{
+  "PC24": {
+    "model": "Pilatus PC-24",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "C25M": {
+    "model": "Cessna Citation M2",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "C700": {
+    "model": "Cessna Citation Longitude",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "FA8X": {
+    "model": "Dassault Falcon 8X",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "GL7T": {
+    "model": "Bombardier Global 7500 / 8000",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "TBM9": {
+    "model": "Daher TBM 900 series",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "H160": {
+    "model": "Airbus Helicopters H160",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "EC45": {
+    "model": "Airbus Helicopters H145 / EC145",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "B429": {
+    "model": "Bell 429 GlobalRanger",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  },
+  "C919": {
+    "model": "COMAC C919",
+    "source": "https://www.faa.gov/documentLibrary/media/Order/FAA_Order_JO_7360.1K_Aircraft_Type_Designators.pdf",
+    "checked_at": "2026-10-14",
+    "scope": "Type family; no exact airframe variant inferred"
+  }
+}

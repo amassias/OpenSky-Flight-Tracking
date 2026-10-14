@@ -196,7 +196,7 @@ describe("flightNumberForCallsign", () => {
     expect(flightNumberForCallsign("ASL123")).toBe("JU123");
     expect(flightNumberForCallsign("APG123")).toBe("Z2123");
     expect(flightNumberForCallsign("TLM123")).toBe("SL123");
-    expect(flightNumberForCallsign("JAT123")).toBeNull();
+    expect(flightNumberForCallsign("JAT123")).toBe("JA123");
     expect(flightNumberForCallsign("BAW9")).toBe("BA9");
   });
 

@@ -106,6 +106,15 @@ def load_airlines() -> Dict[str, str]:
                     if icao_code and icao_code not in ['\\N', '', 'N/A']:
                         airlines[icao_code] = airline_name
         
+        # The sourced current assignments also supply names to live/API results.
+        # Retain the legacy catalogue for operators outside this snapshot.
+        corrections_path = os.path.join(os.path.dirname(__file__), 'data', 'airline-code-corrections.json')
+        if os.path.exists(corrections_path):
+            with open(corrections_path, encoding='utf-8') as source:
+                for record in json.load(source):
+                    for operator in record['icao']:
+                        airlines[operator] = record.get('operator_names', {}).get(operator, record['name'])
+
         _airlines_cache = airlines
         print(f"✅ Loaded {len(airlines)} airlines from {csv_path}", file=sys.stderr)
         

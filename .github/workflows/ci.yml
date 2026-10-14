@@ -16,6 +16,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements-dev.txt
       - run: python3 scripts/build_airline_codes.py --check
+      - run: python3 scripts/check_airline_logos.py
       - run: pytest -q
       - uses: actions/setup-node@v4
         with:

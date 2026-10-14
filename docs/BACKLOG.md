@@ -48,7 +48,7 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B26: Live cards are more informative.** The server names the airline from airline-style callsigns. Otherwise the card shows registration and type instead of "Unidentified operator". Climb and descent arrows appear next to the altitude.
 - [x] **B27: ⌘K search also matches registrations** of aircraft in view.
 - [x] **B28: /api/health reports live_available: true without OpenSky credentials.** Live tiles use the public ADS-B feeds; credentials only add history. The earlier value relied on the pulled VERCEL=1.
-- [ ] B29: The bundled airline dataset is missing newer carriers (Volotea, Brussels Airlines, City Airlines…). Refresh it from a maintained source. Volotea, Brussels Airlines, easyJet Europe and easyJet Switzerland were added by hand on 2026-10-11; a full refresh is still open.
+- [ ] B29: The bundled airline dataset is missing newer carriers (Volotea, Brussels Airlines, City Airlines…). Refresh it from a maintained source. Volotea, Brussels Airlines, easyJet Europe and easyJet Switzerland were added by hand on 2026-10-11; The 2026-10-14 sourced snapshot now refreshes the usable IATA member assignments and server names. Non-IATA operators and historical code ownership still need a broader refresh.
 - [x] **B30: The registration in flight details now always matches the photo.** When the server's ADS-B profile lookup missed, FlightAware's *scheduled* tail overrode the transponder registration that the live feed had already provided (for example F-HBQD shown for F-HBQE, F-GZHY for F-HXSX). The photo, looked up by hex, showed the real airframe: 29 of 29 matched in a check against live traffic. The client now ranks sources (transponder profile, then live-feed registration, then scheduled tail), and the server reuses the map's recent live cache instead of a provider call that competes with map tiles.
 
 ## FR24-style rework (2026-10-04)
@@ -113,3 +113,10 @@ B52–B57 implemented and validated on 2026-10-14. Evidence: [quality audit](aud
 - [x] **B55 — P2: Legible altitude inspection.** Use at least 12 px for surrounding metadata, wrap the top readout and date UTC axes across midnight. Preserve missing observations and native keyboard inspection.
 - [x] **B56 — P2: Populated component coverage.** Audit real cabin/graph fixtures in light/dark themes, 375/768/1440 px layouts and 200% text sizing; cover loading, empty, failure/retry, disclosure reset and exact seat counts.
 - [x] **B57 — P2: Documentation consistency.** Align README, design guidance and backlog with current cabin/logos, opaque chrome and real screenshots. Keep the full catalogue refresh (B29), automated real-tile baseline (B41) and remaining OpenSky refresh work (B51) open.
+
+## Airline and aircraft catalogue expansion (2026-10-14)
+
+- [x] **B58:** Replace the hard-coded logo whitelist with a dated catalogue: 388 checked assets, 364 enabled, 24 excluded after visual/placeholder review. Preserve operator badges and add sourced local Southwest/Cargolux/Smartwings replacements.
+- [x] **B59:** Extend current assignments to 364 sourced IATA designators, share names with the server, preserve cargo/operator distinctions and recognise reassigned JAT as JetSMART Chile rather than former JAT Airways. Non-member and historical completeness remains B29.
+- [x] **B60:** Add ten FAA JO 7360.1K type families (69 models total), provenance, manufacturer recognition and correct private-jet/helicopter/turboprop/airliner silhouettes.
+- [x] **B61:** Add offline/optional online catalogue validation, CI coverage and browser checks for decoded local logos, current operator mappings and placeholder badges.

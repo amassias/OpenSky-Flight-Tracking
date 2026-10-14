@@ -32,7 +32,8 @@ export function aircraftIconKind(aircraft: AircraftIconSource): AircraftIconKind
   if (/^(AT[47][0-9]|DH8[A-D]|DHC[67]|C208|PC12|TBM[789]|BE[123][0-9]|B350|SF34|SB20)$/.test(type) || /turboprop|dash 8|king air/.test(profile)) return "turboprop";
   if (/^(E1[789][0-9]|E29[05]|CRJ[1279X]|ERJ[134][0-9]|E[135]45|BCS[13])$/.test(type)) return "regional";
   if (/^(A3[345][0-9K]|A388|B74[478]|B76[234]|B77[237WL]|B78[89X])$/.test(type)) return "heavy";
-  if (/^(A(19N|20N|21N|31[89]|32[01])|B73[0-9]|B3[789]M|B75[23])$/.test(type)) return "airliner";
+  if (/^(A(19N|20N|21N|31[89]|32[01])|B73[0-9]|B3[789]M|B75[23]|C919)$/.test(type)) return "airliner";
+  if (/^(PC24|C25M|C700|FA8X|GL7T)$/.test(type)) return "small";
   if (/cessna|piper|cirrus|diamond|beech|pilatus|ultralight|uav|drone/.test(profile)) return "small";
   const categoryText = String(aircraft.aircraft_category ?? aircraft.category ?? "").trim().toUpperCase();
   if (categoryText === "B1") return "glider";
