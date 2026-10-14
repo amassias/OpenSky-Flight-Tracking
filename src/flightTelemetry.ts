@@ -26,8 +26,22 @@ export function withLiveKinematics(flight: Flight, live: LiveAircraft): Flight {
 
 export function positionObservation(flight: Flight, nowSeconds: number) {
   if (flight.data_source === "scheduled" || flight.data_source === "opensky" || flight.latitude == null || flight.longitude == null) return null;
-  const time = flight.time_position ?? flight.last_contact;
+  const time = flight.time_position;
   if (time == null || !Number.isFinite(time) || time <= 0 || time > nowSeconds + 60) return { state: "unknown" as const };
   const age = Math.max(0, nowSeconds - time);
-  return { state: age > 90 ? "delayed" as const : "recent" as const, time, age };
+  return { state: age > 60 ? "delayed" as const : "recent" as const, time, age };
+}
+
+/** Contact packets can be newer than the actual coordinate fix. */
+export function positionAge(flight: Pick<Flight, "time_position">, nowSeconds: number): number | null {
+  const time = flight.time_position;
+  return time != null && Number.isFinite(time) && time > 0 && time <= nowSeconds + 60
+    ? Math.max(0, nowSeconds - time) : null;
+}
+
+export function positionAgeLabel(age: number | null): string {
+  if (age == null) return "Position age unknown";
+  if (age < 60) return `Seen ${Math.floor(age)}s ago`;
+  if (age < 3600) return `Seen ${Math.floor(age / 60)}m ${Math.floor(age % 60)}s ago`;
+  return `Seen ${Math.floor(age / 3600)}h ago`;
 }

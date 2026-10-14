@@ -30,3 +30,8 @@ it("does not carry a previous priority state across a new squawk observation",()
   const live={icao24:"abc123",callsign:"BAW52T",squawk:"2021",time_position:1010} as LiveAircraft;
   expect(withLiveKinematics(flight,live).emergency).toBeNull();
 });
+
+it("marks positions delayed after one minute even when contact is recent", () => {
+  expect(positionObservation({ ...flight, time_position: 1000, last_contact: 1061 }, 1061)).toMatchObject({state:"delayed", age:61});
+  expect(positionObservation({ ...flight, time_position:null, last_contact:1061 }, 1061)).toEqual({state:"unknown"});
+});

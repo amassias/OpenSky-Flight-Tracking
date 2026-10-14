@@ -3,7 +3,7 @@ import { AircraftHoverStore } from "../aircraftHover";
 import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
 import { destinationGuide } from "../futurePath";
-import { sameLiveFlight } from "../flightTelemetry";
+import { positionAge, positionAgeLabel, sameLiveFlight } from "../flightTelemetry";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
@@ -16,7 +16,7 @@ import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapThe
 import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
-import { projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
+import { isPositionEstimated, projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
 import { distanceText, flightLevelText, speedText, useUnits } from "../units";
 import { AltitudeLegend } from "./AltitudeLegend";
 import { AircraftHoverPreview } from "./AircraftHoverPreview";
@@ -200,6 +200,20 @@ function routeEndpointIcon(kind: "start" | "end", theme: MapTheme) {
   });
 }
 
+function updateMarkerObservation(marker: L.Marker, aircraft: LiveAircraft, now: number) {
+  const element = marker.getElement();
+  if (!element) return;
+  const age = positionAge(aircraft, now);
+  const state = age == null ? "unknown" : age > 60 ? "delayed" : "recent";
+  if (element.dataset.freshness !== state) {
+    element.dataset.freshness = state;
+  }
+  const estimated = String(isPositionEstimated(aircraft, now));
+  if (element.dataset.estimated !== estimated) element.dataset.estimated = estimated;
+  const title = `View ${aircraft.callsign || aircraft.registration || aircraft.icao24.toUpperCase()} · ${positionAgeLabel(age)} · ${estimated === "true" ? "Estimated map position" : "Reported map position"}`;
+  if (element.title !== title) element.title = title;
+}
+
 interface AircraftMarkerProps {
   aircraft: LiveAircraft;
   active: boolean;
@@ -224,6 +238,7 @@ function areMarkersEqual(
     && a.latitude === b.latitude
     && a.longitude === b.longitude
     && a.time_position === b.time_position
+    && a.last_contact === b.last_contact
     && a.true_track === b.true_track
     && a.on_ground === b.on_ground
     && a.airline_code === b.airline_code
@@ -295,12 +310,18 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     return () => logo?.removeEventListener("error", hideLogo);
   }, [labelPrimary, icon]);
 
+  useEffect(() => {
+    if (markerRef.current) updateMarkerObservation(markerRef.current, aircraft, Date.now() / 1000);
+  }, [aircraft, icon]);
+
   // Only dead-reckoning ticks glide. Leaflet's own camera animations must
   // position markers immediately or they visibly lag behind their map point.
   useEffect(() => subscribeToTick((now) => {
     const current = aircraftRef.current;
     const marker = markerRef.current;
-    if (!marker || current.on_ground) return;
+    if (!marker) return;
+    updateMarkerObservation(marker, current, now);
+    if (current.on_ground) return;
     const next = projectPosition(current, now);
     const shown = marker.getLatLng();
     if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) {
@@ -359,16 +380,18 @@ function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense
 }
 
 const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, onHover, onLeave, theme = "dark" }: AircraftMarkerProps) {
+  const dotRef = useRef<L.CircleMarker | null>(null);
   const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
   // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
   const color = active ? MAP_COLORS[theme].accent : emergencyInfo(aircraft) ? MAP_COLORS[theme].danger : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
+  const old = (positionAge(aircraft, Date.now() / 1000) ?? Infinity) > 60;
   const pathOptions = useMemo(() => ({
     color,
     fillColor: color,
-    fillOpacity: active ? 1 : 0.78,
-    opacity: active ? 1 : 0.9,
+    fillOpacity: old ? 0 : active ? 1 : 0.78,
+    opacity: old ? 0.55 : active ? 1 : 0.9,
     weight: active ? 2 : 1,
-  }), [active, color]);
+  }), [active, color, old]);
   const aircraftRef = useRef(aircraft);
   aircraftRef.current = aircraft;
   const eventHandlers = useMemo(() => ({
@@ -380,8 +403,17 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, onHo
     },
     mouseout: () => onLeave?.(aircraftRef.current.icao24),
   }), [onSelect, onHover, onLeave]);
+  useEffect(() => {
+    let wasOld = old;
+    return subscribeToTick(now => {
+      const nextOld = (positionAge(aircraftRef.current, now) ?? Infinity) > 60;
+      if (nextOld === wasOld) return;
+      wasOld = nextOld;
+      dotRef.current?.setStyle({ fillOpacity: nextOld ? 0 : active ? 1 : 0.78, opacity: nextOld ? 0.55 : active ? 1 : 0.9 });
+    });
+  }, [active, old]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <CircleMarker center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
+  return <CircleMarker ref={dotRef} center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
 interface BoundsReporterProps { onBounds: (bounds: Bounds, visible: Bounds) => void }
@@ -917,7 +949,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
       {baseSegments.map((segment, index) => (
         <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96 * fade, lineCap: "round", lineJoin: "round" }} />
       ))}
-      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ color: headSegment.color, weight: 3.5, opacity: 0.96 * headFade, lineCap: "round", lineJoin: "round" }} />}
+      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ className: "estimated-position-segment", dashArray: "5 7", color: headSegment.color, weight: 3.5, opacity: 0.96 * headFade, lineCap: "round", lineJoin: "round" }} />}
       {firstPoint && basePoints.length > 1 && fade > 0.5 && (
         <Marker position={[firstPoint[1], firstPoint[2]]} icon={startIcon} keyboard={false}>
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="aircraft-tooltip"><strong>Trace start</strong><span className="mono">{formatAltitude(firstPoint[3])}</span></Tooltip>
@@ -1029,8 +1061,10 @@ export function FlightMap({
   const [bounds, setBounds] = useState<Bounds | null>(null);
   // What the visitor actually sees, as opposed to the padded box requested.
   const visibleBoundsRef = useRef<Bounds | null>(null);
+  const [visibleBounds, setVisibleBounds] = useState<Bounds | null>(null);
   const handleBounds = useCallback((next: Bounds, visible: Bounds) => {
     visibleBoundsRef.current = visible;
+    setVisibleBounds(current => boundsEqual(current, visible) ? current : visible);
     setBounds((current) => (boundsEqual(current, next) ? current : next));
   }, []);
   useEffect(() => {
@@ -1158,7 +1192,7 @@ export function FlightMap({
         coverage_complete: true,
       };
       setLiveState({ data: covered, fetching: false, loadedTiles: 1, totalTiles: 1, failedTiles: 0, error: null });
-      onLiveSnapshot?.(covered, airportIcaoRef.current);
+
       const wait = Math.max(1_000, coverage.until - Date.now());
       const timer = setTimeout(requestLiveRefresh, wait);
       return () => clearTimeout(timer);
@@ -1249,7 +1283,7 @@ export function FlightMap({
         const data = snapshot();
         saveViewportCache();
         setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
-        onLiveSnapshot?.(data, airportIcaoRef.current);
+
       } catch (error) {
         if (controller.signal.aborted) return;
         failedTiles += 1;
@@ -1279,7 +1313,7 @@ export function FlightMap({
         const data = snapshot();
         saveViewportCache();
         setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
-        onLiveSnapshot?.(data, airportIcaoRef.current);
+
       } catch {
         // The complete request below remains authoritative. A seed failure is
         // intentionally silent so a transient public provider issue cannot
@@ -1334,7 +1368,13 @@ export function FlightMap({
 
   const displayedLiveData = liveState.data;
   const hasLiveSnapshot = Boolean(displayedLiveData?.states.length);
-  const displayedLiveStates = displayedLiveData?.states ?? NO_AIRCRAFT;
+  const displayedLiveStates = useMemo(() => {
+    const states = displayedLiveData?.states ?? NO_AIRCRAFT;
+    return visibleBounds ? states.filter(aircraft => isAircraftInBounds(aircraft, visibleBounds)) : states;
+  }, [displayedLiveData, visibleBounds]);
+  useEffect(() => {
+    if (displayedLiveData) onLiveSnapshot?.({ ...displayedLiveData, states: displayedLiveStates, count: displayedLiveStates.length }, airportIcaoRef.current);
+  }, [displayedLiveData, displayedLiveStates, onLiveSnapshot]);
   const selectedCandidate = useMemo(
     () => selectedFlight ? displayedLiveStates.find(aircraft => aircraft.icao24.toLowerCase() === selectedFlight.icao24.toLowerCase()) ?? null : null,
     [displayedLiveStates, selectedFlight],
@@ -1381,16 +1421,17 @@ export function FlightMap({
         : [];
     }));
   }, [displayedLiveStates, trailsEnabled]);
-  const hiddenByFilters = displayedLiveStates.length - visibleStates.length;
+  const filteredCount = filterAircraft(displayedLiveStates, filters).length;
+  const hiddenByFilters = displayedLiveStates.length - filteredCount;
   const liveStatus = liveState.error || liveState.failedTiles > 0
-    ? hasLiveSnapshot ? `Refresh delayed · last snapshot kept · ${liveState.loadedTiles}/${liveState.totalTiles} sectors` : "Live traffic temporarily unavailable"
+    ? hasLiveSnapshot ? `${filteredCount} aircraft · Refresh delayed · last snapshot kept · ${liveState.loadedTiles}/${liveState.totalTiles} sectors` : "Live traffic temporarily unavailable"
     : liveState.fetching && liveState.loadedTiles === 0
-      ? "Scanning visible airspace…"
+      ? hasLiveSnapshot ? `${filteredCount} aircraft · scanning…` : "Scanning visible airspace…"
       : liveState.fetching
-        ? `${visibleStates.length} aircraft · sector ${Math.min(liveState.loadedTiles + 1, liveState.totalTiles)}/${liveState.totalTiles}`
+        ? `${filteredCount} aircraft · sector ${Math.min(liveState.loadedTiles + 1, liveState.totalTiles)}/${liveState.totalTiles}`
         : liveState.loadedTiles < liveState.totalTiles
-          ? `${visibleStates.length} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
-          : `${visibleStates.length} aircraft`;
+          ? `${filteredCount} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
+          : `${filteredCount} aircraft`;
 
   const locationIcon = useMemo(() => userLocationIcon(), []);
   const handleLocationFound = useCallback((location: UserLocation) => {
@@ -1489,6 +1530,10 @@ export function FlightMap({
         </section>}
       </div>
 
+      <div className="map-data-guide">
+        {denseTraffic ? <span>Dense view · dots show reported positions. Zoom in for aircraft and labels.</span> : !labelsEnabled ? <span>Labels are off · enable them in Display.</span> : <span>Zoom in for more aircraft labels.</span>}
+        <span>Outlined aircraft = estimated position · faded / hollow = fix older than 60s or age unknown.</span>
+      </div>
       <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />
         <strong>{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</strong>

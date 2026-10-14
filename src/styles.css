@@ -1089,3 +1089,17 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 
 .cabin-inventory > .cabin-class { padding-bottom: 4px; }
 .cabin-inventory-toggle .cabin-class { padding-bottom: 4px; }
+
+/* Freshness describes coordinates, separately from the reported flight state. */
+.flight-position-age { font-variant-numeric: tabular-nums; }
+.flight-position-age.freshness-delayed, .flight-position-age.freshness-unknown { color: var(--warn); }
+.status-dot.freshness-delayed, .status-dot.freshness-unknown { background: transparent; border: 1px solid var(--warn); }
+.aircraft-marker-wrap[data-freshness="delayed"] .aircraft-marker,
+.aircraft-marker-wrap[data-freshness="unknown"] .aircraft-marker { opacity: .55; }
+.aircraft-marker-wrap[data-estimated="true"] .aircraft-marker svg { fill: none; stroke: currentColor; stroke-width: 1; }
+.map-data-guide { position: absolute; z-index: 500; left: var(--inset-left); bottom: calc(var(--edge) + 42px); max-width: min(460px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); display: grid; gap: 3px; padding: 7px 10px; background: var(--panel); color: var(--muted); border-radius: var(--r-md); font-size: .8125rem; pointer-events: none; }
+.map-expanded .map-data-guide { left: var(--edge); }
+@media (max-width: 900px) {
+  .map-data-guide { left: var(--edge); top: 145px; bottom: auto; max-width: calc(100% - var(--edge) * 2); }
+  .workspace.sheet-expanded .map-data-guide { display: none; }
+}

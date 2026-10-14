@@ -32,3 +32,12 @@ describe("projectPosition", () => {
     expect(projectPosition({ ...cruising, latitude: null }, 1_010)).toBeNull();
   });
 });
+
+it("does not invent a position age from a newer contact-only packet", () => {
+  expect(projectPosition({ ...cruising, time_position: null, last_contact: 1010 }, 1012)).toEqual([49, 2]);
+});
+
+it("keeps non-finite speed and heading at the reported coordinates", () => {
+  expect(projectPosition({ ...cruising, velocity: NaN }, 1012)).toEqual([49, 2]);
+  expect(projectPosition({ ...cruising, true_track: Infinity }, 1012)).toEqual([49, 2]);
+});

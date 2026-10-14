@@ -120,3 +120,12 @@ B52–B57 implemented and validated on 2026-10-14. Evidence: [quality audit](aud
 - [x] **B59:** Extend current assignments to 364 sourced IATA designators, share names with the server, preserve cargo/operator distinctions and recognise reassigned JAT as JetSMART Chile rather than former JAT Airways. Non-member and historical completeness remains B29.
 - [x] **B60:** Add ten FAA JO 7360.1K type families (69 models total), provenance, manufacturer recognition and correct private-jet/helicopter/turboprop/airliner silhouettes.
 - [x] **B61:** Add offline/optional online catalogue validation, CI coverage and browser checks for decoded local logos, current operator mappings and placeholder badges.
+
+### B62 — Reddit feedback: coordinate age and map clarity — Done (2026-10-14)
+
+- Each live row shows the age of its actual coordinate fix, separately from the reported airborne/ground state; recent radio contact cannot make old coordinates appear fresh.
+- After 60 seconds, status dots become hollow and aircraft markers fade. Unknown age is explicitly labelled and never dead-reckoned.
+- Estimated aircraft silhouettes are outlined; the selected trace's connection to its current head is dashed. Selected details explain projection and its 90-second cap.
+- Dense canvas mode explains dots and invites zooming in for labels. Canvas points remain reported coordinates; old or unknown fixes are hollow.
+- Map and list share the same snapshot cropped to the visible geographic bounds, with the same map filters. A selected aircraft excluded by filters remains selectable without inflating the count.
+- Regression checks cover missing coordinate timestamps, newer contact packets, invalid kinematics, and row age labels. Desktop/mobile browser checks use 1,000 visible aircraft plus one outside the bounds.

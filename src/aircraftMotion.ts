@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { positionAge } from "./flightTelemetry";
 import type { Flight } from "./types";
 
 const EARTH_RADIUS_M = 6_371_000;
@@ -16,12 +17,12 @@ type Projectable = Pick<Flight, "latitude" | "longitude" | "velocity" | "true_tr
 export function projectPosition(aircraft: Projectable, nowSeconds: number): [number, number] | null {
   const { latitude, longitude } = aircraft;
   if (latitude == null || longitude == null) return null;
-  const fixTime = aircraft.time_position ?? aircraft.last_contact;
+  const observedAge = positionAge(aircraft, nowSeconds);
   const speed = aircraft.velocity;
   const track = aircraft.true_track;
-  if (aircraft.on_ground || fixTime == null || speed == null || track == null || !(speed > 5)) return [latitude, longitude];
+  if (aircraft.on_ground || observedAge == null || speed == null || !Number.isFinite(speed) || track == null || !Number.isFinite(track) || !(speed > 5)) return [latitude, longitude];
 
-  const age = Math.min(Math.max(0, nowSeconds - fixTime), MAX_PROJECTION_SECONDS);
+  const age = Math.min(observedAge ?? 0, MAX_PROJECTION_SECONDS);
   if (age === 0) return [latitude, longitude];
   const angular = (speed * age) / EARTH_RADIUS_M;
   const bearing = (track * Math.PI) / 180;
@@ -69,4 +70,9 @@ export function useNowSeconds(active = true): number {
     return subscribeToTick(setNow);
   }, [active]);
   return now;
+}
+
+export function isPositionEstimated(aircraft: Projectable, nowSeconds: number): boolean {
+  const projected = projectPosition(aircraft, nowSeconds);
+  return projected != null && (projected[0] !== aircraft.latitude || projected[1] !== aircraft.longitude);
 }

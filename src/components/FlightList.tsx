@@ -3,6 +3,8 @@ import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert }
 import { usePersistentState } from "../hooks/usePersistentState";
 import type { Flight } from "../types";
 import { callsignsForFlightNumber, distanceKm, flightNumberForCallsign, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../utils";
+import { useNowSeconds } from "../aircraftMotion";
+import { positionAge, positionAgeLabel } from "../flightTelemetry";
 import { useUnits } from "../units";
 
 /** Cards rendered per step: a zoomed-out map can hold thousands of aircraft. */
@@ -32,10 +34,13 @@ interface FlightCardProps {
   selected: boolean;
   onSelect: (flight: Flight) => void;
   onPreview?: (flight: Flight | null) => void;
+  now?: number;
 }
 
-const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview }: FlightCardProps) {
+const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview, now }: FlightCardProps) {
   useUnits();
+  const age = now == null ? null : positionAge(flight, now);
+  const freshness = age == null ? "unknown" : age > 60 ? "delayed" : "recent";
   const status = statusLabel(flight.status, flight.on_ground);
   const time = flight.primary_time ?? flight.first_seen ?? flight.last_seen;
   const emergency = emergencyInfo(flight);
@@ -58,7 +63,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
       <span className="flight-card-main">
         <span className="flight-identity">
           <span className="callsign-row">
-            <span className={`status-dot status-${statusKey}`} aria-hidden="true" />
+            <span className={`status-dot status-${statusKey} ${now != null ? `freshness-${freshness}` : ""}`} aria-hidden="true" />
             <span className="callsign mono">{flight.callsign || flight.icao24.toUpperCase()}</span>
             {flightNumber && <span className="flight-number mono" title="Flight number on tickets">{flightNumber}</span>}
           </span>
@@ -69,6 +74,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
           {emergency
             ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
             : <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>}
+          {now != null && <span className={`flight-position-age freshness-${freshness}`} title="Age of the last received coordinates; Airborne describes the last reported state">{positionAgeLabel(age)}</span>}
           {time != null && <>
             <span>·</span>
             <span>{formatTime(time)} UTC</span>
@@ -103,6 +109,7 @@ export function FlightList({
 }: FlightListProps) {
   const [query, setQuery] = useState("");
   const live = variant === "live";
+  const now = useNowSeconds(live);
   const [status, setStatus] = usePersistentState<StatusFilter>("skytrace-list-status", "all");
   // Recorded movements read best by time; aircraft in view by distance.
   const [sort, setSort] = usePersistentState<SortOrder>(live ? "skytrace-list-sort-live" : "skytrace-list-sort", live ? "distance_asc" : "time_desc");
@@ -270,6 +277,7 @@ export function FlightList({
           <FlightCard
             key={flightId(flight)}
             flight={flight}
+            now={live ? now : undefined}
             selected={selectedFlight ? flightId(selectedFlight) === flightId(flight) : false}
             onSelect={onSelect}
             onPreview={onPreview}

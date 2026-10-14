@@ -111,3 +111,15 @@ describe("FlightList exploration and recovery", () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 });
+
+it("shows fix age and distinguishes an old fix from a recent contact", () => {
+  const now = Math.floor(Date.now() / 1000);
+  render(<FlightList variant="live" flights={[
+    {icao24:"new001",callsign:"NEW1",on_ground:false,time_position:now-4,last_contact:now},
+    {icao24:"old001",callsign:"OLD1",on_ground:false,time_position:now-125,last_contact:now},
+    {icao24:"unk001",callsign:"UNKNOWN1",on_ground:false,last_contact:now},
+  ]} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
+  expect(screen.getByText("Seen 4s ago")).toBeInTheDocument();
+  expect(screen.getByText("Seen 2m 5s ago")).toHaveClass("freshness-delayed");
+  expect(screen.getByText("Position age unknown")).toHaveClass("freshness-unknown");
+});
