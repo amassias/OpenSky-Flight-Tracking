@@ -22,3 +22,9 @@ Remaining Lighthouse failures: LCP (map tiles from tile.openstreetmap.org, 256 p
 ## After B64 (lazy panels)
 
 Entry JS 77.9 → 67.1 kB gzip (flight details kept eager: lazy-loading them pushed first selection past the 200 ms budget). Vendor 157.8 kB unchanged (single chunk, ADR 0001). Budget enforced by `npm run check:size`.
+
+## Final run (three consecutive Lighthouse runs, identical)
+
+Performance 0.75, accessibility 1.00, best practices 0.92, SEO 1.00. FCP 2.7 s, LCP 5.7 s (map tiles), TBT 0 ms, CLS 0. Entry JS 67.1 kB gzip, vendor 157.8 kB gzip.
+
+CI wall time: 11–17 min (one serial e2e job, three browsers) before; about 5 min now (three browser jobs in parallel, cached browsers). The python job was failing on every run before B71.
