@@ -39,6 +39,7 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - run: npm run check:size
 
   # One job per browser: they run side by side instead of one after another,
   # and each keeps a single worker so timing checks stay uncontended.

@@ -18,3 +18,7 @@ Method: `vite build`, `vite preview` on :4173, Lighthouse (mobile emulation, hea
 Vendor weight by source size: react-dom 545 kB, leaflet 450 kB, motion 480 kB (motion-dom + framer-motion), TanStack Query 87 kB.
 
 Remaining Lighthouse failures: LCP (map tiles from tile.openstreetmap.org, 256 px tiles served at device size), console 500s (no backend in this run), unused JS 123 KiB.
+
+## After B64 (lazy panels)
+
+Entry JS 77.9 → 55.1 kB gzip. Vendor 157.8 kB unchanged (single chunk, ADR 0001). Budget enforced by `npm run check:size`.

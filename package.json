@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run test && npm run build"
+    "check": "npm run lint && npm run test && npm run build",
+    "check:size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.81.5",

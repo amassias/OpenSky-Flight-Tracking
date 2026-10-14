@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
@@ -6,16 +6,13 @@ import { TriangleAlert } from "./components/icons";
 import { List } from "./components/customIcons";
 import { sameLiveFlight, withLiveKinematics } from "./flightTelemetry";
 import { aircraftPhoto, api, readableApiError } from "./api";
-import { AirportTab, type AirportView } from "./components/AirportTab";
-import { FlightDetails } from "./components/FlightDetails";
+import type { AirportView } from "./components/AirportTab";
 import { FlightList } from "./components/FlightList";
 import { GlobalAlerts } from "./components/GlobalAlerts";
 import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
-import { Onboarding } from "./components/Onboarding";
 import { OmniSearch } from "./components/OmniSearch";
 import { PanelBoundary } from "./components/PanelBoundary";
-import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Topbar } from "./components/Topbar";
 import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
@@ -23,6 +20,18 @@ import { getUnits, setUnits } from "./units";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
 import type { Airport, Flight, FlightMode, LiveFlightsResponse, MapTheme, MapView } from "./types";
 import { matchingFlightTrack, emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
+
+// Panels that only appear after an interaction load on demand, keeping them out of the entry chunk.
+const AirportTab = lazy(() => import("./components/AirportTab").then(module => ({ default: module.AirportTab })));
+const FlightDetails = lazy(() => import("./components/FlightDetails").then(module => ({ default: module.FlightDetails })));
+// Fetch the likely next panels once the map is up, so opening them does not wait on the network.
+if (typeof window !== "undefined") {
+  const prefetch = () => { void import("./components/FlightDetails"); void import("./components/AirportTab"); };
+  if ("requestIdleCallback" in window) window.requestIdleCallback(prefetch, { timeout: 4000 });
+  else setTimeout(prefetch, 2000);
+}
+const Onboarding = lazy(() => import("./components/Onboarding").then(module => ({ default: module.Onboarding })));
+const ShortcutsDialog = lazy(() => import("./components/ShortcutsDialog").then(module => ({ default: module.ShortcutsDialog })));
 
 interface FlightRequest {
   airport: Airport;
@@ -734,6 +743,7 @@ export function App() {
         <AnimatePresence>
           {detailsFlight && !mapExpanded && (
             <PanelBoundary key="details" label="flight details" resetKey={detailsFlight.icao24} frameClassName="details-drawer dock-panel">
+            <Suspense fallback={null}>
             <FlightDetails
               flight={detailsFlight}
               track={currentTrack}
@@ -753,6 +763,7 @@ export function App() {
               onShare={shareView}
               observer={userPosition}
             />
+            </Suspense>
             </PanelBoundary>
           )}
         </AnimatePresence>
@@ -802,6 +813,7 @@ export function App() {
                 )}
                 airport={(
                   <PanelBoundary label="airport board" resetKey={request?.airport.icao ?? null}>
+                  <Suspense fallback={null}>
                   <AirportTab
                     selected={request?.airport ?? null}
                     popular={popular.data ?? []}
@@ -842,6 +854,7 @@ export function App() {
                       referencePoint={mapCenter}
                     />
                   </AirportTab>
+                  </Suspense>
                   </PanelBoundary>
                 )}
               />
@@ -857,8 +870,8 @@ export function App() {
         )}
       </main>
 
-      {tourOpen && <Onboarding onClose={closeTour} />}
-      <AnimatePresence>{shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}</AnimatePresence>
+      {tourOpen && <Suspense fallback={null}><Onboarding onClose={closeTour} /></Suspense>}
+      <Suspense fallback={null}><AnimatePresence>{shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}</AnimatePresence></Suspense>
 
       <AnimatePresence>
         {toast && (
