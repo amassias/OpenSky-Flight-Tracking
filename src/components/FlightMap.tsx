@@ -831,10 +831,18 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const haloOptions = useMemo(() => ({ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7 * fade, lineCap: "round" as const, lineJoin: "round" as const }), [fade, theme]);
   const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
   const units = useUnits();
+  const fallbackMarkerRef = useRef<L.Marker | null>(null);
   const fallbackIcon = useMemo(
-    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · ") } }),
+    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · "), logo: airlineLogo(flight) } }),
     [flight, units],
   );
+  useEffect(() => {
+    const logo = fallbackMarkerRef.current?.getElement()?.querySelector<HTMLImageElement>(".airline-logo");
+    const hideLogo = () => logo?.remove();
+    logo?.addEventListener("error", hideLogo);
+    if (logo?.complete && !logo.naturalWidth) hideLogo();
+    return () => logo?.removeEventListener("error", hideLogo);
+  }, [fallbackIcon, live]);
 
   const projection = headingProjection(live ?? flight, now, head);
   const futurePath = destinationGuide({ ...flight, ...live }, now, head);
@@ -901,7 +909,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="aircraft-tooltip"><strong>Trace start</strong><span className="mono">{formatAltitude(firstPoint[3])}</span></Tooltip>
         </Marker>
       )}
-      {!live && head && <Marker position={head} icon={fallbackIcon} keyboard={false} />}
+      {!live && head && <Marker ref={fallbackMarkerRef} position={head} icon={fallbackIcon} keyboard={false} />}
     </>
   );
 }

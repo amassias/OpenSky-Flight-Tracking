@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route('https://api.planespotters.net/**', route => route.fulfill({ json: { photos: [] } }));
   // A real PNG avoids engine-dependent decoding of SVG served at a .png URL.
-  await page.route('https://images.kiwi.com/**', route => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') }));
+  await page.route('https://images.kiwi.com/**', route => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAALElEQVR4nGNkCN3NQC5gIlsnw6hmkgET6VoQYFQziYCJVA3IYFQziYCiAAMAccQBOL5InQcAAAAASUVORK5CYII=', 'base64') }));
 });
 
 test('opens immediately, estimates the route, shows sourced variants and survives fast reselection', async ({ page }, info) => {
@@ -79,9 +79,13 @@ test('reveals labels with zoom, hides failed logos, and animates only flying rot
     await page.waitForTimeout(300);
     await expect(page.locator('.aircraft-label').first()).toBeVisible();
     if (zoom < 10) await expect(page.locator('.airline-logo')).toHaveCount(0);
-    if (zoom === 10) await expect(page.locator('.airline-logo').first()).toBeVisible();
   }
   await expect(page.locator('.label-level-3 i').first()).toBeVisible();
+  // Collision avoidance can hide ordinary labels on a small screen; the
+  // selected aircraft keeps its label and logo. Select after zooming so the
+  // mobile sheet does not cover the zoom controls during this check.
+  await page.locator('[data-icao24="abc123"]').first().dispatchEvent('mousedown');
+  await expect(page.locator('.aircraft-marker-wrap').filter({ has: page.locator('[data-icao24="abc123"]') }).locator('.airline-logo').first()).toBeVisible();
   const airRotor = page.locator('[data-icao24="abc125"] .aircraft-svg-rotor');
   const groundRotor = page.locator('[data-icao24="abc126"] .aircraft-svg-rotor');
   await expect(airRotor).toHaveCSS('animation-name', 'helicopter-rotor');
