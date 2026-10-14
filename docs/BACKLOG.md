@@ -82,7 +82,8 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B48: Board rows redone.** Scheduled and observed flights share one row layout (time, destination and flight, status and gate). The status chip no longer stacks its live dot above the text, delays show the new time large with the old one struck through, the Departures/Arrivals control is no longer truncated (the Live/History switch moved beside the status line), and the status line no longer clips.
 - [x] **B49: Airframe history.** Owners, operators and registrations over time from OpenSky snapshots (all countries) and the FAA registry (US), the registered owner today from ADSBDB, serial number and age, and recent flights on demand.
 - [x] **B50: Search by registration.** `F-HBXA`, `N283VA` or a hex code opens an airframe anywhere; aircraft that are not flying show a clear "not in the live feed" state instead of an endless "Resolving…".
-- [ ] B51: Refresh `data/aircraft-history` and `data/faa-registry` on a schedule (the OpenSky snapshots end in August 2025).
+- [ ] B51: Refresh `data/aircraft-history` and `data/faa-registry` on a schedule. The FAA half now has a monthly workflow (`.github/workflows/refresh-faa-registry.yml`, written without network access, so its first run is untested). The OpenSky snapshots end in August 2025 and are still refreshed by hand.
+- [x] Owner sources reviewed (2026-10-14): `tar1090-db` was measured and not integrated. Its CSV has owners for about 373k US aircraft (already covered by the FAA data, and including private individuals) and only about 2.9k outside the US; the repository has no licence file. The UK CAA G-INFO download is paid and licensed for a single PC. The New Zealand and Canadian registers were not reachable from the build environment, so they were not evaluated.
 
 ## Improvement pass (2026-10-11)
 

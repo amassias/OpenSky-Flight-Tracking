@@ -1,0 +1,50 @@
+name: Refresh FAA registry
+
+# Rebuilds data/faa-registry from the FAA's public download and opens a pull
+# request, so the data is reviewed and tested like any other change. The OpenSky
+# aircraft-history snapshots are not refreshed here: they are chosen by hand
+# (see README, "Data and privacy").
+on:
+  schedule:
+    - cron: "17 5 3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Download the FAA releasable registry
+        run: |
+          curl -fL -A "Mozilla/5.0" -o "$RUNNER_TEMP/ReleasableAircraft.zip" https://registry.faa.gov/database/ReleasableAircraft.zip
+          unzip -q "$RUNNER_TEMP/ReleasableAircraft.zip" -d "$RUNNER_TEMP/faa"
+      - name: Rebuild the shards
+        run: python3 scripts/build_faa_registry.py "$RUNNER_TEMP/faa"
+      - run: pytest -q
+      - name: Open a pull request when the data changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- data/faa-registry; then
+            echo "FAA registry unchanged"
+            exit 0
+          fi
+          branch="data/faa-registry-$(date -u +%Y-%m)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add data/faa-registry
+          git commit -m "Refresh FAA registry ($(date -u +%Y-%m-%d))"
+          git push --force-with-lease origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Refresh FAA registry ($(date -u +%Y-%m))" \
+            --body "Automated rebuild of data/faa-registry from the FAA releasable aircraft database. Street addresses and individuals' names are not kept (see scripts/build_faa_registry.py)."
