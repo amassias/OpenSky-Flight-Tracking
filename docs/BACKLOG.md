@@ -129,3 +129,17 @@ B52–B57 implemented and validated on 2026-10-14. Evidence: [quality audit](aud
 - Dense canvas mode explains dots and invites zooming in for labels. Canvas points remain reported coordinates; old or unknown fixes are hollow.
 - Map and list share the same snapshot cropped to the visible geographic bounds, with the same map filters. A selected aircraft excluded by filters remains selectable without inflating the count.
 - Regression checks cover missing coordinate timestamps, newer contact packets, invalid kinematics, and row age labels. Desktop/mobile browser checks use 1,000 visible aircraft plus one outside the bounds.
+
+## Improvement pass and benchmark (2026-10-14)
+
+Evidence: [benchmark](audits/2026-10-14-benchmark.md). Vocabulary: [CONTEXT.md](../CONTEXT.md). Tickets are ordered as thin vertical slices; "blocked by" marks real dependencies.
+
+- [x] **B63: Skip link, tap-target name, robots.txt, flaky test.** The skip link now lands on the (reopened) results panel and always has a target; the Traffic reopen button's accessible name contains its visible text; `robots.txt` added (SEO 0.92 → 1.0); async test timeout raised so full-suite runs stop failing `steps the history back`. Added `CONTEXT.md`, `AGENTS.md` and `docs/adr/`.
+- [ ] **B64: Cut entry cost.** Vendor is 158 kB gzip (react-dom, leaflet, motion). Review chunk graph so the airport board, flight details and dialogs load on demand without breaking init order (ADR 0001). Measure with the benchmark method; done when entry+vendor gzip drops ≥ 15%.
+- [ ] **B65: Map-tile LCP.** Preconnect to the tile host, request tiles at the real device pixel ratio, and evaluate a self-hosted or vector tile source. Done when mobile LCP ≤ 4 s in the benchmark.
+- [ ] **B66: Deepen `server.py` (1,526 lines).** Extract route handlers by domain (live, airport, airframe) behind a small interface; keep `api/index.py` as the only adapter. Blocked by nothing; protect with `tests/test_server.py` and `test_vercel_api.py`.
+- [ ] **B67: Deepen `api_client.py` (1,678 lines).** Split provider clients (OpenSky, ADS-B fallback, FlightAware, Planespotters) from normalisation. Blocked by B66 only if shared helpers move.
+- [ ] **B68: Shrink `App.tsx` (869 lines).** Move selection, URL state and live-board derivation into hooks with tests. Blocked by nothing.
+- [ ] **B69: Content-Security-Policy.** Add a report-only CSP first (tile, photo, font and logo hosts), then enforce. Blocked by listing every external host in use.
+- [ ] **B70: Performance budget in CI.** Fail the build if entry+vendor gzip grows more than 5% or Lighthouse mobile performance drops below 0.7. Blocked by B64.
+- [ ] B29, B41 and B51 above remain open.

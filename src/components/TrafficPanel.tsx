@@ -18,7 +18,7 @@ interface TrafficPanelProps {
 export function TrafficPanel({ tab, onTabChange, onClose, liveCount, airportLabel, live, airport, alerts }: TrafficPanelProps) {
   const reducedMotion = useReducedMotion();
   return (
-    <aside className="traffic-panel" id="flight-results" aria-label="Traffic">
+    <aside className="traffic-panel" id="flight-results" tabIndex={-1} aria-label="Traffic">
       <header className="traffic-header">
         <div className="tabs" role="tablist" aria-label="Traffic views">
           {([["live", "In view", liveCount ? String(liveCount) : null], ["airport", "Airport", airportLabel], ["alerts", "Alerts", null]] as const).map(([id, label, count]) => (

@@ -622,7 +622,18 @@ export function App() {
 
   return (
     <div className={`app theme-${theme} ${mapExpanded ? "map-expanded" : ""}`}>
-      <a className="skip-link" href="#flight-results">Skip to flight results</a>
+      <a
+        className="skip-link"
+        href="#workspace"
+        onClick={event => {
+          // The results panel can be collapsed: open it, then land on it.
+          event.preventDefault();
+          setTrafficOpen(true);
+          requestAnimationFrame(() => (document.getElementById("flight-results") ?? document.getElementById("workspace"))?.focus());
+        }}
+      >
+        Skip to flight results
+      </a>
       <Topbar
         health={health.data}
         healthPending={health.isPending}
@@ -647,7 +658,7 @@ export function App() {
         )}
       />
 
-      <main className={`workspace ${dockOpen ? "has-dock" : ""} ${dockOpen && sheetExpanded ? "sheet-expanded" : ""} ${trafficOpen ? "traffic-open" : ""}`}>
+      <main id="workspace" tabIndex={-1} className={`workspace ${dockOpen ? "has-dock" : ""} ${dockOpen && sheetExpanded ? "sheet-expanded" : ""} ${trafficOpen ? "traffic-open" : ""}`}>
         <FlightMap
           // A shared map position wins over the home airport until one is opened.
           airport={request?.airport ?? (sharedView ? null : homeAirport)}
@@ -838,7 +849,7 @@ export function App() {
           )}
         </AnimatePresence>
         {!trafficOpen && !mapExpanded && (
-          <button type="button" className="traffic-reopen" onClick={() => setTrafficOpen(true)} aria-label="Open traffic panel">
+          <button type="button" className="traffic-reopen" onClick={() => setTrafficOpen(true)} aria-label={`Traffic ${liveSummary.total} Open traffic panel`}>
             <List size={15} aria-hidden="true" />
             <span>Traffic</span>
             <b className="mono">{liveSummary.total}</b>

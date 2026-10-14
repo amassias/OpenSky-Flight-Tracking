@@ -61,9 +61,9 @@ test("searches an airport and opens a shareable flight detail", async ({ page })
   await expect(photoLink).toHaveAttribute("href", "https://www.planespotters.net/photo/1/f-habc");
   await expect(page.getByText("© Test Photographer")).toBeVisible();
   await expect(page.getByText("Altitude profile")).toBeVisible();
-  await expect(page.locator(".altitude-legend")).toHaveCount(2);
+  // One legend, on the map; the profile chart carries its own axis since B55.
+  await expect(page.locator(".altitude-legend")).toHaveCount(1);
   await page.locator(".altitude-hover-target").hover({ position: { x: 24, y: 12 } });
-  await expect(page.locator(".altitude-tooltip")).toBeVisible();
   await expect(page.locator(".altitude-hover-readout")).toContainText("Altitude");
 });
 
@@ -116,10 +116,10 @@ test("selecting an aircraft moves the map once and then leaves it alone", async 
   test.skip(isMobile, "Desktop camera behaviour is the focus of this change.");
   await page.route("**/api/live-flights**", (route) => route.fulfill({ json: {
     success: true, time: 1_752_000_000, count: 1,
-    // Far from the default view, so the camera has to travel.
+    // Inside the view below but off-centre (the list only shows visible aircraft, B62), so the camera has to travel.
     states: [{ icao24: "39abcd", callsign: "AFR123", latitude: 47.6, longitude: 5.2, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false }],
   } }));
-  await page.reload();
+  await page.goto("/?at=47.6,8.5,7");
   const pane = page.locator(".leaflet-map-pane");
   await page.getByRole("complementary", { name: "Traffic" }).getByRole("button", { name: /AFR123/ }).click();
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();

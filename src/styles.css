@@ -1103,3 +1103,5 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
   .map-data-guide { left: var(--edge); top: 145px; bottom: auto; max-width: calc(100% - var(--edge) * 2); }
   .workspace.sheet-expanded .map-data-guide { display: none; }
 }
+.traffic-panel:focus { outline: none; }
+.workspace:focus { outline: none; }
