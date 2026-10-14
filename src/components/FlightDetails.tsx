@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
+import { Bookmark } from "./customIcons";
 import { ChevronDown, Copy, Plane, Share2, TrendDown, TrendUp, TriangleAlert, X } from "./icons";
 import type { AircraftPhoto } from "../api";
 import type { Airport, Flight, TrackResponse } from "../types";
@@ -34,6 +35,9 @@ interface FlightDetailsProps {
   expanded?: boolean;
   onToggleExpanded?: () => void;
   onShare: () => void;
+  /** Whether this airframe is on the visitor's watchlist. */
+  watched?: boolean;
+  onToggleWatch?: () => void;
   /** The visitor's position, when shared, for "distance from you". */
   observer?: [number, number] | null;
 }
@@ -144,7 +148,7 @@ function Section({ title, aside, open = false, children }: { title: string; asid
   );
 }
 
-export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onBack, expanded = false, onToggleExpanded, backLabel = "Back to traffic", onShare, observer = null }: FlightDetailsProps) {
+export function FlightDetails({ flight: liveFlight, track, trackLoading, trackError, routeLoading = false, photo, photoLoading = false, photoError = false, airports, onRetryTrack, onClose, onBack, expanded = false, onToggleExpanded, backLabel = "Back to traffic", onShare, watched = false, onToggleWatch, observer = null }: FlightDetailsProps) {
   useUnits();
   const flightNumber = flightNumberForCallsign(liveFlight.callsign);
   const aircraftPosition: [number, number] | null = liveFlight.latitude != null && liveFlight.longitude != null ? [liveFlight.latitude, liveFlight.longitude] : null;
@@ -229,6 +233,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           {(flight.airline_name || flight.aircraft_owner || flight.aircraft_type) && <p>{flight.airline_name || [flight.aircraft_owner, flight.aircraft_type].filter(Boolean).join(" · ")}</p>}
         </div>
         <div className="details-actions">
+          {onToggleWatch && <button type="button" className={`icon-button ${watched ? "is-on" : ""}`} onClick={onToggleWatch} aria-pressed={watched} aria-label={watched ? "Stop watching this aircraft" : "Watch this aircraft"} title={watched ? "Stop watching" : "Watch this aircraft"}><Bookmark size={16} /></button>}
           <button type="button" className="icon-button" onClick={onShare} aria-label="Copy share link" title="Copy share link"><Share2 size={16} /></button>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close flight details" title="Close (Esc)"><X size={18} /></button>
         </div>

@@ -1105,3 +1105,14 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 }
 .traffic-panel:focus { outline: none; }
 .workspace:focus { outline: none; }
+/* Watchlist ---------------------------------------------------------------- */
+.watch-list { padding: 16px 16px 4px; border-bottom: 1px solid var(--line); }
+.watch-list h2 { margin: 0 0 8px; font-size: var(--type-title); font-weight: 600; }
+.watch-row { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); }
+.watch-row:last-child { border-bottom: 0; }
+.watch-open { appearance: none; flex: 1; min-width: 0; display: grid; gap: 3px; padding: 12px 4px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.watch-open:hover { background: var(--fill); }
+.watch-state { color: var(--muted); font-size: var(--type-body); }
+.watch-state.in-view { color: var(--ok); }
+.watch-open small { color: var(--muted); font-size: .8125rem; }
+.icon-button.is-on { color: var(--accent); }

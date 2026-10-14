@@ -10,6 +10,8 @@ import { aircraftPhoto, api, readableApiError } from "./api";
 import type { AirportView } from "./components/AirportTab";
 import { FlightList } from "./components/FlightList";
 import { GlobalAlerts } from "./components/GlobalAlerts";
+import { WatchList } from "./components/WatchList";
+import { WATCHLIST_LIMIT, isWatched, toggleWatch, watchEntryFor, type WatchEntry } from "./watchlist";
 import { FlightMap } from "./components/FlightMap";
 import { MapToolbar } from "./components/MapToolbar";
 import { OmniSearch } from "./components/OmniSearch";
@@ -19,7 +21,7 @@ import { TrafficPanel, type TrafficTab } from "./components/TrafficPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { getUnits, setUnits } from "./units";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "./mapFilters";
-import type { Airport, Flight, FlightMode, LiveFlightsResponse, MapTheme, MapView } from "./types";
+import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme, MapView } from "./types";
 import { matchingFlightTrack, emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "./utils";
 
 // Panels that only appear after an interaction load on demand, keeping them out of the entry chunk.
@@ -72,6 +74,7 @@ export function App() {
   const [theme, setTheme] = usePersistentState<MapTheme>("skytrace-theme", initialTheme);
   const [favorites, setFavorites] = usePersistentState<Airport[]>("skytrace-favorites", []);
   const [recent, setRecent] = usePersistentState<Airport[]>("skytrace-recent", []);
+  const [watchlist, setWatchlist] = usePersistentState<WatchEntry[]>("skytrace-watchlist", []);
   const [liveEnabled, setLiveEnabled] = usePersistentState("skytrace-live", true);
   const [labelsEnabled, setLabelsEnabled] = usePersistentState("skytrace-labels", true);
   const [trailsEnabled, setTrailsEnabled] = usePersistentState("skytrace-trails", false);
@@ -489,6 +492,22 @@ export function App() {
     setSelectedFlight(flight);
   }, []);
 
+  const toggleWatched = useCallback((flight: Flight) => {
+    const result = toggleWatch(watchlist, watchEntryFor(flight));
+    if (result.refused) { setToast(`The watchlist holds ${WATCHLIST_LIMIT} aircraft. Remove one first.`); return; }
+    setWatchlist(result.list);
+    setToast(result.list.length > watchlist.length ? "Added to your watchlist." : "Removed from your watchlist.");
+  }, [setToast, setWatchlist, watchlist]);
+
+  // An aircraft that is not in view opens as an airframe, like a registration typed in search.
+  const openWatched = useCallback((entry: WatchEntry, live: LiveAircraft | null) => {
+    if (live) { selectFlight(liveAircraftToFlight(live)); return; }
+    selectFlight({
+      icao24: entry.icao24, callsign: entry.registration || entry.label, registration: entry.registration ?? null, primary_time: 0,
+      data_source: "live-nearby", status: "unknown", airline_name: "",
+    } as Flight);
+  }, [selectFlight]);
+
   const openAirport = useCallback((airport: Airport, options: { date?: string; mode?: FlightMode } = {}) => {
     restoredFlight.current = true;
     setPreviewFlight(null);
@@ -700,6 +719,8 @@ export function App() {
               backLabel={`Back to ${tab === "alerts" ? "alerts" : tab === "airport" ? "airport" : "traffic"}`}
               onClose={() => { setSelectedFlight(null); requestAnimationFrame(() => (document.getElementById(`traffic-tab-${tab}`) ?? document.getElementById("omni-search"))?.focus()); }}
               onShare={shareView}
+              watched={isWatched(watchlist, detailsFlight.icao24)}
+              onToggleWatch={() => toggleWatched(detailsFlight)}
               observer={userPosition}
             />
             </Suspense>
@@ -723,7 +744,12 @@ export function App() {
                 onClose={() => setTrafficOpen(false)}
                 liveCount={liveSummary.total}
                 airportLabel={airportCode}
-                alerts={<GlobalAlerts onSelect={selectFlight} />}
+                alerts={(
+                  <>
+                    <WatchList entries={watchlist} live={liveStates} onOpen={openWatched} onRemove={entry => setWatchlist(current => current.filter(item => item.icao24 !== entry.icao24))} />
+                    <GlobalAlerts onSelect={selectFlight} />
+                  </>
+                )}
                 live={(
                   <>
                     <div className="stats-row">

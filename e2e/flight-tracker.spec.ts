@@ -346,3 +346,22 @@ test('does not request or draw a previous path for a scheduled flight without li
   await expect(page.locator('.aircraft-marker-selected .aircraft-label')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Show route', exact: true })).not.toBeVisible();
 });
+
+test("watches an aircraft, finds it in the alerts tab, and stops watching", async ({ page }) => {
+  await openTrafficPanel(page);
+  await page.getByRole("complementary", { name: "Traffic" }).getByRole("button", { name: /AFR123/ }).click();
+  await page.getByRole("button", { name: "Watch this aircraft" }).click();
+  await expect(page.getByRole("button", { name: "Stop watching this aircraft" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Close flight details" }).click();
+  await openTrafficPanel(page);
+  await page.getByRole("tab", { name: /Alerts/ }).click();
+  const watching = page.getByRole("region", { name: "Watched aircraft" });
+  await expect(watching.getByText("AFR123")).toBeVisible();
+  await expect(watching.getByText(/^In view/)).toBeVisible();
+  await page.reload();
+  await openTrafficPanel(page);
+  await page.getByRole("tab", { name: /Alerts/ }).click();
+  await expect(watching.getByText("AFR123")).toBeVisible();
+  await watching.getByRole("button", { name: "Stop watching AFR123" }).click();
+  await expect(watching.getByText(/Press the bookmark/)).toBeVisible();
+});

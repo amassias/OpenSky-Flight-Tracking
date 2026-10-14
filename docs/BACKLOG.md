@@ -144,3 +144,4 @@ Evidence: [benchmark](audits/2026-10-14-benchmark.md). Vocabulary: [CONTEXT.md](
 - [x] **B70: Bundle budget in CI (done).** `npm run check:size` fails above 62 kB entry / 165 kB vendor gzip. Lighthouse budget not added (too noisy without a backend). Original:  Fail the build if entry+vendor gzip grows more than 5% or Lighthouse mobile performance drops below 0.7. Blocked by B64.
 - [ ] B29, B41 and B51 above remain open.
 - [x] **B71: CI 3× faster and green.** The python job failed on every run (`pytest` did not put the repo root on the path; added `pytest.ini`). e2e now runs one job per browser in parallel with cached browsers, one retry, and superseded runs are cancelled.
+- [x] **B72: Watchlist.** Bookmark an aircraft from its details; the Alerts tab lists watched aircraft, marks those in the current view and opens them (stored in the browser, 20 max, a full list refuses instead of dropping an entry). Logic in tested `src/watchlist.ts`.
