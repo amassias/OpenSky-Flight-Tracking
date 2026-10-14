@@ -21,4 +21,4 @@ Remaining Lighthouse failures: LCP (map tiles from tile.openstreetmap.org, 256 p
 
 ## After B64 (lazy panels)
 
-Entry JS 77.9 → 55.1 kB gzip. Vendor 157.8 kB unchanged (single chunk, ADR 0001). Budget enforced by `npm run check:size`.
+Entry JS 77.9 → 67.1 kB gzip (flight details kept eager: lazy-loading them pushed first selection past the 200 ms budget). Vendor 157.8 kB unchanged (single chunk, ADR 0001). Budget enforced by `npm run check:size`.

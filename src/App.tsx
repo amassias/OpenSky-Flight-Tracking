@@ -8,6 +8,7 @@ import { sameLiveFlight } from "./flightTelemetry";
 import { mergeFlightDetails } from "./flightDetails";
 import { aircraftPhoto, api, readableApiError } from "./api";
 import type { AirportView } from "./components/AirportTab";
+import { FlightDetails } from "./components/FlightDetails";
 import { FlightList } from "./components/FlightList";
 import { GlobalAlerts } from "./components/GlobalAlerts";
 import { WatchList } from "./components/WatchList";
@@ -26,10 +27,9 @@ import { matchingFlightTrack, emergencyInfo, liveAircraftToFlight, parseMapView,
 
 // Panels that only appear after an interaction load on demand, keeping them out of the entry chunk.
 const AirportTab = lazy(() => import("./components/AirportTab").then(module => ({ default: module.AirportTab })));
-const FlightDetails = lazy(() => import("./components/FlightDetails").then(module => ({ default: module.FlightDetails })));
 // Fetch the likely next panels once the map is up, so opening them does not wait on the network.
 if (typeof window !== "undefined") {
-  const prefetch = () => { void import("./components/FlightDetails"); void import("./components/AirportTab"); };
+  const prefetch = () => { void import("./components/AirportTab"); };
   if ("requestIdleCallback" in window) window.requestIdleCallback(prefetch, { timeout: 4000 });
   else setTimeout(prefetch, 2000);
 }
@@ -701,7 +701,6 @@ export function App() {
         <AnimatePresence>
           {detailsFlight && !mapExpanded && (
             <PanelBoundary key="details" label="flight details" resetKey={detailsFlight.icao24} frameClassName="details-drawer dock-panel">
-            <Suspense fallback={null}>
             <FlightDetails
               flight={detailsFlight}
               track={currentTrack}
@@ -723,7 +722,6 @@ export function App() {
               onToggleWatch={() => toggleWatched(detailsFlight)}
               observer={userPosition}
             />
-            </Suspense>
             </PanelBoundary>
           )}
         </AnimatePresence>
