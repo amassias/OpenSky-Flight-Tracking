@@ -201,3 +201,5 @@ Panel typography uses rem units: 14 px body, 13 px secondary text, 16 px identit
 Observation time is visible beside selected-flight information. Altitude graphs use UTC time axes and a native point inspector; missing values remain gaps. Phone reading mode expands the existing sheet, retains the flight identity and return controls, and prevents interaction with the covered map.
 
 Altitude profile uses one accent line and a light area fill, a zero baseline (negative observations remain visible), compact unit-aware grid labels, three UTC time labels and a persistent inspection readout. The native range control retains keyboard and touch access to every observation; missing altitudes remain gaps. Inspired by the inspection and time-axis patterns in FlightAware and Flightradar24, without adding unsupported speed observations.
+
+Cabin configurations show full published class names, exact seat counts and one seat symbol per seat in a compact inventory grid. Grid positions do not imply actual rows or aisles; the explicit published-map link provides physical layouts. Class colours stay stable across variants and themes.

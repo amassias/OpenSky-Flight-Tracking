@@ -1035,19 +1035,29 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .cabin-variant { border-bottom: 1px solid var(--line); padding: 12px 0; }
 .cabin-variant summary { cursor: pointer; font-weight: 600; }
 .cabin-variant summary span { color: var(--muted); font-weight: 400; margin-left: 8px; }
-.cabin-diagram { display: flex; gap: 2px; height: 48px; margin: 14px 0 6px; padding: 5px 10px 5px 18px; border: 1px solid var(--line-strong); border-radius: 999px 22px 22px 999px / 50%; background: var(--fill); overflow: hidden; }
-.cabin-segment { display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 4px; border-radius: 4px; color: #fff; line-height: 1.1; background: var(--cabin-other); }
-.cabin-segment b { font-size: 11px; font-weight: 600; letter-spacing: .01em; }
-.cabin-segment i { font-size: 12px; font-style: normal; font-variant-numeric: tabular-nums; opacity: .9; }
-.cabin-segment[data-tone="first"], .cabin-swatch[data-tone="first"] { background: var(--cabin-first); }
-.cabin-segment[data-tone="business"], .cabin-swatch[data-tone="business"] { background: var(--cabin-business); }
-.cabin-segment[data-tone="premium"], .cabin-swatch[data-tone="premium"] { background: var(--cabin-premium); }
-.cabin-segment[data-tone="economy"], .cabin-swatch[data-tone="economy"] { background: var(--cabin-economy); }
-.cabin-segment[data-tone="flexible"], .cabin-swatch[data-tone="flexible"] { background: var(--cabin-flexible); }
-.cabin-swatch { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 3px; background: var(--cabin-other); }
-.cabin-counts { margin: 12px 0; }
-.cabin-counts div { display: flex; justify-content: space-between; padding: 3px 0; }
-.cabin-counts dd { font-variant-numeric: tabular-nums; }
+.cabin-inventory { padding: 16px 0 8px; }
+.cabin-inventory-caption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin: 0 0 16px; color: var(--text); font-size: var(--type-meta); }
+.cabin-inventory-caption span { color: var(--muted); font-size: .6875rem; }
+.cabin-class { --seat-color: var(--cabin-other); padding: 0 0 18px; }
+.cabin-class[data-tone="first"] { --seat-color: var(--cabin-first); }
+.cabin-class[data-tone="business"] { --seat-color: var(--cabin-business); }
+.cabin-class[data-tone="premium"] { --seat-color: var(--cabin-premium); }
+.cabin-class[data-tone="economy"] { --seat-color: var(--cabin-economy); }
+.cabin-class[data-tone="flexible"] { --seat-color: var(--cabin-flexible); }
+.cabin-class-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+.cabin-class-heading h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--type-body); font-weight: 500; }
+.cabin-class-heading strong { white-space: nowrap; font-size: var(--type-body); font-variant-numeric: tabular-nums; }
+.cabin-class-heading strong span { color: var(--muted); font-size: var(--type-meta); font-weight: 400; }
+.cabin-swatch { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--seat-color); }
+.cabin-seat-grid { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; }
+.cabin-seat { display: block; width: 100%; height: auto; color: var(--seat-color); }
+.cabin-seat .seat-back { fill: color-mix(in srgb, var(--seat-color) 12%, var(--panel-solid)); stroke: currentColor; }
+.cabin-seat .seat-cushion { fill: currentColor; }
+.cabin-seat .seat-arms { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.cabin-inventory-note { margin: 0 0 12px; color: var(--muted); font-size: var(--type-meta); line-height: 1.5; }
+.cabin-map-link { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--accent); font-size: var(--type-body); text-decoration: none; }
+.cabin-map-link:hover { background: var(--fill); }
+.cabin-map-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .cabin-amenities { color: var(--muted); padding-left: 18px; font-size: 12px; }
 .cabin-sources { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; }
 .cabin-sources small { color: var(--muted); }

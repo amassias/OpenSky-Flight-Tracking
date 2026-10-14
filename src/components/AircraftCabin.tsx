@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import { operatorCode } from "../aircraftIdentity";
-import { cabinShortLabel, cabinSummary, cabinTone, checkedAgo, distinctSeatMapUrl } from "../cabin";
+import { cabinSummary, cabinTone, checkedAgo, distinctSeatMapUrl } from "../cabin";
 import type { Flight } from "../types";
 
 export function AircraftCabin({ flight }: { flight: Flight }) {
@@ -21,23 +21,20 @@ export function AircraftCabin({ flight }: { flight: Flight }) {
       const seatMapUrl = distinctSeatMapUrl(config);
       return <details className="cabin-variant" key={config.id} open={data.configurations.length === 1}>
         <summary>{config.total_seats} seats <span>{cabinSummary(config)}</span></summary>
-        <div className="cabin-diagram" role="img" aria-label={`Seat proportions: ${config.classes.map(c => `${c.name} ${c.seats}`).join(", ")}`}>
-          {config.classes.map(c => {
-            const wide = c.seats / config.total_seats >= 0.14;
-            return <span key={c.name} className="cabin-segment" data-tone={cabinTone(c.name)} style={{ flexGrow: c.seats }}>
-              {wide && <><b>{cabinShortLabel(c.name)}</b><i>{c.seats}</i></>}
-            </span>;
-          })}
+        <div className="cabin-inventory">
+          <p className="cabin-inventory-caption">Seat inventory <span>Each symbol represents one seat</span></p>
+          {config.classes.map(c => <div key={c.name} className="cabin-class" data-tone={cabinTone(c.name)}>
+            <div className="cabin-class-heading"><h4><span className="cabin-swatch" data-tone={cabinTone(c.name)} aria-hidden="true" />{c.name}</h4><strong>{c.seats}<span> seats</span></strong></div>
+            <div className="cabin-seat-grid" role="img" aria-label={`${c.name}: ${c.seats} seats. Capacity illustration, not seat positions.`}>
+              {Array.from({ length: c.seats }, (_, index) => <svg key={index} className="cabin-seat" viewBox="0 0 16 18" aria-hidden="true"><rect className="seat-back" x="3" y="1" width="10" height="10" rx="2" /><path className="seat-cushion" d="M3 9h10v5H3z" /><path className="seat-arms" d="M1 8v7h14V8M4 15v2m8-2v2" /></svg>)}
+            </div>
+          </div>)}
+          <p className="cabin-inventory-note">Capacity illustration. Seat positions and aisle layout are shown in the published seat map.</p>
+          <a className="cabin-map-link" href={seatMapUrl ?? config.source.url} target="_blank" rel="noreferrer">View published seat map <span aria-hidden="true">↗</span></a>
         </div>
-        <small className="conditions-note">Proportional to seat count, not to cabin length</small>
-        <dl className="cabin-counts">{config.classes.map(c => <div key={c.name}>
-          <dt><span className="cabin-swatch" data-tone={cabinTone(c.name)} aria-hidden="true" />{c.name}</dt>
-          <dd>{c.seats}</dd>
-        </div>)}</dl>
         {config.note && <p className="conditions-note">{config.note}</p>}
         {config.amenities && <ul className="cabin-amenities">{Object.values(config.amenities).filter(Boolean).map(value => <li key={value}>{value}</li>)}</ul>}
         <div className="cabin-sources">
-          {seatMapUrl && <a href={seatMapUrl} target="_blank" rel="noreferrer">Seat map ↗</a>}
           <a href={config.source.url} target="_blank" rel="noreferrer">Source: {config.source.name} ↗</a>
           <small title={config.source.checked_at}>{checkedAgo(config.source.checked_at)}</small>
           {config.assignment_source && <a href={config.assignment_source.url} target="_blank" rel="noreferrer">Aircraft assignment source ↗</a>}

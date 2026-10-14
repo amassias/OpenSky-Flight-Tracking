@@ -60,10 +60,17 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   await page.getByText('292 seats', { exact: false }).click();
   await expect(page.getByText('USB-A and USB-C in all cabins')).toBeVisible();
   await expect(page.getByText('Configuration of this aircraft', { exact: true })).toHaveCount(0);
+  const cabin = page.locator('.cabin-variant[open]').first();
+  await expect(cabin.locator('.cabin-seat')).toHaveCount(292);
+  await expect(cabin.locator('.cabin-class-heading')).toContainText(['Business48 seats', 'Premium Economy32 seats', 'Economy212 seats']);
+  await expect(cabin.locator('.cabin-map-link')).toHaveAttribute('href', 'https://wwws.airfrance.fr/information/prepare/nos-avions/a350');
+  if (info.project.name === 'webkit-mobile') await page.getByRole('button', {name: 'Expand details'}).click();
+  await cabin.scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('aircraft-cabin.png') });
+  expect(await cabin.locator('.cabin-seat-grid').first().evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.locator('[data-icao24="abc124"]').first().dispatchEvent('mousedown');
   await expect(page.locator('.details-heading h2')).toHaveText('EZY456');
-  await expect(page.getByText('180 seats', { exact: false })).toBeVisible();
+  await expect(page.locator('.cabin-variant summary').filter({hasText:'180 seats'})).toBeVisible();
   await expect(page.getByText('292 seats', { exact: false })).toHaveCount(0);
   await page.waitForTimeout(1400);
   await expect(page.locator('.details-heading h2')).toHaveText('EZY456');
