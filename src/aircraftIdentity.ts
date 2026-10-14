@@ -4,7 +4,6 @@ import { AIRLINE_ICAO_BY_IATA } from "./airlineCodes";
 
 // Explicit ICAO operator mappings, never a marketing codeshare or the owner.
 const OVERRIDES: Record<string, string> = {
-  ASL: "JU", APG: "Z2", TLM: "SL",
   AFR: "AF", BAW: "BA", KLM: "KL", DLH: "LH", SWR: "LX", AUA: "OS",
   IBE: "IB", VLG: "VY", RYR: "FR", EZY: "U2", EJU: "U2", EZS: "U2",
   UAE: "EK", QTR: "QR", ETD: "EY", THY: "TK", AAL: "AA", UAL: "UA",

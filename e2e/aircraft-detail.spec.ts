@@ -61,6 +61,8 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   await expect(page.getByText('USB-A and USB-C in all cabins')).toBeVisible();
   await expect(page.getByText('Configuration of this aircraft', { exact: true })).toHaveCount(0);
   const cabin = page.locator('.cabin-variant[open]').first();
+  await expect(cabin.locator('.cabin-seat-grid').first()).not.toBeVisible();
+  await cabin.locator('.cabin-inventory-toggle > summary').click();
   await expect(cabin.locator('.cabin-seat')).toHaveCount(292);
   await expect(cabin.locator('.cabin-class-heading')).toContainText(['Business48 seats', 'Premium Economy32 seats', 'Economy212 seats']);
   await expect(cabin.locator('.cabin-map-link')).toHaveAttribute('href', 'https://wwws.airfrance.fr/information/prepare/nos-avions/a350');

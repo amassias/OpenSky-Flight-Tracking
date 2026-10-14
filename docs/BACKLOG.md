@@ -63,7 +63,7 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] **B38: Airport markers** that open the departures and arrivals board.
 - [x] **B39: Units** (aviation or metric) shared by every readout, plus follow (F) and show-route (R) shortcuts.
 - [x] **B40: Shared links to a live aircraft now work.** A link without an airport used to select nothing; the aircraft is now looked up directly.
-- [ ] B41: Add a real-tile visual regression capture; the screenshots in this repo use a procedural base map because the capture environment had no internet access.
+- [ ] B41: Add automated visual regression captures with real map tiles. Real OpenStreetMap/live-traffic browser screenshots already exist in `docs/screenshots/` (captured 2026-10-05); deterministic tests and an automated real-tile baseline are separate deliverables.
 - [x] **B42: Trails behind every aircraft in view** (Display → Aircraft trails, off by default). They are built in the browser from successive live snapshots, so they cost no extra request and start when the page opens.
 
 ## Live airport tab and performance pass (2026-10-08)
@@ -102,3 +102,14 @@ Status: `[x]` shipped · `[ ]` open.
 - [x] Dark-theme contrast: weather-category badges use dark text, quiet text and the live board chip are lighter; light-theme quiet text passes on a selected card. The audit now measures settled colours (reduced motion, finished animations).
 - [x] The altitude legend no longer covers the Follow and Show route controls.
 
+
+## Global quality pass (2026-10-14)
+
+B52–B57 implemented and validated on 2026-10-14. Evidence: [quality audit](audits/2026-10-14-global-quality.md).
+
+- [x] **B52 — P1: Reproducible airline-code corrections.** Source Spring Airlines (9C/CQH), Air Serbia (JU/ASL), Philippines AirAsia (Z2/APG) and Thai Lion Air (SL/TLM); correct both ticket lookup directions and logo mappings, remove replaced legacy assignments and verify generator reproducibility. Full worldwide refresh remains B29.
+- [x] **B53 — P1: Explicit cabin states.** Show loading, no published configuration and a failed request with retry. Late responses must not replace the current aircraft's cabin.
+- [x] **B54 — P1: Compact cabin summaries.** Keep classes, counts and source links visible; fold each seat inventory by default and reset disclosures on aircraft selection. Symbols represent capacity, never row geometry or availability.
+- [x] **B55 — P2: Legible altitude inspection.** Use at least 12 px for surrounding metadata, wrap the top readout and date UTC axes across midnight. Preserve missing observations and native keyboard inspection.
+- [x] **B56 — P2: Populated component coverage.** Audit real cabin/graph fixtures in light/dark themes, 375/768/1440 px layouts and 200% text sizing; cover loading, empty, failure/retry, disclosure reset and exact seat counts.
+- [x] **B57 — P2: Documentation consistency.** Align README, design guidance and backlog with current cabin/logos, opaque chrome and real screenshots. Keep the full catalogue refresh (B29), automated real-tile baseline (B41) and remaining OpenSky refresh work (B51) open.

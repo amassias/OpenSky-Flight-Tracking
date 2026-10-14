@@ -18,6 +18,8 @@ export function AltitudeChart({ points }: { points: TrackPoint[] }) {
   const point = chart.coordinates[index];
   const label = point.altitude == null ? "No altitude" : formatAltitude(point.altitude);
   const readout = `${utcDay.format(point.time*1000)} ${utcTime(point.time)} UTC · Altitude ${label}`;
+  const spansDays = new Date(chart.start * 1000).toISOString().slice(0, 10) !== new Date(chart.end * 1000).toISOString().slice(0, 10);
+  const axisLabel = (time: number) => `${spansDays ? `${utcDay.format(time * 1000)} ` : ""}${utcTime(time).slice(0, 5)}`;
   const unitFactor = units === "aviation" ? 3.28084 : 1;
   const rawStep = (chart.scaleMax - chart.scaleMin) * unitFactor / 4;
   const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
@@ -47,7 +49,7 @@ export function AltitudeChart({ points }: { points: TrackPoint[] }) {
       </g>}
       <rect className="altitude-hover-target" x={pad} y="0" width={width-pad*2} height={height} fill="transparent" onPointerMove={inspectPointer} onPointerDown={inspectPointer} />
     </svg>
-    <div className="chart-time-axis">{[chart.start, (chart.start + chart.end) / 2, chart.end].map((time, i) => <time key={i} dateTime={new Date(time*1000).toISOString()}>{utcTime(time).slice(0,5)}</time>)}</div>
+    <div className="chart-time-axis">{[chart.start, (chart.start + chart.end) / 2, chart.end].map((time, i) => <time key={i} dateTime={new Date(time*1000).toISOString()}>{axisLabel(time)}</time>)}</div>
     <label className="chart-inspector"><span>Inspect track point</span><input type="range" min="0" max={chart.points.length-1} value={index} aria-label="Inspect altitude point" aria-valuetext={readout} onChange={event => setInspectedIndex(Number(event.target.value))} /></label>
     <output className="altitude-hover-readout" aria-live="off" aria-label="Selected altitude observation">{readout}</output>
     {chart.points.length <= 12 && <p className="chart-sparse-note">Few fixes were recorded: straight segments join the dots, which mark real observations.</p>}

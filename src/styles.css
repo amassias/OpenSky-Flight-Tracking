@@ -438,7 +438,7 @@ input { caret-color: var(--accent); }
 .aircraft-hover-photo { margin: 8px 0 0; }
 .aircraft-hover-photo > a { display: block; overflow: hidden; border-radius: 6px; background: var(--fill); pointer-events: auto; }
 .aircraft-hover-photo img { display: block; width: 100%; height: 132px; object-fit: cover; }
-.aircraft-hover-photo figcaption { display: flex; flex-wrap: wrap; gap: 0 4px; margin-top: 4px; color: var(--muted); font-size: .6875rem; overflow-wrap: anywhere; }
+.aircraft-hover-photo figcaption { display: flex; flex-wrap: wrap; gap: 0 4px; margin-top: 4px; color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; }
 .aircraft-hover-photo figcaption a { color: var(--accent); text-decoration: none; pointer-events: auto; }
 .aircraft-hover-photo figcaption a:hover { text-decoration: underline; }
 .aircraft-hover-facts { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 8px; color: var(--text); font-variant-numeric: tabular-nums; }
@@ -1037,7 +1037,7 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .cabin-variant summary span { color: var(--muted); font-weight: 400; margin-left: 8px; }
 .cabin-inventory { padding: 16px 0 8px; }
 .cabin-inventory-caption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin: 0 0 16px; color: var(--text); font-size: var(--type-meta); }
-.cabin-inventory-caption span { color: var(--muted); font-size: .6875rem; }
+.cabin-inventory-caption span { color: var(--muted); font-size: .75rem; }
 .cabin-class { --seat-color: var(--cabin-other); padding: 0 0 18px; }
 .cabin-class[data-tone="first"] { --seat-color: var(--cabin-first); }
 .cabin-class[data-tone="business"] { --seat-color: var(--cabin-business); }
@@ -1064,14 +1064,28 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .aircraft-profile-grid small { display: block; color: var(--muted); }
 
 /* Flight telemetry: stable zero baseline, restrained grid and persistent readout. */
-.chart-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .8125rem; font-variant-numeric: tabular-nums; }
-.chart-summary > div { display: flex; align-items: center; gap: 7px; }
+.chart-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.chart-summary > div { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .chart-summary strong { margin-left: 5px; font-size: 1rem; }
 .chart-summary time, .chart-footnote { color: var(--muted); }
 .chart-series-key { width: 14px; height: 3px; background: var(--accent); border-radius: 2px; }
 .chart-grid line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.chart-grid text { fill: var(--muted); font: 20px var(--body); font-variant-numeric: tabular-nums; }
+.chart-grid text { fill: var(--muted); font: 24px var(--body); font-variant-numeric: tabular-nums; }
 .chart-time-axis { margin: -14px 8.7% 0; font-size: .75rem; }
-.chart-footnote { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: .6875rem; line-height: 1.5; }
+.chart-footnote { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: .75rem; line-height: 1.5; }
 .chart-inspector { margin-top: 4px; gap: 0; }
 .altitude-hover-readout { font-size: .75rem; line-height: 1.5; }
+
+.cabin-inventory-toggle { margin: 0 0 14px; }
+.cabin-inventory-toggle > summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--accent); font-size: var(--type-meta); font-weight: 500; list-style: none; }
+.cabin-inventory-toggle > summary::-webkit-details-marker { display: none; }
+.cabin-inventory-toggle > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin-right: 4px; }
+.cabin-inventory-toggle[open] > summary::after { transform: rotate(225deg); }
+.cabin-inventory-toggle > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.cabin-inventory-toggle .cabin-seat-grid { margin: 8px 0 14px; }
+.chart-time-axis time { min-width: 0; text-align: center; }
+.chart-time-axis time:first-child { text-align: left; }
+.chart-time-axis time:last-child { text-align: right; }
+
+.cabin-inventory > .cabin-class { padding-bottom: 4px; }
+.cabin-inventory-toggle .cabin-class { padding-bottom: 4px; }

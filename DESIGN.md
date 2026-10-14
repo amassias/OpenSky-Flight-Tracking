@@ -152,15 +152,15 @@ System type first: `-apple-system`/SF on Apple platforms, Inter (loaded from Goo
 
 ## Layout
 
-The map fills the workspace. On desktop, a search panel sits on the left, the traffic board on the right and the flight drawer at the bottom-centre, all floating with 16px insets. Between 901 and 1180px the search panel collapses to a compact bar. At 900px and below, search and flight details become bottom sheets and the board docks above the map's bottom edge.
+The map fills the workspace beneath the top bar. The desktop flight dock opens on the left, and the traffic/airport panel occupies the right. At 900 px and below, selected-flight details replace the traffic bottom sheet and can expand into reading mode. See the desktop layout below for panel dimensions and anchoring.
 
 ## Elevation & Depth
 
-Depth comes from material, not shadow. Floating chrome uses `panel` with `backdrop-filter: saturate(180%) blur(20px)` and a 1px hairline. The one shadow (`0 8px 30px`, soft) belongs to overlays that sit above other chrome: the flight drawer, popovers and the toast.
+Panels use opaque graphite or paper surfaces and a hairline border. `--material` is `none`: chrome does not use frosted blur. Popovers and overlays use the shared `--shadow-float` token, with a 4 px downward offset and an 18 px soft blur.
 
 ## Shapes
 
-Four radii: `sm` 8px for small tiles, `md` 12px for rows and inset cards, `lg` 18px for panels and sheets, and `pill` for every action, search field, segmented control and status chip.
+The CSS tokens are authoritative: `sm` 6 px, `md` 8 px, `lg` 10 px and `pill` 980 px. Small fields and tiles use `sm`, rows use `md`, panels use `lg`, and pill controls retain their existing shape.
 
 ## Motion
 
@@ -202,4 +202,4 @@ Observation time is visible beside selected-flight information. Altitude graphs 
 
 Altitude profile uses one accent line and a light area fill, a zero baseline (negative observations remain visible), compact unit-aware grid labels, three UTC time labels and a persistent inspection readout. The native range control retains keyboard and touch access to every observation; missing altitudes remain gaps. Inspired by the inspection and time-axis patterns in FlightAware and Flightradar24, without adding unsupported speed observations.
 
-Cabin configurations show full published class names, exact seat counts and one seat symbol per seat in a compact inventory grid. Grid positions do not imply actual rows or aisles; the explicit published-map link provides physical layouts. Class colours stay stable across variants and themes.
+Cabin configurations show full published class names and exact seat counts immediately. Each variant has a native, initially folded "Show seat inventory" disclosure with one symbol per seat. Changing aircraft resets the disclosures. Loading, unavailable configuration and recoverable error states are explicit. Grid positions do not imply actual rows or aisles; the explicit published-map link provides physical layouts. Class colours stay stable across variants and themes.

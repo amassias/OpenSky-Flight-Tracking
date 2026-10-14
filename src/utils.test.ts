@@ -176,6 +176,11 @@ describe("callsignsForFlightNumber", () => {
     expect(callsignsForFlightNumber("AF1234")).toEqual(["afr1234"]);
     expect(callsignsForFlightNumber("ba0012")).toEqual(["baw12"]);
     expect(callsignsForFlightNumber("LH400")).toContain("dlh400");
+    expect(callsignsForFlightNumber("9C123")).toEqual(["cqh123"]);
+    expect(callsignsForFlightNumber("JU123")).toEqual(["asl123"]);
+    expect(callsignsForFlightNumber("Z2123")).toEqual(["apg123"]);
+    expect(callsignsForFlightNumber("SL123")).toEqual(["tlm123"]);
+    expect(callsignsForFlightNumber("9S123")).toEqual([]);
   });
 
   it("ignores terms that are not flight numbers", () => {
@@ -187,6 +192,11 @@ describe("callsignsForFlightNumber", () => {
 describe("flightNumberForCallsign", () => {
   it("turns an airline callsign into its ticket flight number", () => {
     expect(flightNumberForCallsign("AFR1234")).toBe("AF1234");
+    expect(flightNumberForCallsign("CQH123")).toBe("9C123");
+    expect(flightNumberForCallsign("ASL123")).toBe("JU123");
+    expect(flightNumberForCallsign("APG123")).toBe("Z2123");
+    expect(flightNumberForCallsign("TLM123")).toBe("SL123");
+    expect(flightNumberForCallsign("JAT123")).toBeNull();
     expect(flightNumberForCallsign("BAW9")).toBe("BA9");
   });
 
