@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   // Browser animation and first-frame timing checks need an uncontended CPU in CI.
   workers: process.env.CI ? 1 : undefined,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: "http://127.0.0.1:4173",
