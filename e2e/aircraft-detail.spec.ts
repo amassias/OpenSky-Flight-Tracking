@@ -28,7 +28,8 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ json: body });
   });
   await page.route('https://api.planespotters.net/**', route => route.fulfill({ json: { photos: [] } }));
-  await page.route('https://images.kiwi.com/**', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path fill="#005bbb" d="M0 0h20v20H0z"/></svg>' }));
+  // A real PNG avoids engine-dependent decoding of SVG served at a .png URL.
+  await page.route('https://images.kiwi.com/**', route => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') }));
 });
 
 test('opens immediately, estimates the route, shows sourced variants and survives fast reselection', async ({ page }, info) => {
@@ -36,17 +37,19 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   await page.goto('/?at=48.5,2.2,10');
   const marker = page.locator('[data-icao24="abc123"]').first();
   await marker.waitFor();
-  const elapsed = await marker.evaluate(async element => {
+  const elapsed = await marker.evaluate(element => new Promise<number>(resolve => {
     const started = performance.now();
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('.details-heading h2')?.textContent !== 'AFR123') return;
+      observer.disconnect();
+      window.clearTimeout(timeout);
+      resolve(performance.now() - started);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    const timeout = window.setTimeout(() => { observer.disconnect(); resolve(Infinity); }, 2_000);
     element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    for (let i = 0; i < 120; i++) {
-      await new Promise(requestAnimationFrame);
-      const heading = document.querySelector('.details-heading h2');
-      if (heading?.textContent === 'AFR123') return performance.now() - started;
-    }
-    return Infinity;
-  });
-  console.log(`Selection to first frame: ${elapsed.toFixed(1)} ms`);
+  }));
+  console.log(`Selection to detail DOM: ${elapsed.toFixed(1)} ms`);
   expect(elapsed).toBeLessThan(200);
   await expect(page.locator('.route-source-note')).toContainText('estimated progress');
   await expect(page.locator('.route-progress')).toBeVisible();
