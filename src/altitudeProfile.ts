@@ -1,8 +1,8 @@
 import type { TrackPoint } from "./types";
 import { altitudeBand, altitudeColor } from "./utils";
-export const PROFILE_WIDTH = 400;
-export const PROFILE_HEIGHT = 140;
-export const PROFILE_PAD = 10;
+export const PROFILE_WIDTH = 620;
+export const PROFILE_HEIGHT = 280;
+export const PROFILE_PAD = 54;
 
 /** Time-scaled geometry with bounded drawing complexity; inspection keeps every fix. */
 export function altitudeProfile(input: TrackPoint[]) {
@@ -12,12 +12,15 @@ export function altitudeProfile(input: TrackPoint[]) {
   let min = Infinity, max = -Infinity;
   for (const value of altitudes) { min = Math.min(min, value); max = Math.max(max, value); }
   const start = points[0][0], end = points[points.length - 1][0];
-  const span = end - start || 1, range = max - min || 1;
+  const step = Math.pow(10, Math.floor(Math.log10(Math.max(Math.abs(max), max - min, 1000)))) / 10;
+  const scaleMin = Math.floor(Math.min(0, min) / step) * step;
+  const scaleMax = Math.ceil((max + step) / step) * step;
+  const span = end - start || 1, range = scaleMax - scaleMin;
   const coordinates = points.map((point, index) => {
     const altitude = point[3] != null && Number.isFinite(point[3]) ? point[3] : null;
     return { index, time: point[0], altitude,
       x: PROFILE_PAD + (point[0] - start) / span * (PROFILE_WIDTH - 2 * PROFILE_PAD),
-      y: PROFILE_HEIGHT - PROFILE_PAD - ((altitude ?? min) - min) / range * (PROFILE_HEIGHT - 2 * PROFILE_PAD),
+      y: PROFILE_HEIGHT - PROFILE_PAD - ((altitude ?? scaleMin) - scaleMin) / range * (PROFILE_HEIGHT - 2 * PROFILE_PAD),
     };
   });
   const indices = new Set<number>();
@@ -63,10 +66,10 @@ export function altitudeProfile(input: TrackPoint[]) {
   const stops = samples.filter(index => coordinates[index].altitude != null).map(index => ({
     offset: (coordinates[index].x - PROFILE_PAD) / (PROFILE_WIDTH - 2 * PROFILE_PAD), color: altitudeColor(coordinates[index].altitude),
   }));
-  const yAt = (altitude: number) => PROFILE_HEIGHT - PROFILE_PAD - (altitude - min) / range * (PROFILE_HEIGHT - 2 * PROFILE_PAD);
+  const yAt = (altitude: number) => PROFILE_HEIGHT - PROFILE_PAD - (altitude - scaleMin) / range * (PROFILE_HEIGHT - 2 * PROFILE_PAD);
   const ticks = (max === min ? [min] : [min, (min + max) / 2, max]).map(altitude => ({ altitude, y: yAt(altitude) }));
   const bands = new Set(coordinates.map(point => altitudeBand(point.altitude)));
-  return { min, max, start, end, points, coordinates, sampleCount: samples.length, stops, ticks, bands,
+  return { min, max, scaleMin, scaleMax, start, end, points, coordinates, sampleCount: samples.length, stops, ticks, bands,
     paths: [...paths].map(([color, commands]) => ({ color, d: commands.join(" ") })), area: areas.join(" ") };
 }
 

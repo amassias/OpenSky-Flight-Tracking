@@ -31,6 +31,10 @@ describe("map detail levels", () => {
     expect(airlineLogo({ callsign: "EJU123" })).toContain("U2.png");
     expect(airlineLogo({ callsign: "WZZ123" })).toContain("W6.png");
     expect(airlineLogo({ callsign: "TRA123" })).toContain("HV.png");
+    expect(airlineLogo({ callsign: "AXM123" })).toContain("AK.png");
+    expect(airlineLogo({ callsign: "IGO123" })).toContain("6E.png");
+    expect(airlineLogo({ callsign: "ASL123" })).toContain("JU.png");
+    expect(airlineLogo({ callsign: "APG123" })).toContain("Z2.png");
     expect(airlineLogo({ callsign: "N12345" })).toBeNull();
   });
   it("falls back to a stable operator badge when there is no logo", () => {

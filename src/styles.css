@@ -291,9 +291,8 @@ input { caret-color: var(--accent); }
 .signal-alert-text { color: var(--warn) !important; }
 .profile-footnote { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--quiet); font-size: .8125rem; line-height: 1.4; }
 .profile-footnote svg { flex: 0 0 auto; color: var(--quiet); }
-.altitude-chart { display: block; width: 100%; height: auto; aspect-ratio: 400 / 140; margin-top: 8px; overflow: visible; touch-action: none; }
-.altitude-tick line { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 2 5; }
-.altitude-tick text { fill: var(--quiet); font: 400 14px var(--body); paint-order: stroke; stroke: var(--panel-solid); stroke-width: 3px; stroke-linejoin: round; font-variant-numeric: tabular-nums; }
+.altitude-chart { display: block; width: 100%; height: auto; aspect-ratio: 620 / 280; margin-top: 0; overflow: visible; touch-action: none; }
+
 .altitude-sample { stroke: var(--panel-solid); stroke-width: 1.5; }
 .chart-sparse-note { margin: 0; color: var(--quiet); font-size: var(--type-meta); line-height: 1.4; }
 .altitude-hover-target { cursor: crosshair; }
@@ -1053,3 +1052,16 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .cabin-sources { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; }
 .cabin-sources small { color: var(--muted); }
 .aircraft-profile-grid small { display: block; color: var(--muted); }
+
+/* Flight telemetry: stable zero baseline, restrained grid and persistent readout. */
+.chart-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.chart-summary > div { display: flex; align-items: center; gap: 7px; }
+.chart-summary strong { margin-left: 5px; font-size: 1rem; }
+.chart-summary time, .chart-footnote { color: var(--muted); }
+.chart-series-key { width: 14px; height: 3px; background: var(--accent); border-radius: 2px; }
+.chart-grid line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-grid text { fill: var(--muted); font: 20px var(--body); font-variant-numeric: tabular-nums; }
+.chart-time-axis { margin: -14px 8.7% 0; font-size: .75rem; }
+.chart-footnote { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: .6875rem; line-height: 1.5; }
+.chart-inspector { margin-top: 4px; gap: 0; }
+.altitude-hover-readout { font-size: .75rem; line-height: 1.5; }

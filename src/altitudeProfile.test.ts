@@ -3,6 +3,13 @@ import { altitudeProfile, nearestProfileTime, PROFILE_PAD, PROFILE_WIDTH } from 
 import type { TrackPoint } from "./types";
 const point = (time: number, altitude: number | null): TrackPoint => [time,49,2,altitude,90,false];
 describe("time-scaled altitude profile", () => {
+  it("keeps cruise variations proportional to altitude and handles constant tracks", () => {
+    const profile = altitudeProfile([point(100,11000),point(110,11100)])!;
+    expect(profile.scaleMin).toBe(0);
+    expect(profile.scaleMax).toBeGreaterThan(profile.max);
+    expect(Math.abs(profile.coordinates[0].y-profile.coordinates[1].y)).toBeLessThan(5);
+    expect(altitudeProfile([point(100,0),point(110,0)])!.coordinates.every(p => Number.isFinite(p.y))).toBe(true);
+  });
   it("spaces irregular observations by time rather than index", () => {
     const profile = altitudeProfile([point(100,1000),point(110,2000),point(200,3000)])!;
     expect((profile.coordinates[1].x-PROFILE_PAD)/(PROFILE_WIDTH-2*PROFILE_PAD)).toBeCloseTo(.1);
