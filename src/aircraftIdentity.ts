@@ -32,6 +32,18 @@ export function airlineLogo(flight: Pick<Flight, "callsign" | "airline_code">): 
   return iata ? `https://images.kiwi.com/airlines/64/${iata}.png` : null;
 }
 
+export interface AirlineBadge { text: string; color: string }
+
+/** Stand-in for a missing logo: the operator's three letters on a colour fixed by those letters. */
+export function airlineBadge(flight: Pick<Flight, "callsign" | "airline_code">): AirlineBadge | null {
+  const text = operatorCode(flight);
+  if (!text) return null;
+  let hash = 0;
+  for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  // Fixed saturation and lightness keep white text above a 4.5:1 contrast on every hue.
+  return { text, color: `hsl(${hash} 45% 30%)` };
+}
+
 export function aircraftModel(type?: string | null): string | null {
   return (models as Record<string, string>)[type?.trim().toUpperCase() ?? ""] ?? null;
 }

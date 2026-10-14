@@ -1,4 +1,4 @@
-import { airlineLogo } from "../aircraftIdentity";
+import { airlineBadge, airlineLogo, type AirlineBadge } from "../aircraftIdentity";
 import { AircraftHoverStore } from "../aircraftHover";
 import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
@@ -82,13 +82,26 @@ interface PlaneIconOptions {
   icao24?: string;
   kind?: AircraftIconKind;
   emergency?: boolean;
-  label?: { primary: string; secondary: string; logo?: string | null; level?: LabelLevel };
+  label?: { primary: string; secondary: string; logo?: string | null; badge?: AirlineBadge | null; level?: LabelLevel };
   airborne?: boolean;
+}
+
+function airlineBadgeHtml(badge: AirlineBadge) {
+  return `<span class="airline-badge" style="background:${escapeHtml(badge.color)}">${escapeHtml(badge.text)}</span>`;
+}
+
+/** A logo that fails to load gives way to the operator badge, or disappears when there is none. */
+function swapLogoForBadge(logo?: HTMLImageElement | null) {
+  if (!logo) return;
+  const { badgeText, badgeColor } = logo.dataset;
+  if (!badgeText || !badgeColor) { logo.remove(); return; }
+  logo.insertAdjacentHTML("afterend", airlineBadgeHtml({ text: badgeText, color: badgeColor }));
+  logo.remove();
 }
 
 function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", emergency = false, label, airborne = false }: PlaneIconOptions) {
   const labelHtml = label
-    ? `<span class="aircraft-label label-level-${label.level ?? 3}">${label.logo ? `<img class="airline-logo" src="${escapeHtml(label.logo)}" alt="" width="20" height="20" referrerpolicy="no-referrer" />` : ""}<b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
+    ? `<span class="aircraft-label label-level-${label.level ?? 3}">${label.logo ? `<img class="airline-logo" src="${escapeHtml(label.logo)}" alt="" width="20" height="20" referrerpolicy="no-referrer"${label.badge ? ` data-badge-text="${escapeHtml(label.badge.text)}" data-badge-color="${escapeHtml(label.badge.color)}"` : ""} />` : label.badge ? airlineBadgeHtml(label.badge) : ""}<b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
     : "";
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
@@ -232,14 +245,15 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   const heading = aircraft.true_track ?? 0;
   const emergency = emergencyInfo(aircraft) !== null;
   const logo = airlineLogo(aircraft);
+  const badge = airlineBadge(aircraft);
   const labelPrimary = aircraft.callsign || aircraft.registration || aircraft.icao24.toUpperCase();
   const labelSecondary = [
     aircraft.baro_altitude != null && !aircraft.on_ground ? flightLevelText(aircraft.baro_altitude, units) : null,
     aircraft.velocity != null && !aircraft.on_ground ? speedText(aircraft.velocity, units).replace(" ", "") : null,
   ].filter(Boolean).join(" · ");
   const icon = useMemo(
-    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, airborne: aircraft.on_ground === false, label: selected || labelLevel ? { primary: labelPrimary, secondary: labelSecondary, level: selected ? 3 : labelLevel, logo: selected || labelLevel >= 2 ? logo : null } : undefined }),
-    [aircraft.icao24, aircraft.on_ground, active, selected, labelLevel, iconKind, heading, emergency, labelPrimary, labelSecondary, logo],
+    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, airborne: aircraft.on_ground === false, label: selected || labelLevel ? { primary: labelPrimary, secondary: labelSecondary, level: selected ? 3 : labelLevel, logo: selected || labelLevel >= 2 ? logo : null, badge: selected || labelLevel >= 2 ? badge : null } : undefined }),
+    [aircraft.icao24, aircraft.on_ground, active, selected, labelLevel, iconKind, heading, emergency, labelPrimary, labelSecondary, logo, badge],
   );
   // A fresh fix is already some seconds old when it arrives, so start from
   // where the aircraft is now rather than where it was reported.
@@ -275,7 +289,7 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     element?.setAttribute("aria-label", `View ${labelPrimary}`);
     element?.setAttribute("title", `View ${labelPrimary}`);
     const logo = element?.querySelector<HTMLImageElement>(".airline-logo");
-    const hideLogo = () => logo?.remove();
+    const hideLogo = () => swapLogoForBadge(logo);
     logo?.addEventListener("error", hideLogo);
     if (logo?.complete && !logo.naturalWidth) hideLogo();
     return () => logo?.removeEventListener("error", hideLogo);
@@ -833,12 +847,12 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const units = useUnits();
   const fallbackMarkerRef = useRef<L.Marker | null>(null);
   const fallbackIcon = useMemo(
-    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · "), logo: airlineLogo(flight) } }),
+    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · "), logo: airlineLogo(flight), badge: airlineBadge(flight) } }),
     [flight, units],
   );
   useEffect(() => {
     const logo = fallbackMarkerRef.current?.getElement()?.querySelector<HTMLImageElement>(".airline-logo");
-    const hideLogo = () => logo?.remove();
+    const hideLogo = () => swapLogoForBadge(logo);
     logo?.addEventListener("error", hideLogo);
     if (logo?.complete && !logo.naturalWidth) hideLogo();
     return () => logo?.removeEventListener("error", hideLogo);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { labelLevelForZoom, placeLabels } from "./mapLabels";
 import { aircraftIconKind } from "./utils";
-import { airlineLogo, operatorCode } from "./aircraftIdentity";
+import { airlineBadge, airlineLogo, operatorCode } from "./aircraftIdentity";
 
 describe("map detail levels", () => {
   it("reveals callsign, operator and telemetry at the agreed zoom levels", () => {
@@ -32,5 +32,11 @@ describe("map detail levels", () => {
     expect(airlineLogo({ callsign: "WZZ123" })).toContain("W6.png");
     expect(airlineLogo({ callsign: "TRA123" })).toContain("HV.png");
     expect(airlineLogo({ callsign: "N12345" })).toBeNull();
+  });
+  it("falls back to a stable operator badge when there is no logo", () => {
+    expect(airlineBadge({ callsign: "GEC123" })?.text).toBe("GEC");
+    expect(airlineBadge({ callsign: "GEC123" })).toEqual(airlineBadge({ callsign: "GEC999" }));
+    expect(airlineBadge({ callsign: "GEC123" })?.color).not.toBe(airlineBadge({ callsign: "WZZ123" })?.color);
+    expect(airlineBadge({ callsign: "N12345" })).toBeNull();
   });
 });
