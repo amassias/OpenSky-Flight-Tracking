@@ -22,9 +22,10 @@ function CabinContent({ flight }: { flight: Flight }) {
   });
   if (!operator || !type) return null;
   const heading = <h3>Cabin & seats</h3>;
-  if (isPending) return <section className="cabin-section" aria-label="Cabin configurations">{heading}<p className="conditions-note" role="status">Loading published cabin configurations…</p></section>;
+  // No data, no section: nothing is shown while loading or when no configuration is published.
+  if (isPending) return null;
   if (isError && !data) return <section className="cabin-section" aria-label="Cabin configurations">{heading}<p className="conditions-note" role="status">Cabin configurations could not be loaded.</p><button type="button" className="secondary-button" disabled={isFetching} onClick={() => { void refetch(); }}>Retry cabin</button></section>;
-  if (!data?.configurations?.length || data.operator_code !== operator || data.aircraft_type !== type) return <section className="cabin-section" aria-label="Cabin configurations">{heading}<p className="conditions-note">No published configuration available for this operator and aircraft type.</p></section>;
+  if (!data?.configurations?.length || data.operator_code !== operator || data.aircraft_type !== type) return null;
   return <section className="cabin-section" aria-label="Cabin configurations">
     <h3>Cabin & seats</h3>
     <p className="conditions-note">{data.match_level === "airframe" ? "Configuration of this aircraft" : `${data.configurations.length === 1 ? "Published configuration" : "Published configurations"} for this operator and aircraft type. This aircraft’s layout is not confirmed; other layouts may exist.`}</p>

@@ -52,22 +52,20 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
   const ownerToday = registry?.owner || flight.aircraft_owner || entries.find((entry) => entry.current && entry.owner)?.owner || null;
   const model = [facts.manufacturer ?? registry?.manufacturer, facts.model ?? registry?.type].filter(Boolean).join(" ");
 
-  if (!data?.found && !registration && !flight.registration) {
-    return <p className="track-error">No registry record for the transponder code {flight.icao24.toUpperCase()}. Military, state and some private aircraft are not listed.</p>;
-  }
+  if (!data?.found && !registration && !flight.registration) return null;
 
   return (
     <div className="airframe">
-      <div className="airframe-hero">
-        <strong className="airframe-registration mono">{registration ?? "No registration"}</strong>
-        <span className="airframe-model">{model || flight.aircraft_description || flight.aircraft_type || "Type not published"}</span>
-      </div>
+      {(registration || model || flight.aircraft_description || flight.aircraft_type) && <div className="airframe-hero">
+        {registration && <strong className="airframe-registration mono">{registration}</strong>}
+        {(model || flight.aircraft_description || flight.aircraft_type) && <span className="airframe-model">{model || flight.aircraft_description || flight.aircraft_type}</span>}
+      </div>}
 
       <dl className="airframe-facts">
-        <div><dt>Owner today</dt><dd>{ownerToday ?? "Not listed"}{registry?.owner_country ? <small>{registry.owner_country}</small> : null}</dd></div>
-        <div><dt>Serial (MSN)</dt><dd className="mono">{facts.serial ?? "—"}</dd></div>
-        <div><dt>Built</dt><dd className="mono">{facts.built ?? flight.aircraft_year ?? "—"}{age != null ? <small>{age} {age === 1 ? "year" : "years"} old</small> : null}</dd></div>
-        <div><dt>Registered in</dt><dd>{facts.country ?? registry?.owner_country ?? "—"}</dd></div>
+        {ownerToday && <div><dt>Owner today</dt><dd>{ownerToday}{registry?.owner_country ? <small>{registry.owner_country}</small> : null}</dd></div>}
+        {facts.serial && <div><dt>Serial (MSN)</dt><dd className="mono">{facts.serial}</dd></div>}
+        {(facts.built ?? flight.aircraft_year) && <div><dt>Built</dt><dd className="mono">{facts.built ?? flight.aircraft_year}{age != null ? <small>{age} {age === 1 ? "year" : "years"} old</small> : null}</dd></div>}
+        {(facts.country ?? registry?.owner_country) && <div><dt>Registered in</dt><dd>{facts.country ?? registry?.owner_country}</dd></div>}
         {facts.engines && <div className="airframe-wide"><dt>Engines</dt><dd>{facts.engines}</dd></div>}
         {facts.seats && <div><dt>Seats</dt><dd className="mono">{facts.seats}</dd></div>}
       </dl>
@@ -104,16 +102,12 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
             ))}
           </ol>
         </>
-      ) : (
-        <p className="track-error">No ownership changes are recorded for this airframe.</p>
-      )}
+      ) : null}
 
-      <div className="airframe-flights">
+      {registration && <div className="airframe-flights">
         <h4 className="airframe-subhead">Recent flights<small>last ~10 days</small></h4>
         {!wantFlights ? (
-          <button type="button" className="secondary-button" disabled={!registration} onClick={() => setWantFlights(true)}>
-            {registration ? `Show recent flights of ${registration}` : "Registration needed"}
-          </button>
+          <button type="button" className="secondary-button" onClick={() => setWantFlights(true)}>Show recent flights of {registration}</button>
         ) : recentFlights.isPending ? (
           <div className="chart-skeleton" role="status" aria-label="Loading recent flights" />
         ) : recentFlights.isError ? (
@@ -136,7 +130,7 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
             ))}
           </ul>
         )}
-      </div>
+      </div>}
       <p className="profile-footnote">Individuals' names are not shown.</p>
     </div>
   );

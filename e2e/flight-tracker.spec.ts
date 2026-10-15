@@ -365,3 +365,19 @@ test("watches an aircraft, finds it in the alerts tab, and stops watching", asyn
   await watching.getByRole("button", { name: "Stop watching AFR123" }).click();
   await expect(watching.getByText(/Press the bookmark/)).toBeVisible();
 });
+
+test("bottom-left map overlays never overlap", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Phones place these overlays separately.");
+  await openTrafficPanel(page);
+  await page.getByRole("complementary", { name: "Traffic" }).getByRole("button", { name: /AFR123/ }).click();
+  await expect(page.locator(".map-altitude-legend")).toBeVisible();
+  const boxes = await page.evaluate(() => [".map-data-guide", ".map-altitude-legend", ".map-status"].map(selector => {
+    const rect = document.querySelector(selector)!.getBoundingClientRect();
+    return { selector, top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
+  }));
+  for (let index = 0; index < boxes.length; index++) for (let other = index + 1; other < boxes.length; other++) {
+    const a = boxes[index], b = boxes[other];
+    const overlap = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    expect(overlap, `${a.selector} overlaps ${b.selector}`).toBe(false);
+  }
+});

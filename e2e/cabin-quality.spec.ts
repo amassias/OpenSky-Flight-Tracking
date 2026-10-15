@@ -71,7 +71,7 @@ for (const theme of ['light', 'dark'] as const) {
     });
   }
 }
-for (const mode of ['empty', 'error'] as const) test(`${mode} cabin state is explicit and accessible`, async ({ page }) => {
+for (const mode of ['empty', 'error'] as const) test(`${mode} cabin state is accessible: failures say so, missing data leaves no section`, async ({ page }) => {
   const recover = await fixture(page, mode);
   if (mode === 'error') {
     await expect(page.getByText('Cabin configurations could not be loaded.')).toBeVisible();
@@ -79,6 +79,11 @@ for (const mode of ['empty', 'error'] as const) test(`${mode} cabin state is exp
     recover();
     await page.getByRole('button', {name: 'Retry cabin'}).click();
     await expect(page.getByRole('heading', {name: 'Business'})).toBeVisible();
-  } else await expect(page.getByText(/No published configuration available/)).toBeVisible();
+  } else {
+    // No published configuration: the section is simply absent.
+    await expect(page.getByRole('complementary', { name: 'Selected flight details' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Cabin configurations' })).toHaveCount(0);
+    await expect(page.getByText(/No published configuration/)).toHaveCount(0);
+  }
   await audit(page);
 });

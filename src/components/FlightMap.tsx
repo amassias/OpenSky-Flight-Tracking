@@ -1530,10 +1530,12 @@ export function FlightMap({
         </section>}
       </div>
 
+      <div className="map-overlay-stack">
       <div className="map-data-guide">
         {denseTraffic ? <span>Dense view · dots show reported positions. Zoom in for aircraft and labels.</span> : !labelsEnabled ? <span>Labels are off · enable them in Display.</span> : <span>Zoom in for more aircraft labels.</span>}
         <span>Outlined aircraft = estimated position · faded / hollow = fix older than 60s or age unknown.</span>
       </div>
+      {hasTrace && <AltitudeLegend compact className="map-altitude-legend" />}
       <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />
         <strong>{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</strong>
@@ -1541,6 +1543,7 @@ export function FlightMap({
         {hiddenByFilters > 0 && <span className="map-status-filter">{hiddenByFilters} hidden by filters</span>}
         {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}
         {liveEnabled && (liveState.error || liveState.failedTiles > 0) && <button type="button" className="live-retry" onClick={() => setLiveRefresh((value) => value + 1)}>Retry</button>}
+      </div>
       </div>
 
       <div className="map-controls" role="group" aria-label="Map controls">
@@ -1574,7 +1577,6 @@ export function FlightMap({
         )}
       </div>
       {locationError && <div className="location-status" role="status">{locationError}</div>}
-      {hasTrace && <AltitudeLegend compact className="map-altitude-legend" />}
     </section>
   );
 }

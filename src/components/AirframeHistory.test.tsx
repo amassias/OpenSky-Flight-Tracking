@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AirframeHistory } from "./AirframeHistory";
+import { hasAirframeRecord } from "../airframe";
 import type { Flight } from "../types";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -71,9 +72,11 @@ describe("AirframeHistory", () => {
     expect(await screen.findByText(/unavailable right now/)).toBeInTheDocument();
   });
 
-  it("says so when no registry lists the transponder code", async () => {
+  it("renders nothing when no registry lists the transponder code", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true, icao24: "000001", found: false, registration: null, airframe: {}, history: [], linked_icao24: [], snapshots: null, registry: null, sources: [] }), { headers: { "Content-Type": "application/json" } })));
-    render(<QueryClientProvider client={new QueryClient()}><AirframeHistory flight={{ icao24: "000001", callsign: "X" } as Flight} /></QueryClientProvider>);
-    expect(await screen.findByText(/No registry record for the transponder code 000001/)).toBeInTheDocument();
+    const { container } = render(<QueryClientProvider client={new QueryClient()}><AirframeHistory flight={{ icao24: "000001", callsign: "X" } as Flight} /></QueryClientProvider>);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(hasAirframeRecord({ found: false }, {} as Flight)).toBe(false);
   });
 });

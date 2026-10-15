@@ -65,3 +65,7 @@ export function looksLikeRegistration(value: string): boolean {
   return /^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$/.test(text) || /^N[1-9][0-9]{0,4}[A-Z]{0,2}$/.test(text) || /^[0-9A-F]{6}$/.test(text);
 }
 
+/** Whether the registry (or the flight itself) can say anything about this airframe. */
+export function hasAirframeRecord(data: { found?: boolean } | undefined, flight: { registration?: string | null }) {
+  return Boolean(data?.found || flight.registration);
+}

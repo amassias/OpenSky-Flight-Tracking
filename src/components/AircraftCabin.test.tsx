@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { api } from "../api";
@@ -15,13 +15,15 @@ function setup() {
 }
 
 describe("published cabin states", () => {
-  it("shows a loading state, then an honest empty result", async () => {
+  it("shows nothing while loading and nothing when no configuration is published", async () => {
     let resolve!: (value: AircraftEnrichment) => void;
     vi.spyOn(api, "aircraftEnrichment").mockImplementation(() => new Promise(done => { resolve = done; }));
     setup();
-    expect(screen.getByRole("status")).toHaveTextContent("Loading published");
+    expect(screen.queryByRole("region", { name: "Cabin configurations" })).not.toBeInTheDocument();
     await act(async () => resolve({ ...data, configurations: [] }));
-    expect(await screen.findByText(/No published configuration/)).toBeVisible();
+    await waitFor(() => expect(api.aircraftEnrichment).toHaveBeenCalled());
+    expect(screen.queryByRole("region", { name: "Cabin configurations" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/No published configuration/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry cabin" })).not.toBeInTheDocument();
   });
 
@@ -45,7 +47,7 @@ describe("published cabin states", () => {
     vi.spyOn(api, "aircraftEnrichment").mockImplementation(operator => operator === "AFR" ? new Promise(done => { resolve = done; }) : Promise.resolve({ ...data, operator_code: "EZY", aircraft_type: "A320", configurations: [] }));
     const { rerender, view } = setup();
     rerender(view({ ...flight, icao24: "abc124", callsign: "EZY456", aircraft_type: "A320" }));
-    await screen.findByText(/No published configuration/);
+    await waitFor(() => expect(vi.mocked(api.aircraftEnrichment).mock.calls.some(call => call[0] === "EZY")).toBe(true));
     await act(async () => resolve(data));
     expect(screen.queryByRole("heading", { name: "Business" })).not.toBeInTheDocument();
   });

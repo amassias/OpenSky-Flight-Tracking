@@ -8,6 +8,7 @@ import { bearingDeg, compassPoint, distanceKm, emergencyInfo, flightNumberForCal
 import { distanceText, useUnits, verticalRateText } from "../units";
 import { PositionObservation } from "./PositionObservation";
 import { AirframeHistory } from "./AirframeHistory";
+import { hasAirframeRecord } from "../airframe";
 import { useAirframeHistory } from "../hooks/useAirframeHistory";
 import { operationsMatchFlight } from "../flightEvents";
 import { FlightEvents } from "./FlightEvents";
@@ -176,6 +177,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
     };
   }, [airframe, liveFlight]);
   const path = track?.track.path ?? [];
+  const airframeHistory = useAirframeHistory(flight.icao24);
   // An aircraft in the air cannot be on a leg that has already arrived: that
   // record is the previous flight under the same callsign, so leave it out.
   const operations = flight.data_source === "scheduled" || operationsMatchFlight(flight) ? flight.flightaware : null;
@@ -364,13 +366,13 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </div>
       </Section>}
 
-      <Section title="Airframe history" aside="Owners · registrations">
+      {(airframeHistory.isError || (airframeHistory.data && hasAirframeRecord(airframeHistory.data, flight))) && <Section title="Airframe history" aside="Owners · registrations">
         <AirframeHistory flight={flight} />
-      </Section>
+      </Section>}
 
-      <Section title="Altitude profile" aside={trackLoading ? path.length ? "Updating trace…" : "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
+      {(flight.data_source === "scheduled" || trackLoading || path.length > 0 || Boolean(trackError)) && <Section title="Altitude profile" aside={trackLoading ? path.length ? "Updating trace…" : "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
         {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading && !path.length ? <div className="chart-skeleton" /> : trackError && !path.length ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <><AltitudeChart points={path} />{trackError && <div className="track-refresh-notice"><p>Trace updates delayed. The previous observations are kept.</p><button type="button" className="text-button" onClick={onRetryTrack}>Retry track</button></div>}</>}
-      </Section>
+      </Section>}
 
       <Section title="Signal and navigation" aside={emergency ? emergency.label : undefined}>
         <div className="signal-profile-grid">

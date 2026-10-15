@@ -1116,3 +1116,10 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .watch-state.in-view { color: var(--ok); }
 .watch-open small { color: var(--muted); font-size: .8125rem; }
 .icon-button.is-on { color: var(--accent); }
+/* Bottom-left overlays share one column so they can never overlap (phones keep their own placement). */
+@media (min-width: 901px) {
+  .map-overlay-stack { position: absolute; z-index: 500; left: var(--inset-left); bottom: var(--edge); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: min(600px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); pointer-events: none; transition: left .3s var(--ease-out); }
+  .map-expanded .map-overlay-stack { left: var(--edge); }
+  .map-overlay-stack > * { position: static; max-width: 100%; box-sizing: border-box; }
+}
+@media (max-width: 900px) { .map-overlay-stack { display: contents; } }
