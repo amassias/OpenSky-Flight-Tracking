@@ -11,6 +11,7 @@ from urllib.parse import quote
 
 import requests
 import flightaware
+from aircraft_tracks import AircraftTracks, TraceUnavailable
 from local_env import load_local_env
 
 # Load environment variables
@@ -67,7 +68,7 @@ class OpenSkyClient:
         self._flightaware_schedule_cache: Dict[str, Dict[str, Any]] = {}
         self._aircraft_flights_cache: Dict[str, Dict[str, Any]] = {}
         self._aircraft_registry_cache: Dict[str, tuple[float, Optional[Dict[str, Any]]]] = {}
-        self._track_cache: Dict[str, Dict[str, Any]] = {}
+        self._tracks = AircraftTracks(self.session)
         self._emergency_cache: Dict[str, Any] = {}
         self._emergency_lock = Lock()
         self._emergency_retry_at = 0.0
@@ -1394,9 +1395,9 @@ class OpenSkyClient:
         """Every aircraft within one public-provider circle (at most 250 NM)."""
         return self._get_airplanes_live_states(point=(latitude, longitude, radius_nm))
 
-    def get_track(self, icao24: str, time_sec: int):
+    def get_track(self, icao24: str, time_sec: int, callsign: str = ""):
         if os.getenv("VERCEL"):
-            return self._get_adsb_lol_track(icao24)
+            return self._get_public_track(icao24, callsign) if int(time_sec) == 0 else {}
 
         params = {
             "icao24": str(icao24).lower(),
@@ -1409,7 +1410,7 @@ class OpenSkyClient:
             try:
                 result = self._make_request("GET", endpoint, params=params, not_found_value={})
                 if result and result.get("path"):
-                    return result
+                    return {**result, "source": "opensky"}
                 break
             except OpenSkyAPIError as exc:
                 opensky_error = exc
@@ -1418,110 +1419,25 @@ class OpenSkyClient:
                 break
 
         # OpenSky's anonymous tracks endpoint is rate-limited and often empty.
-        # For the current flight (time=0) fall back to the ADS-B trace.
+        # For the current flight (time=0) try independent public trace sources.
         if int(time_sec) == 0:
             try:
-                fallback = self._get_adsb_lol_track(icao24)
+                fallback = self._get_public_track(icao24, callsign)
                 if fallback:
                     return fallback
             except OpenSkyAPIError:
-                pass
+                # A provider failure must remain retryable even when OpenSky
+                # answered an empty success rather than an explicit error.
+                raise
         if opensky_error:
             raise opensky_error
         return {}
 
-    def _get_adsb_lol_track(self, icao24: str):
-        """Return the fullest available ADS-B trace in the OpenSky shape."""
-        code = str(icao24).lower()
-        now = time.time()
-        cached = self._track_cache.get(code)
-        if cached and now < float(cached.get("expires_at", 0)):
-            return cached.get("result") or {}
-        suffix = code[-2:]
-        payload = None
-        last_error = None
-        trace_kind = "recent"
-        for candidate in ("full", "recent"):
-            url = f"https://adsb.lol/data/traces/{suffix}/trace_{candidate}_{code}.json"
-            try:
-                response = self.session.get(
-                    url,
-                    headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
-                    timeout=(2, 4),
-                )
-                if response.status_code == 404:
-                    continue
-                response.raise_for_status()
-                candidate_payload = response.json()
-                if isinstance(candidate_payload, dict) and candidate_payload.get("trace"):
-                    # A full-day file can lag behind the recent feed. An old
-                    # full trace must not prevent trying the current snapshot.
-                    points = candidate_payload["trace"]
-                    latest = float(candidate_payload.get("timestamp") or 0) + float(points[-1][0])
-                    if now - 15 * 60 <= latest <= now + 60:
-                        payload = candidate_payload
-                        trace_kind = candidate
-                        break
-            except (requests.RequestException, ValueError, TypeError, IndexError) as exc:
-                last_error = exc
-        if not isinstance(payload, dict):
-            if last_error:
-                raise OpenSkyAPIError("The trace provider is temporarily unavailable. Please try again shortly.", status_code=503) from last_error
-            return {}
-
-        base_time = float(payload.get("timestamp") or 0)
-        path = []
-        callsign = ""
-        events = []
-        current_event = None
-        leg_start = None
-        for point in payload.get("trace") or []:
-            if not isinstance(point, list) or len(point) < 6:
-                continue
-            offset, latitude, longitude, altitude_ft, _speed, track = point[:6]
-            if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
-                continue
-            on_ground = altitude_ft == "ground"
-            altitude_m = 0.0 if on_ground else (
-                float(altitude_ft) * 0.3048 if isinstance(altitude_ft, (int, float)) else None
-            )
-            timestamp = int(base_time + float(offset))
-            path.append([timestamp, latitude, longitude, altitude_m, track, on_ground])
-            if len(point) > 6 and isinstance(point[6], int) and point[6] & 2:
-                leg_start = timestamp
-            if len(point) > 8 and isinstance(point[8], dict):
-                details = point[8]
-                callsign = str(details.get("flight") or callsign).strip()
-                squawk = str(details.get("squawk") or "").strip()
-                emergency = str(details.get("emergency") or "").lower()
-                event_code = squawk if squawk in {"7500", "7600", "7700"} else emergency if emergency in {"general", "lifeguard", "minfuel", "nordo", "unlawful", "downed"} else None
-                if event_code:
-                    if current_event is None or current_event["code"] != event_code or current_event["callsign"] != callsign:
-                        if current_event is not None:
-                            current_event["ended_at"] = timestamp
-                        current_event = {"code": event_code, "callsign": callsign, "first_seen": timestamp, "last_seen": timestamp, "ended_at": None}
-                        events.append(current_event)
-                    else:
-                        current_event["last_seen"] = timestamp
-                elif current_event is not None and ("squawk" in details or "emergency" in details):
-                    current_event["ended_at"] = timestamp
-                    current_event = None
-
-        if not path:
-            return {}
-        result = {
-            "icao24": code,
-            "callsign": callsign,
-            "startTime": path[0][0],
-            "endTime": path[-1][0],
-            "path": path,
-            "source": "adsb.lol",
-            "trace_kind": trace_kind,
-            "leg_start": leg_start,
-            "emergency_events": events,
-        }
-        self._track_cache[code] = {"expires_at": now + 90, "result": result}
-        return result
+    def _get_public_track(self, icao24: str, callsign: str = ""):
+        try:
+            return self._tracks.get(icao24, callsign)
+        except TraceUnavailable as exc:
+            raise OpenSkyAPIError(str(exc), status_code=503) from exc
 
     def get_flights_by_aircraft(self, icao24: str, begin_timestamp: int, end_timestamp: int):
         params = {

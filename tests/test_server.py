@@ -396,7 +396,7 @@ def test_missing_historical_track_never_falls_back_to_another_flight():
     with patch.object(server, "api_client", fake_client):
         payload = handler().handle_track("39abcd", "1750000000", "AFR123")
     assert payload["path_count"] == 0
-    fake_client.get_track.assert_called_once_with("39abcd", 1_750_000_000)
+    fake_client.get_track.assert_called_once_with("39abcd", 1_750_000_000, callsign="AFR123")
     fake_client.get_flights_by_aircraft.assert_not_called()
 
 

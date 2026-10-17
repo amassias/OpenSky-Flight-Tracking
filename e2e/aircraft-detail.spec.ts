@@ -179,7 +179,7 @@ test('altitude profile exposes an outage and recovers on retry', async ({ page }
     if (!available) return route.fulfill({ status: 503, json: { success: false, error: 'The trace provider is temporarily unavailable. Please try again shortly.' } });
     const now = Math.floor(Date.now() / 1000);
     return route.fulfill({ json: { success: true, path_count: 2, track: {
-      icao24: 'abc123', callsign: 'AFR123', source: 'adsb.lol',
+      icao24: 'abc123', callsign: 'AFR123', source: 'theairtraffic.com',
       path: [[now - 60, 48.4, 2.1, 9000, 90, false], [now, 48.5, 2.2, 10000, 90, false]],
     } } });
   });
@@ -193,5 +193,7 @@ test('altitude profile exposes an outage and recovers on retry', async ({ page }
   await retry.click();
   await expect(page.locator('.altitude-chart')).toBeVisible();
   await expect(retry).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'TheAirTraffic', exact: true })).toHaveAttribute('href', 'https://theairtraffic.com/');
+  await expect(page.locator('.trace-provenance')).toContainText('Latest recorded point:');
   expect(errors).toEqual([]);
 });

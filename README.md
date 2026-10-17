@@ -65,6 +65,8 @@ These are **browser screenshots of the running site**, captured on 5 October 202
 - **Data:** OpenSky REST API plus the bundled airport and airline datasets. On Vercel, the authenticated proxy serves complete viewport boxes; public ADS-B sources are used only as a resilient fallback. A selected live aircraft can request short-lived callsign, aircraft-profile, and FlightAware operational enrichment; the interface labels the source of each route.
 - **Tests:** Vitest, Testing Library, pytest, and Playwright
 
+Current-flight altitude profiles use TheAirTraffic's public full/recent traces, with ADSB.lol as an independent fallback. The backend validates aircraft, callsign and observation time, caches the selected flight, and refreshes a delayed full-day file with recent observations from the same provider. Each profile credits its actual source and shows the last recorded point in UTC. Free sources have coverage gaps and no verified availability guarantee; see the [provider comparison](docs/audits/2026-10-17-free-altitude-providers.md) and [trace decision](docs/adr/0003-independent-current-flight-traces.md).
+
 The Python server owns all OpenSky authentication. Credentials are never sent to the browser.
 
 ## Run locally

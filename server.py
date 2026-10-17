@@ -1294,7 +1294,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
         return payload
 
-    def _track_for_candidate_times(self, icao24, candidate_times):
+    def _track_for_candidate_times(self, icao24, candidate_times, callsign=""):
         seen = set()
         attempted = []
         best_empty = {}
@@ -1310,7 +1310,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             attempted.append(t)
 
             try:
-                track = api_client.get_track(icao24, t) or {}
+                track = (api_client.get_track(icao24, t, callsign=callsign) if callsign else api_client.get_track(icao24, t)) or {}
             except OpenSkyAPIError as exc:
                 # Try remaining timestamps, but preserve a provider outage as
                 # an error so the browser can retry rather than hide the chart.
@@ -1347,7 +1347,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                     "attempted_times": []}
 
         # Do not borrow another flight's timestamp when this trace is missing.
-        track_data, attempted_times, resolved_time = self._track_for_candidate_times(code, [track_time])
+        track_data, attempted_times, resolved_time = self._track_for_candidate_times(code, [track_time], callsign)
         path = (track_data or {}).get("path") or []
         expected_callsign = "".join(str(callsign or "").upper().split())
         actual_callsign = "".join(str((track_data or {}).get("callsign") or "").upper().split())

@@ -274,7 +274,7 @@ def test_vercel_track_fallback_builds_altitude_path(monkeypatch):
     result = client.get_track("abc123", 0)
 
     assert result["callsign"] == "TEST42"
-    assert result["source"] == "adsb.lol"
+    assert result["source"] == "theairtraffic.com"
     assert result["trace_kind"] == "full"
     assert "trace_full_abc123.json" in client.session.get.call_args.args[0]
     assert result["path"] == [
@@ -306,7 +306,9 @@ def test_current_trace_tries_recent_when_full_file_is_stale(monkeypatch):
         _json_response({"timestamp": now, "trace": [[0, 49, 3, 12000, 220, 90]]}),
     ])
     result = client.get_track("abc123", 0)
-    assert result["trace_kind"] == "recent"
+    assert result["trace_kind"] == "full"
+    assert len(result["path"]) == 2
+    assert result["endTime"] == int(now)
     assert client.session.get.call_count == 2
 
 
@@ -316,7 +318,7 @@ def test_stale_full_trace_cannot_hide_recent_provider_outage(monkeypatch):
     client = OpenSkyClient()
     client.session.get = Mock(side_effect=[
         _json_response({"timestamp": time.time() - 3600, "trace": [[0, 48, 2, 10000, 200, 90]]}),
-        requests.Timeout("unavailable"),
+        requests.Timeout("unavailable"), requests.Timeout("unavailable"), requests.Timeout("unavailable"),
     ])
     with pytest.raises(OpenSkyAPIError) as error:
         client.get_track("abc123", 0)
@@ -677,3 +679,11 @@ def test_incomplete_individual_emergency_queries_do_not_claim_empty_skies():
     client.session.get = Mock(side_effect=get)
     with patch("api_client.time.time", return_value=1_800_000_000), patch("api_client.time.sleep"), pytest.raises(OpenSkyAPIError):
         client.get_emergency_states()
+
+
+def test_public_traces_never_answer_a_historical_request(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    client.session.get = Mock()
+    assert client.get_track("abc123", 1_750_000_000) == {}
+    client.session.get.assert_not_called()
