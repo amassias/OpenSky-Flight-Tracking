@@ -112,7 +112,7 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
 
     result = client.get_states(bbox=(47.0, 1.0, 50.0, 4.0), extended=True)
 
-    assert result["provider"] == "adsb.lol"
+    assert result["provider"] == "adsb.fi"
     assert len(result["states"]) == 1
     state = result["states"][0]
     assert state[0] == "abc123"
@@ -122,7 +122,7 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     assert state[10] == 90
     assert state[11] == 2.54
     request_url = client.session.get.call_args.args[0]
-    assert request_url.startswith("https://api.adsb.lol/v2/point/")
+    assert request_url.startswith("https://opendata.adsb.fi/api/v2/lat/")
 
 
 def test_vercel_live_states_use_authenticated_proxy_for_complete_bbox(monkeypatch):
@@ -187,7 +187,7 @@ def test_aircraft_profile_keeps_provider_metadata(monkeypatch):
 
     result = client.get_aircraft_profile("abc123")
 
-    assert result["provider"] == "adsb.lol"
+    assert result["provider"] == "adsb.fi"
     assert result["profile"]["registration"] == "F-HABC"
     assert result["profile"]["aircraft_type"] == "A359"
     assert result["profile"]["aircraft_owner"] == "Air France"
@@ -210,7 +210,7 @@ def test_live_viewport_grid_covers_wide_view_and_reuses_a_recent_response(monkey
     second = client.get_states(bbox=bbox)
 
     assert first == second
-    assert first["provider"] == "adsb.lol"
+    assert first["provider"] == "adsb.fi"
     assert first["coverage_tiles"] == 6
     assert first["coverage_complete"] is True
     assert len(first["states"]) == 1
@@ -258,6 +258,7 @@ def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
 
 
 def test_vercel_track_fallback_builds_altitude_path(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: 1_750_000_060)
     monkeypatch.setenv("VERCEL", "1")
     client = OpenSkyClient()
     response = _json_response({
@@ -282,7 +283,57 @@ def test_vercel_track_fallback_builds_altitude_path(monkeypatch):
     ]
 
 
+@pytest.mark.parametrize("details", [{"flight": "TEST42"}, {"flight": "TEST42", "squawk": "7700"}])
+def test_trace_metadata_preserves_aircraft_identity_and_cache(monkeypatch, details):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    client.session.get = Mock(return_value=_json_response({
+        "timestamp": time.time(),
+        "trace": [[0, 48, 2, 10000, 200, 90, 0, 0, details]],
+    }))
+    result = client.get_track("abc123", 0)
+    assert result["icao24"] == "abc123"
+    assert client.get_track("abc123", 0) == result
+    assert client.session.get.call_count == 1
+
+
+def test_current_trace_tries_recent_when_full_file_is_stale(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    now = time.time()
+    client.session.get = Mock(side_effect=[
+        _json_response({"timestamp": now - 3600, "trace": [[0, 48, 2, 10000, 200, 90]]}),
+        _json_response({"timestamp": now, "trace": [[0, 49, 3, 12000, 220, 90]]}),
+    ])
+    result = client.get_track("abc123", 0)
+    assert result["trace_kind"] == "recent"
+    assert client.session.get.call_count == 2
+
+
+
+def test_stale_full_trace_cannot_hide_recent_provider_outage(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    client.session.get = Mock(side_effect=[
+        _json_response({"timestamp": time.time() - 3600, "trace": [[0, 48, 2, 10000, 200, 90]]}),
+        requests.Timeout("unavailable"),
+    ])
+    with pytest.raises(OpenSkyAPIError) as error:
+        client.get_track("abc123", 0)
+    assert error.value.status_code == 503
+
+
+def test_cold_live_request_starts_with_reachable_provider(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("OPEN_SKY_PROXY_SECRET", raising=False)
+    client = OpenSkyClient()
+    client.session.get = Mock(return_value=_json_response({"now": time.time(), "aircraft": []}))
+    client.get_states(bbox=(48, 2, 49, 3))
+    assert "opendata.adsb.fi" in client.session.get.call_args.args[0]
+
+
 def test_track_falls_back_to_recent_when_full_trace_is_missing(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: 1_750_000_000)
     monkeypatch.setenv("VERCEL", "1")
     client = OpenSkyClient()
     missing = _json_response({}, status_code=404)
@@ -307,7 +358,7 @@ def test_live_provider_outage_uses_independent_fallback(monkeypatch):
     response.raise_for_status = Mock()
     client.session.get = Mock(side_effect=[requests.HTTPError("503"), response])
     result = client.get_states(bbox=(48, 2, 49, 3))
-    assert result["provider"] == "airplanes.live"
+    assert result["provider"] == "adsb.lol"
     assert result["states"] == []
     assert client.session.get.call_count == 2
 
@@ -322,7 +373,7 @@ def test_all_live_providers_unavailable(monkeypatch):
     assert client.session.get.call_count == 3
 
 
-def test_failed_provider_is_tried_last_and_adsb_fi_is_a_fallback(monkeypatch):
+def test_failed_provider_is_tried_last_on_next_viewport(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
     client = OpenSkyClient()
@@ -330,21 +381,22 @@ def test_failed_provider_is_tried_last_and_adsb_fi_is_a_fallback(monkeypatch):
 
     def fake_get(url, **_kwargs):
         urls.append(url)
-        if "adsb.fi" in url:
+        if "api.adsb.lol" in url:
             return _json_response({"now": 1000.5, "aircraft": [{"hex": "abc123", "lat": 48.5, "lon": 2.5, "alt_baro": 3000}]})
         raise requests.Timeout("down")
 
     client.session.get = Mock(side_effect=fake_get)
     result = client.get_states(bbox=(48, 2, 49, 3))
-    assert result["provider"] == "adsb.fi"
+    assert result["provider"] == "adsb.lol"
     assert [state[0] for state in result["states"]] == ["abc123"]
-    assert "opendata.adsb.fi/api/v2/lat/" in urls[-1]
+    assert "opendata.adsb.fi/api/v2/lat/" in urls[0]
+    assert "api.adsb.lol" in urls[-1]
 
     urls.clear()
     client._live_cache.clear()
     client._live_provider_unavailable_until = 0.0
     client.get_states(bbox=(48, 2, 49, 3))
-    assert "adsb.fi" in urls[0]  # providers that just failed no longer go first
+    assert "api.adsb.lol" in urls[0]  # providers that just failed no longer go first
 
 
 def test_callsign_route_normalizes_origin_and_destination(monkeypatch):
@@ -518,6 +570,7 @@ def test_global_emergency_feed_rejects_an_old_snapshot():
 
 
 def test_adsb_trace_keeps_emergency_observations_and_leg_boundary(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: 1_800_000_060)
     monkeypatch.setenv("VERCEL", "1")
     client = OpenSkyClient()
     client.session.get = Mock(return_value=_json_response({"timestamp": 1_800_000_000, "trace": [

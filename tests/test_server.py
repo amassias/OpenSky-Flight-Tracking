@@ -452,3 +452,42 @@ def test_operational_episode_matching_rejects_other_flights(change):
     now = server.time.time()
     operations = {"queried_ident":"AFR531","registration":"F-GSPL","actual_out":datetime.fromtimestamp(now-3600,timezone.utc).isoformat(),**change}
     assert not server._operations_match_current_flight(operations,"AFR531",{"callsign":"AFR531","registration":"F-GSPL","on_ground":False},now)
+
+
+def test_track_provider_failure_is_retryable_not_empty_success():
+    fake_client = Mock()
+    fake_client.get_track.side_effect = OpenSkyAPIError("Trace provider unavailable", status_code=503)
+    with patch("server.api_client", fake_client):
+        with pytest.raises(OpenSkyAPIError):
+            handler().handle_track("39abcd", "0", "AFR123")
+
+
+def test_vercel_track_outage_returns_503_to_browser():
+    from fastapi.testclient import TestClient
+    from api.index import app
+
+    with patch.object(server.api_client, "get_track", side_effect=OpenSkyAPIError("Trace provider unavailable", status_code=503)):
+        response = TestClient(app).get("/api/track", params={"icao24": "39abcd", "time": 0, "callsign": "AFR123"})
+    assert response.status_code == 503
+    assert response.json()["success"] is False
+
+
+def test_real_trace_parser_reaches_browser_with_matching_identity(monkeypatch):
+    import time
+    from api_client import OpenSkyClient
+    from fastapi.testclient import TestClient
+    from api.index import app
+
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    upstream = Mock(status_code=200)
+    upstream.json.return_value = {"timestamp": time.time() - 60, "trace": [
+        [0, 49, 2, 10000, 200, 90, 0, 0, {"flight": "AFR123", "squawk": "1000"}],
+        [60, 49.1, 2.1, 11000, 200, 90],
+    ]}
+    client.session.get = Mock(return_value=upstream)
+    with patch.object(server, "api_client", client):
+        response = TestClient(app).get("/api/track", params={"icao24": "39abcd", "time": 0, "callsign": "AFR123"})
+    assert response.status_code == 200
+    assert response.json()["track"]["icao24"] == "39abcd"
+    assert response.json()["path_count"] == 2

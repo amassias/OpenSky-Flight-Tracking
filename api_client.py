@@ -626,7 +626,7 @@ class OpenSkyClient:
         except (TypeError, ValueError):
             failure_break_count = 2
         providers = sorted(
-            ("adsb.lol", "airplanes.live", "adsb.fi"),
+            ("adsb.fi", "adsb.lol", "airplanes.live"),
             key=lambda name: self._live_provider_down_until.get(name, 0.0) > time.time(),
         )
         for candidate in providers:
@@ -1447,21 +1447,26 @@ class OpenSkyClient:
                 response = self.session.get(
                     url,
                     headers={"Accept-Encoding": "gzip", "User-Agent": "SkyTrace/2.0"},
-                    timeout=12,
+                    timeout=(2, 4),
                 )
                 if response.status_code == 404:
                     continue
                 response.raise_for_status()
                 candidate_payload = response.json()
                 if isinstance(candidate_payload, dict) and candidate_payload.get("trace"):
-                    payload = candidate_payload
-                    trace_kind = candidate
-                    break
-            except (requests.RequestException, ValueError) as exc:
+                    # A full-day file can lag behind the recent feed. An old
+                    # full trace must not prevent trying the current snapshot.
+                    points = candidate_payload["trace"]
+                    latest = float(candidate_payload.get("timestamp") or 0) + float(points[-1][0])
+                    if now - 15 * 60 <= latest <= now + 60:
+                        payload = candidate_payload
+                        trace_kind = candidate
+                        break
+            except (requests.RequestException, ValueError, TypeError, IndexError) as exc:
                 last_error = exc
         if not isinstance(payload, dict):
             if last_error:
-                raise OpenSkyAPIError(f"ADS-B track request failed: {last_error}") from last_error
+                raise OpenSkyAPIError("The trace provider is temporarily unavailable. Please try again shortly.", status_code=503) from last_error
             return {}
 
         base_time = float(payload.get("timestamp") or 0)
@@ -1489,12 +1494,12 @@ class OpenSkyClient:
                 callsign = str(details.get("flight") or callsign).strip()
                 squawk = str(details.get("squawk") or "").strip()
                 emergency = str(details.get("emergency") or "").lower()
-                code = squawk if squawk in {"7500", "7600", "7700"} else emergency if emergency in {"general", "lifeguard", "minfuel", "nordo", "unlawful", "downed"} else None
-                if code:
-                    if current_event is None or current_event["code"] != code or current_event["callsign"] != callsign:
+                event_code = squawk if squawk in {"7500", "7600", "7700"} else emergency if emergency in {"general", "lifeguard", "minfuel", "nordo", "unlawful", "downed"} else None
+                if event_code:
+                    if current_event is None or current_event["code"] != event_code or current_event["callsign"] != callsign:
                         if current_event is not None:
                             current_event["ended_at"] = timestamp
-                        current_event = {"code": code, "callsign": callsign, "first_seen": timestamp, "last_seen": timestamp, "ended_at": None}
+                        current_event = {"code": event_code, "callsign": callsign, "first_seen": timestamp, "last_seen": timestamp, "ended_at": None}
                         events.append(current_event)
                     else:
                         current_event["last_seen"] = timestamp

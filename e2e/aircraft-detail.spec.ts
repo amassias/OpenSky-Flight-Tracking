@@ -167,3 +167,31 @@ test('credits the Commons license when the primary photo source is unavailable',
   await expect(preview.getByRole('link', { name: 'CC BY-SA 4.0' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-sa/4.0');
   await expect(preview).toContainText('Registration match');
 });
+
+
+test('altitude profile exposes an outage and recovers on retry', async ({ page }) => {
+  let available = false;
+  let attempts = 0;
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/api/track?**', route => {
+    attempts += 1;
+    if (!available) return route.fulfill({ status: 503, json: { success: false, error: 'The trace provider is temporarily unavailable. Please try again shortly.' } });
+    const now = Math.floor(Date.now() / 1000);
+    return route.fulfill({ json: { success: true, path_count: 2, track: {
+      icao24: 'abc123', callsign: 'AFR123', source: 'adsb.lol',
+      path: [[now - 60, 48.4, 2.1, 9000, 90, false], [now, 48.5, 2.2, 10000, 90, false]],
+    } } });
+  });
+  await page.goto('/?at=48.5,2.2,10');
+  await page.locator('[data-icao24="abc123"]').first().click();
+  const retry = page.getByRole('button', { name: 'Retry track', exact: true });
+  await expect(retry).toBeVisible({ timeout: 15000 });
+  expect(attempts).toBeGreaterThanOrEqual(3);
+  await expect(page.getByText('Altitude profile', { exact: true })).toBeVisible();
+  available = true;
+  await retry.click();
+  await expect(page.locator('.altitude-chart')).toBeVisible();
+  await expect(retry).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

@@ -1298,6 +1298,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
         seen = set()
         attempted = []
         best_empty = {}
+        last_error = None
 
         for raw_time in candidate_times:
             t = _safe_int(raw_time, default=None)
@@ -1310,8 +1311,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 track = api_client.get_track(icao24, t) or {}
-            except OpenSkyAPIError:
-                # Don't let a single failed timestamp abort all attempts
+            except OpenSkyAPIError as exc:
+                # Try remaining timestamps, but preserve a provider outage as
+                # an error so the browser can retry rather than hide the chart.
+                last_error = exc
                 continue
             except Exception:
                 # Unexpected error (e.g. non-dict response) — skip this timestamp
@@ -1326,6 +1329,8 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
             if not best_empty:
                 best_empty = track
 
+        if last_error is not None:
+            raise last_error
         return best_empty, attempted, None
 
     def handle_track(self, icao24, time_param, callsign=""):
