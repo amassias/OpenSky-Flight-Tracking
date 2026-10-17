@@ -1381,15 +1381,30 @@ class OpenSkyClient:
         }
 
         # Some docs mention /tracks, while examples use /tracks/all. Try /tracks/all first.
+        opensky_error = None
         for endpoint in ("/tracks/all", "/tracks"):
             try:
                 result = self._make_request("GET", endpoint, params=params, not_found_value={})
-                return result or {}
+                if result and result.get("path"):
+                    return result
+                break
             except OpenSkyAPIError as exc:
+                opensky_error = exc
                 if endpoint == "/tracks/all" and exc.status_code in (400, 404, 429, 500, 502, 503):
                     continue
-                raise
+                break
 
+        # OpenSky's anonymous tracks endpoint is rate-limited and often empty.
+        # For the current flight (time=0) fall back to the ADS-B trace.
+        if int(time_sec) == 0:
+            try:
+                fallback = self._get_adsb_lol_track(icao24)
+                if fallback:
+                    return fallback
+            except OpenSkyAPIError:
+                pass
+        if opensky_error:
+            raise opensky_error
         return {}
 
     def _get_adsb_lol_track(self, icao24: str):

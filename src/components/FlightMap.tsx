@@ -1116,6 +1116,13 @@ export function FlightMap({
   });
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [nearbyOpen, setNearbyOpen] = useState(false);
+  const [guideDismissed, setGuideDismissed] = useState(() => {
+    try { return localStorage.getItem("skytrace.mapGuideDismissed") === "1"; } catch { return false; }
+  });
+  const dismissGuide = useCallback(() => {
+    setGuideDismissed(true);
+    try { localStorage.setItem("skytrace.mapGuideDismissed", "1"); } catch { /* storage unavailable */ }
+  }, []);
   const [locationError, setLocationError] = useState<string | null>(null);
   const airportIcaoRef = useRef<string | null>(airport?.icao ?? null);
   // The last complete private request: while it is fresh, panning inside it
@@ -1531,10 +1538,11 @@ export function FlightMap({
       </div>
 
       <div className="map-overlay-stack">
-      <div className="map-data-guide">
+      {!guideDismissed && <div className="map-data-guide">
+        <button type="button" className="map-data-guide-close" onClick={dismissGuide} aria-label="Dismiss map hints" title="Dismiss">×</button>
         {denseTraffic ? <span>Dense view · dots show reported positions. Zoom in for aircraft and labels.</span> : !labelsEnabled ? <span>Labels are off · enable them in Display.</span> : <span>Zoom in for more aircraft labels.</span>}
         <span>Outlined aircraft = estimated position · faded / hollow = fix older than 60s or age unknown.</span>
-      </div>
+      </div>}
       {hasTrace && <AltitudeLegend compact className="map-altitude-legend" />}
       <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
         <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />
