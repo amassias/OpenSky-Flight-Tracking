@@ -1538,10 +1538,11 @@ export function FlightMap({
       </div>
 
       <div className="map-overlay-stack">
-      {!guideDismissed && <div className="map-data-guide">
+      {!guideDismissed && <div className="map-data-guide" onAnimationEnd={(event) => { if (event.target === event.currentTarget.lastElementChild) setGuideDismissed(true); }}>
         <button type="button" className="map-data-guide-close" onClick={dismissGuide} aria-label="Dismiss map hints" title="Dismiss">×</button>
         {denseTraffic ? <span>Dense view · dots show reported positions. Zoom in for aircraft and labels.</span> : !labelsEnabled ? <span>Labels are off · enable them in Display.</span> : <span>Zoom in for more aircraft labels.</span>}
         <span>Outlined aircraft = estimated position · faded / hollow = fix older than 60s or age unknown.</span>
+        <span className="map-data-guide-timer" aria-hidden="true" />
       </div>}
       {hasTrace && <AltitudeLegend compact className="map-altitude-legend" />}
       <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">

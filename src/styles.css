@@ -876,6 +876,14 @@ input { caret-color: var(--accent); }
 .shortcuts-card dt { display: flex; flex-wrap: wrap; gap: 4px; }
 .shortcuts-card dd { margin: 0; color: var(--muted); font-size: .875rem; line-height: 1.4; }
 .shortcuts-card kbd { padding: 3px 7px; color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--fill); font: 500 12px/1.2 var(--body); }
+.shortcuts-source { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding: 12px 0 6px; color: var(--text); text-decoration: none; border-top: 1px solid var(--line); }
+.shortcuts-source svg { flex: none; color: var(--muted); transition: color .15s var(--ease-out); }
+.shortcuts-source span { display: grid; gap: 1px; }
+.shortcuts-source b { font-weight: 600; font-size: .875rem; }
+.shortcuts-source small { color: var(--muted); font-size: .8125rem; }
+.shortcuts-source:hover b { text-decoration: underline; text-underline-offset: 3px; }
+.shortcuts-source:hover svg, .shortcuts-source:focus-visible svg { color: var(--text); }
+.shortcuts-source:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; border-radius: var(--r-sm); }
 @keyframes tour-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes tour-step { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
@@ -1098,7 +1106,10 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .aircraft-marker-wrap[data-freshness="unknown"] .aircraft-marker { opacity: .55; }
 .aircraft-marker-wrap[data-estimated="true"] .aircraft-marker svg { fill: none; stroke: currentColor; stroke-width: 1; }
 .map-data-guide { position: absolute; z-index: 500; left: var(--inset-left); bottom: calc(var(--edge) + 42px); max-width: min(460px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); display: grid; gap: 3px; padding: 7px 10px; background: var(--panel); color: var(--muted); border-radius: var(--r-md); font-size: .8125rem; pointer-events: none; }
-.map-data-guide { padding-right: 30px; }
+.map-data-guide { padding-right: 30px; overflow: hidden; }
+.map-data-guide-timer { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent, currentColor); opacity: .7; transform-origin: left center; animation: map-guide-countdown 5s linear forwards; }
+.map-data-guide:hover .map-data-guide-timer, .map-data-guide:focus-within .map-data-guide-timer { animation-play-state: paused; }
+@keyframes map-guide-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 .map-data-guide-close { position: absolute; top: 3px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); font-size: 1.125rem; line-height: 1; border-radius: var(--r-md); cursor: pointer; pointer-events: auto; }
 .map-data-guide-close:hover, .map-data-guide-close:focus-visible { color: var(--text, inherit); background: rgba(128,128,128,.18); }
 .map-expanded .map-data-guide { left: var(--edge); }
