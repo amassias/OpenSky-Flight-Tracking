@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
+import { Analytics } from "@vercel/analytics/react";
 import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import { App } from "./App";
@@ -22,5 +23,6 @@ createRoot(document.getElementById("root")!).render(
         </PanelBoundary>
       </MotionConfig>
     </QueryClientProvider>
+    <Analytics />
   </StrictMode>,
 );
