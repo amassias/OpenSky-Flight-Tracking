@@ -150,7 +150,7 @@ describe("App", () => {
     await openAirportFromSearch();
     await userEvent.click(await screen.findByRole("button", { name: /AF990/ }));
     expect(await screen.findByRole("heading", { name: "AFR990" })).toBeInTheDocument();
-    expect(await screen.findByText(/Live position not detected for this flight/)).toBeInTheDocument();
+    expect(await screen.findByText("No live position yet")).toBeInTheDocument();
     expect(window.location.search).toContain("scheduled=1");
     const paths = vi.mocked(fetch).mock.calls.map(([input]) => new URL(String(input)).pathname);
     expect(paths).not.toContain("/api/track");
@@ -162,7 +162,7 @@ describe("App", () => {
     mockApi();
     renderApp();
     expect(await screen.findByRole("heading", { name: "AFR990" })).toBeInTheDocument();
-    expect(await screen.findByText(/Live position not detected/)).toBeInTheDocument();
+    expect(await screen.findByText("No live position yet")).toBeInTheDocument();
     expect(vi.mocked(fetch).mock.calls.map(([input]) => new URL(String(input)).pathname)).not.toContain("/api/track");
   });
 
@@ -335,7 +335,7 @@ describe("App", () => {
           live_state: { icao24: "39abcd", callsign: "AFR999", latitude: 50, longitude: 3, time_position: now, last_contact: now, squawk: "7700", emergency: "general" } }) });
     renderApp();
     expect(await screen.findByText("Other episode packet")).toBeInTheDocument();
-    expect(screen.getByText(/Position updates delayed/)).toBeInTheDocument();
+    expect(screen.getByText(/Position delayed/)).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Flight alerts and events" })).not.toBeInTheDocument();
   });
 

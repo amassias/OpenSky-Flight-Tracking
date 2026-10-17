@@ -294,7 +294,6 @@ input { caret-color: var(--accent); }
 .altitude-chart { display: block; width: 100%; height: auto; aspect-ratio: 620 / 280; margin-top: 0; overflow: visible; touch-action: none; }
 
 .altitude-sample { stroke: var(--panel-solid); stroke-width: 1.5; }
-.chart-sparse-note { margin: 0; color: var(--quiet); font-size: var(--type-meta); line-height: 1.4; }
 .altitude-hover-target { cursor: crosshair; }
 .altitude-hover-line { stroke: var(--muted); stroke-dasharray: 2 4; stroke-width: 1; }
 .altitude-hover-dot { stroke: var(--panel-solid); stroke-width: 2; }
@@ -994,7 +993,7 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 
 /* Observation provenance stays readable without announcing a ticking clock. */
 .position-observation { margin: 12px 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.5; }
-.position-observation p { margin: 4px 0 0; }
+.position-estimate { display: block; font-size: inherit; }
 .position-observation.is-delayed { padding: 10px; background: var(--fill); border-radius: var(--r-sm); color: var(--text); }
 .mobile-sheet-toolbar { display: none; }
 .chart-scale, .chart-time-axis { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: var(--type-meta); font-variant-numeric: tabular-nums; }
@@ -1039,7 +1038,9 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .heading-arrow { display: block; width: 20px; height: 20px; }
 .heading-arrow svg { width: 100%; height: 100%; }
 .cabin-section { padding: 18px 0; border-top: 1px solid var(--line); }
-.cabin-section h3 { font-size: 15px; margin: 0 0 8px; }
+.cabin-section h3 { font-size: 15px; margin: 0; }
+.cabin-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; }
+.cabin-heading .conditions-note { margin: 0; }
 .cabin-variant { border-bottom: 1px solid var(--line); padding: 12px 0; }
 .cabin-variant summary { cursor: pointer; font-weight: 600; }
 .cabin-variant summary span { color: var(--muted); font-weight: 400; margin-left: 8px; }
@@ -1062,25 +1063,22 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .cabin-seat .seat-back { fill: color-mix(in srgb, var(--seat-color) 12%, var(--panel-solid)); stroke: currentColor; }
 .cabin-seat .seat-cushion { fill: currentColor; }
 .cabin-seat .seat-arms { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
-.cabin-inventory-note { margin: 0 0 12px; color: var(--muted); font-size: var(--type-meta); line-height: 1.5; }
 .cabin-map-link { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--accent); font-size: var(--type-body); text-decoration: none; }
 .cabin-map-link:hover { background: var(--fill); }
 .cabin-map-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .cabin-amenities { color: var(--muted); padding-left: 18px; font-size: 12px; }
 .cabin-sources { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; }
-.cabin-sources small { color: var(--muted); }
 .aircraft-profile-grid small { display: block; color: var(--muted); }
 
 /* Flight telemetry: stable zero baseline, restrained grid and persistent readout. */
 .chart-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: .8125rem; font-variant-numeric: tabular-nums; }
 .chart-summary > div { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .chart-summary strong { margin-left: 5px; font-size: 1rem; }
-.chart-summary time, .chart-footnote { color: var(--muted); }
+.chart-summary time { color: var(--muted); }
 .chart-series-key { width: 14px; height: 3px; background: var(--accent); border-radius: 2px; }
 .chart-grid line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .chart-grid text { fill: var(--muted); font: 24px var(--body); font-variant-numeric: tabular-nums; }
 .chart-time-axis { margin: -14px 8.7% 0; font-size: .75rem; }
-.chart-footnote { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: .75rem; line-height: 1.5; }
 .chart-inspector { margin-top: 4px; gap: 0; }
 .altitude-hover-readout { font-size: .75rem; line-height: 1.5; }
 

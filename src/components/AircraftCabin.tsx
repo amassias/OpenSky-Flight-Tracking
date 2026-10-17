@@ -15,20 +15,15 @@ function CabinContent({ flight }: { flight: Flight }) {
   const operator = operatorCode(flight);
   const type = flight.aircraft_type?.toUpperCase() ?? "";
   const registration = flight.registration_source === "schedule" ? null : flight.registration ?? null;
-  const { data, isPending, isError, refetch, isFetching } = useQuery({
+  const { data } = useQuery({
     queryKey: ["aircraft-enrichment", operator, type, registration],
     queryFn: ({ signal }) => api.aircraftEnrichment(operator, type, registration, signal),
     enabled: Boolean(operator && type), staleTime: 24 * 60 * 60_000, retry: false,
   });
   if (!operator || !type) return null;
-  const heading = <h3>Cabin & seats</h3>;
-  // No data, no section: nothing is shown while loading or when no configuration is published.
-  if (isPending) return null;
-  if (isError && !data) return <section className="cabin-section" aria-label="Cabin configurations">{heading}<p className="conditions-note" role="status">Cabin configurations could not be loaded.</p><button type="button" className="secondary-button" disabled={isFetching} onClick={() => { void refetch(); }}>Retry cabin</button></section>;
   if (!data?.configurations?.length || data.operator_code !== operator || data.aircraft_type !== type) return null;
   return <section className="cabin-section" aria-label="Cabin configurations">
-    <h3>Cabin & seats</h3>
-    <p className="conditions-note">{data.match_level === "airframe" ? "Configuration of this aircraft" : `${data.configurations.length === 1 ? "Published configuration" : "Published configurations"} for this operator and aircraft type. This aircraft’s layout is not confirmed; other layouts may exist.`}</p>
+    <div className="cabin-heading"><h3>Cabin</h3><span className="conditions-note">{data.match_level === "airframe" ? "Aircraft layout" : "Typical layout"}</span></div>
     {data.configurations.map(config => {
       const seatMapUrl = distinctSeatMapUrl(config);
       return <details className="cabin-variant" key={config.id} open={data.configurations.length === 1}>
@@ -39,7 +34,7 @@ function CabinContent({ flight }: { flight: Flight }) {
           </div>)}
           <details className="cabin-inventory-toggle">
             <summary>Show seat inventory</summary>
-            <p className="cabin-inventory-caption">Each symbol represents one seat</p>
+            <p className="cabin-inventory-caption">Capacity illustration · not seat positions</p>
             {config.classes.map(c => <div key={c.name} className="cabin-class" data-tone={cabinTone(c.name)}>
               <p className="conditions-note">{c.name}</p>
               <div className="cabin-seat-grid" role="img" aria-label={`${c.name}: ${c.seats} seats. Capacity illustration, not seat positions.`}>
@@ -47,15 +42,13 @@ function CabinContent({ flight }: { flight: Flight }) {
               </div>
             </div>)}
           </details>
-          <p className="cabin-inventory-note">Capacity illustration. Seat positions and aisle layout are shown in the published seat map.</p>
-          <a className="cabin-map-link" href={seatMapUrl ?? config.source.url} target="_blank" rel="noreferrer">View published seat map <span aria-hidden="true">↗</span></a>
+          {seatMapUrl && <a className="cabin-map-link" href={seatMapUrl} target="_blank" rel="noreferrer">Seat map <span aria-hidden="true">↗</span></a>}
         </div>
         {config.note && <p className="conditions-note">{config.note}</p>}
         {config.amenities && <ul className="cabin-amenities">{Object.values(config.amenities).filter(Boolean).map(value => <li key={value}>{value}</li>)}</ul>}
         <div className="cabin-sources">
-          <a href={config.source.url} target="_blank" rel="noreferrer">Source: {config.source.name} ↗</a>
-          <small title={config.source.checked_at}>{checkedAgo(config.source.checked_at)}</small>
-          {config.assignment_source && <a href={config.assignment_source.url} target="_blank" rel="noreferrer">Aircraft assignment source ↗</a>}
+          <a href={config.source.url} target="_blank" rel="noreferrer" title={`${checkedAgo(config.source.checked_at)} · ${config.source.checked_at}`}>{config.source.name} ↗</a>
+          {config.assignment_source && <a href={config.assignment_source.url} target="_blank" rel="noreferrer">Aircraft match ↗</a>}
         </div>
       </details>;
     })}

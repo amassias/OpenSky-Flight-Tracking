@@ -33,7 +33,7 @@ test('finds a live callsign outside the viewport and shows its previously observ
   const events = page.getByRole('region', {name:'Flight alerts and events'});
   await expect(events).toContainText('7700 · General emergency');
   await expect(events).toContainText('signal changed at');
-  await expect(events).toContainText('Source: adsb.lol / readsb');
+  await expect(events).toContainText('ADSB.lol · sampled signals');
   await expect(page.getByText('Diverted · reported by FlightAware')).not.toBeVisible();
 });
 
@@ -70,7 +70,7 @@ test('labels a landing away from the planned destination as an estimate', async 
   await page.route('**/api/track**',route=>route.fulfill({json:{success:true,path_count:3,track:{icao24:'406a02',callsign:'BAW52T',path:[[now-400,51.5,-0.4,2000,90,false],[now-150,51.47,-0.45,0,90,true],[now-10,51.47,-0.45,0,90,true]]}}}));
   await page.goto('/?icao24=406a02');
   await expect(page.getByText('Possible return to origin · ADS-B estimate')).toBeVisible();
-  await expect(page.getByText(/This does not confirm a diversion/)).toBeVisible();
+  await expect(page.getByText(/· unconfirmed/)).toBeVisible();
 });
 
 test('a delayed global observation is not selectable as a current emergency and recovers', async ({page}) => {

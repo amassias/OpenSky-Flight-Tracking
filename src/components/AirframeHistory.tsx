@@ -113,11 +113,9 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
         ) : recentFlights.isError ? (
           <p className="track-error" role="status">Recent flights unavailable · {readableApiError(recentFlights.error)}</p>
         ) : !recentFlights.data.available ? (
-          <p className="track-error" role="status">
-            Recent flights are unavailable right now.
-          </p>
+          <p className="track-error" role="status">Recent flights unavailable</p>
         ) : recentFlights.data.flights.length === 0 ? (
-          <p className="track-error">No recent flights found for {registration}.</p>
+          <p className="track-error">No recent flights</p>
         ) : (
           <ul className="airframe-flight-list">
             {recentFlights.data.flights.map((item) => (
@@ -131,7 +129,6 @@ export function AirframeHistory({ flight }: AirframeHistoryProps) {
           </ul>
         )}
       </div>}
-      <p className="profile-footnote">Individuals' names are not shown.</p>
     </div>
   );
 }

@@ -49,7 +49,6 @@ describe("AirframeHistory", () => {
     expect(screen.getByText("Private owner")).toBeInTheDocument();
     expect(screen.getByText("Wichita, KS · Exported to Canada")).toBeInTheDocument();
     expect(screen.getByText(/3 registrations · 3 owners and operators/)).toBeInTheDocument();
-    expect(screen.getByText(/Individuals' names are not shown/)).toBeInTheDocument();
   });
 
   it("loads recent flights only when asked", async () => {
@@ -69,7 +68,7 @@ describe("AirframeHistory", () => {
   it("says when the flights lookup is unavailable and an unknown airframe", async () => {
     renderHistory({ "/api/aircraft-flights": () => ({ success: true, registration: "FHBXA", provider: "x", available: false, reason: "budget", flights: [] }) });
     await userEvent.click(await screen.findByRole("button", { name: /Show recent flights/ }));
-    expect(await screen.findByText(/unavailable right now/)).toBeInTheDocument();
+    expect(await screen.findByText("Recent flights unavailable")).toBeInTheDocument();
   });
 
   it("renders nothing when no registry lists the transponder code", async () => {

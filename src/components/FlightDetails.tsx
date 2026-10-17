@@ -259,6 +259,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       <AircraftPhotoFigure flight={flight} photo={photo} loading={photoLoading} error={photoError} />
 
       <PositionObservation flight={flight} />
+      {flight.data_source === "scheduled" && <p className="conditions-note" role="status">No live position yet</p>}
       <FlightEvents flight={flight} track={track} airports={airports} />
 
 
@@ -267,7 +268,6 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
           <Plane size={18} aria-hidden="true" />
           <div>
             <strong>Not in the live feed right now</strong>
-            <p>No current position was returned by the available feeds. Receiver coverage varies; the aircraft may still be flying. Its registry history is below.</p>
           </div>
         </section>
       ) : (
@@ -301,8 +301,8 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         {routeLoading && !hasRoute && <p className="conditions-note" role="status">Looking up route…</p>}
       </section>}
 
-      {usualRoute && <p className="conditions-note route-source-note">Usual callsign route{geometry ? " · estimated progress" : ""} · may differ from this flight.</p>}
-      {flight.route_source === "flightaware" && <p className="conditions-note route-source-note">Route reported by FlightAware for this flight.</p>}
+      {usualRoute && <p className="conditions-note route-source-note">Usual route · unconfirmed</p>}
+      {flight.route_source === "flightaware" && <p className="conditions-note route-source-note"><a href="https://www.flightaware.com/" target="_blank" rel="noreferrer">FlightAware ↗</a></p>}
       <div className="live-readouts" aria-label="Last reported flight readouts">
         {(flight.on_ground || flight.baro_altitude != null || flight.geo_altitude != null) && <div>
           <span>Altitude</span>
@@ -338,7 +338,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
       <AircraftCabin key={`${flight.icao24}:${flight.aircraft_type}`} flight={flight} />
 
       {operations && (
-        <Section title="Operations" open>
+        <Section title="Operations">
           <div className="operations-status-row">
             <strong>{operations.status || "Status unavailable"}</strong>
             <span className={operations.cancelled ? "operations-flag is-alert" : operations.diverted ? "operations-flag is-warning" : "operations-flag"}>
@@ -361,7 +361,7 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </Section>
       )}
 
-      {hasProfile && <Section title="Aircraft" open>
+      {hasProfile && <Section title="Aircraft">
         <div className="aircraft-profile-grid">
           {flight.registration && <div><span>Registration</span><strong className="mono">{flight.registration}{flight.registration_source === "schedule" ? " (scheduled)" : ""}</strong></div>}
           {flight.aircraft_type && <div><span>Type code</span><strong className="mono">{flight.aircraft_type}</strong></div>}
@@ -373,12 +373,16 @@ export function FlightDetails({ flight: liveFlight, track, trackLoading, trackEr
         </div>
       </Section>}
 
-      {(airframeHistory.isError || (airframeHistory.data && hasAirframeRecord(airframeHistory.data, flight))) && <Section title="Airframe history" aside="Owners · registrations">
+      {(airframeHistory.data && hasAirframeRecord(airframeHistory.data, flight)) && <Section title="Airframe history" aside="Owners · registrations">
         <AirframeHistory flight={flight} />
       </Section>}
 
-      {(flight.data_source === "scheduled" || trackLoading || path.length > 0 || Boolean(trackError)) && <Section title="Altitude profile" aside={trackLoading ? path.length ? "Updating trace…" : "Loading trace…" : path.length ? `${path.length} points${track?.track.trace_kind === "full" ? " · full trace" : ""}` : "No track"} open>
-        {flight.data_source === "scheduled" ? <p className="conditions-note" role="status">Live position not detected for this flight. No flight path is shown. Select the aircraft on the map when it is detected.</p> : trackLoading && !path.length ? <div className="chart-skeleton" /> : trackError && !path.length ? <div role="status"><p className="track-error">{trackError}</p><button className="secondary-button" type="button" onClick={onRetryTrack}>Retry track</button></div> : <><AltitudeChart points={path} />{path.length > 0 && traceSource && <p className="conditions-note trace-provenance">Recorded by <a href={traceSource.url} target="_blank" rel="noreferrer">{traceSource.name}</a>. Latest recorded point: <time dateTime={new Date(path[path.length - 1][0] * 1000).toISOString()}>{formatTime(path[path.length - 1][0])} UTC</time>.</p>}{trackError && <div className="track-refresh-notice"><p>Trace updates delayed. The previous observations are kept.</p><button type="button" className="text-button" onClick={onRetryTrack}>Retry track</button></div>}</>}
+      {(path.some(point => point[3] != null && Number.isFinite(point[3])) || Boolean(trackError)) && flight.data_source !== "scheduled" && <Section title="Altitude profile" aside={trackLoading ? "Updating…" : undefined} open>
+        {path.some(point => point[3] != null && Number.isFinite(point[3])) ? <>
+          <AltitudeChart points={path} />
+          {traceSource && <p className="conditions-note trace-provenance"><a href={traceSource.url} target="_blank" rel="noreferrer">{traceSource.name}</a></p>}
+          {trackError && <div className="track-refresh-notice"><p>Updates delayed</p><button type="button" className="text-button" onClick={onRetryTrack}>Retry track</button></div>}
+        </> : <div className="track-refresh-notice" role="status"><p className="track-error" title={trackError}>Track unavailable</p><button className="text-button" type="button" onClick={onRetryTrack}>Retry track</button></div>}
       </Section>}
 
       <Section title="Signal and navigation" aside={emergency ? emergency.label : undefined}>

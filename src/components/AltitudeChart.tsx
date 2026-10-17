@@ -13,7 +13,7 @@ export function AltitudeChart({ points }: { points: TrackPoint[] }) {
   const [inspectedIndex, setInspectedIndex] = useState<number | null>(null);
   const chart = useMemo(() => altitudeProfile(points), [points]);
   const times = useMemo(() => chart?.points.map(point => point[0]) ?? [], [chart]);
-  if (!chart) return <div className="chart-empty">No altitude profile available</div>;
+  if (!chart) return null;
   const index = Math.min(inspectedIndex ?? chart.points.length - 1, chart.points.length - 1);
   const point = chart.coordinates[index];
   const label = point.altitude == null ? "No altitude" : formatAltitude(point.altitude);
@@ -35,7 +35,7 @@ export function AltitudeChart({ points }: { points: TrackPoint[] }) {
     setInspectedIndex(nearestProfileTime(times, chart!.start + ratio * (chart!.end - chart!.start)));
   }
   return <div className="altitude-profile">
-    <div className="chart-summary"><div><span className="chart-series-key" />Altitude ({units === "aviation" ? "ft" : "m"}) <strong>{label}</strong></div><time>{utcTime(point.time).slice(0,5)} UTC</time></div>
+    <div className="chart-summary"><div><span className="chart-series-key" />Altitude ({units === "aviation" ? "ft" : "m"}) <strong>{label}</strong></div><time dateTime={new Date(point.time * 1000).toISOString()}>{utcDay.format(point.time * 1000)} · {utcTime(point.time).slice(0,5)} UTC</time></div>
     <svg className="altitude-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Altitude from ${formatAltitude(chart.min)} to ${formatAltitude(chart.max)}`}>
       <title>Altitude observations over time. Use the point slider or touch the path to inspect.</title>
       <defs><linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity=".18" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0" /></linearGradient></defs>
@@ -51,8 +51,6 @@ export function AltitudeChart({ points }: { points: TrackPoint[] }) {
     </svg>
     <div className="chart-time-axis">{[chart.start, (chart.start + chart.end) / 2, chart.end].map((time, i) => <time key={i} dateTime={new Date(time*1000).toISOString()}>{axisLabel(time)}</time>)}</div>
     <label className="chart-inspector"><span>Inspect track point</span><input type="range" min="0" max={chart.points.length-1} value={index} aria-label="Inspect altitude point" aria-valuetext={readout} onChange={event => setInspectedIndex(Number(event.target.value))} /></label>
-    <output className="altitude-hover-readout" aria-live="off" aria-label="Selected altitude observation">{readout}</output>
-    {chart.points.length <= 12 && <p className="chart-sparse-note">Few fixes were recorded: straight segments join the dots, which mark real observations.</p>}
-    <div className="chart-footnote"><span>{utcDay.format(chart.start*1000)} · UTC</span><span>Observed range {formatAltitude(chart.min)} – {formatAltitude(chart.max)}</span></div>
+    {inspectedIndex != null && <output className="altitude-hover-readout" aria-live="off" aria-label="Selected altitude observation">{readout}</output>}
   </div>;
 }

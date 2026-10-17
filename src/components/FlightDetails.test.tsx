@@ -36,7 +36,7 @@ describe("FlightDetails", () => {
       path: [[now - 60, 49, 2, 1000, 90, false], [now, 49.1, 2.1, 2000, 90, false]],
     } });
     expect(screen.getByRole("link", { name: "TheAirTraffic" })).toHaveAttribute("href", "https://theairtraffic.com/");
-    expect(screen.getByText(/Latest recorded point/)).toBeInTheDocument();
+    expect(screen.queryByText(/Latest recorded point/)).not.toBeInTheDocument();
   });
 
   it("does not send a scheduled tail to a registration lookup", () => {
@@ -69,7 +69,7 @@ describe("FlightDetails", () => {
       flightaware: { provider: "FlightAware", progress_percent: 50, ident: "AFR123", actual_out: new Date(Date.now()-3600_000).toISOString(),
         origin: { latitude: 49, longitude: 2.5 }, destination: { latitude: 51.47, longitude: -0.45 } },
     });
-    expect(screen.getByText(/Usual callsign route/)).toBeInTheDocument();
+    expect(screen.getByText("Usual route · unconfirmed")).toBeInTheDocument();
     expect(screen.getByText("50% reported progress")).toBeInTheDocument();
     expect(screen.queryByText(/NM flown|to go$/)).not.toBeInTheDocument();
   });
@@ -77,6 +77,10 @@ describe("FlightDetails", () => {
 });
 
 describe("route availability", () => {
+  it("hides the optional altitude profile when no recorded altitude exists", () => {
+    renderDetails({ data_source: "scheduled" });
+    expect(screen.queryByText("Altitude profile")).not.toBeInTheDocument();
+  });
   it("hides unknown progression rather than displaying an empty bar", () => {
     renderDetails();
     expect(screen.queryByText("Progress unavailable")).toBeNull();
@@ -86,7 +90,7 @@ describe("route availability", () => {
     renderDetails({ route_source: "callsign", departure_airport: "LFPG", arrival_airport: "EGLL",
       departure_latitude: 49, departure_longitude: 2.5, arrival_latitude: 51.47, arrival_longitude: -0.45,
       latitude: 50, longitude: 1, velocity: 200 });
-    expect(screen.getByText(/Usual callsign route · estimated progress/)).toBeInTheDocument();
+    expect(screen.getByText("Usual route · unconfirmed")).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Flight progress/ })).toBeInTheDocument();
     expect(screen.queryByText(/to go/)).toBeNull();
   });

@@ -100,8 +100,10 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
   await expect(page.getByText("Incheon", { exact: true })).toBeVisible();
   await expect(page.getByText("F-HABC", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("F-HABC · A359")).toBeVisible();
+  // Aircraft and Operations start collapsed to keep the panel short.
+  await page.locator("summary", { hasText: /^Aircraft$/ }).click();
   await expect(page.getByText("AIRBUS A-350-941")).toBeVisible();
-  await expect(page.getByText("Operations", { exact: true })).toBeVisible();
+  await page.locator("summary", { hasText: /^Operations$/ }).click();
   await expect(page.getByText("64% complete")).toBeVisible();
 });
 
@@ -340,7 +342,7 @@ test('does not request or draw a previous path for a scheduled flight without li
   await page.getByRole('option', { name: /Paris Charles de Gaulle/ }).click();
   await page.getByRole('button', { name: /AF990/ }).click();
   await expect(page.getByRole('heading', { name: 'AFR990' })).toBeVisible();
-  await expect(page.getByText(/Live position not detected for this flight/)).toBeVisible();
+  await expect(page.getByText('No live position yet')).toBeVisible();
   expect(calls).not.toContain('/api/track');
   expect(calls).not.toContain('/api/flight-info');
   await expect(page.locator('.aircraft-marker-selected .aircraft-label')).toHaveCount(0);

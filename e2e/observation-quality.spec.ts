@@ -19,9 +19,9 @@ test.beforeEach(async ({page})=>{
 
 test('shows the matching operational route and a dated position',async ({page})=>{
   await expect(page.getByText('Santiago',{exact:true})).toBeVisible();
-  await expect(page.getByText('Route reported by FlightAware for this flight.')).toBeVisible();
+  await expect(page.locator('.route-source-note').getByRole('link', { name: /FlightAware/ })).toBeVisible();
   await expect(page.locator('.position-observation')).toContainText('UTC');
-  await expect(page.getByText(/Usual callsign route/)).not.toBeVisible();
+  await expect(page.getByText('Usual route · unconfirmed')).not.toBeVisible();
 });
 
 test('a 10000 point trace stays compact and can be inspected by keyboard',async ({page})=>{
@@ -60,8 +60,7 @@ test('a delayed position is shown as an observation rather than a current fix',a
   await page.route('**/api/live-flights**',route=>route.fulfill({json:{success:true,states:[],time:Math.floor(Date.now()/1000),count:0}}));
   await page.route('**/api/flight-info**',route=>route.fulfill({json:{success:true,icao24:'3949eb',callsign:'AFR531',latitude:49,longitude:2.5,baro_altitude:3000,time_position:Math.floor(Date.now()/1000)-180,last_contact:Math.floor(Date.now()/1000)-180}}));
   await page.reload();
-  await expect(page.locator('.position-observation')).toContainText('Position updates delayed');
-  await expect(page.getByText('Showing the last observation. Altitude, speed and alerts may have changed.')).toBeVisible();
+  await expect(page.locator('.position-observation')).toContainText('Position delayed');
 });
 
 test('a shared flight URL survives a slow lookup and retry',async ({page})=>{
@@ -92,7 +91,7 @@ test('trace refresh keeps the point inspector focused and the previous observati
   await page.keyboard.press('Home');
   await page.route('**/api/track**',route=>route.fulfill({status:503,json:{error:'Trace delayed.'}}));
   await page.clock.fastForward(91_000);
-  await expect(page.getByText('Trace updates delayed. The previous observations are kept.')).toBeVisible();
+  await expect(page.getByText('Updates delayed')).toBeVisible();
   await expect(slider).toBeFocused();
   await expect(slider).toHaveValue('0');
   await expect(page.locator('.chart-skeleton')).not.toBeVisible();

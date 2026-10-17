@@ -27,19 +27,26 @@ describe("published cabin states", () => {
     expect(screen.queryByRole("button", { name: "Retry cabin" })).not.toBeInTheDocument();
   });
 
-  it("recovers from an error through retry and keeps counts visible with the inventory folded", async () => {
-    const fetch = vi.spyOn(api, "aircraftEnrichment").mockRejectedValueOnce(new Error("offline")).mockResolvedValue(data);
+  it("hides failed optional enrichment", async () => {
+    vi.spyOn(api, "aircraftEnrichment").mockRejectedValue(new Error("offline"));
+    setup();
+    await waitFor(() => expect(api.aircraftEnrichment).toHaveBeenCalled());
+    expect(screen.queryByRole("region", { name: "Cabin configurations" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry cabin" })).not.toBeInTheDocument();
+  });
+
+  it("keeps sourced capacities and the optional inventory without explanatory paragraphs", async () => {
+    vi.spyOn(api, "aircraftEnrichment").mockResolvedValue(data);
     setup();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Retry cabin" }));
     expect(await screen.findByRole("heading", { name: "Business" })).toBeVisible();
+    expect(screen.getByText("Typical layout")).toBeVisible();
+    expect(screen.queryByText(/This aircraft’s layout is not confirmed/)).not.toBeInTheDocument();
     const disclosure = screen.getByText("Show seat inventory").closest("details")!;
     expect(disclosure.open).toBe(false);
     await user.click(screen.getByText("Show seat inventory"));
-    expect(disclosure.open).toBe(true);
     expect(disclosure.querySelectorAll(".cabin-seat")).toHaveLength(6);
-    expect(screen.getByRole("link", { name: /View published seat map/ })).toHaveAttribute("href", "https://example.com/map");
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("link", { name: /Seat map/ })).toHaveAttribute("href", "https://example.com/map");
   });
 
   it("does not accept a late response from the previously selected aircraft", async () => {

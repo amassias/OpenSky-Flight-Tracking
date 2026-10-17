@@ -51,7 +51,7 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   }));
   console.log(`Selection to detail DOM: ${elapsed.toFixed(1)} ms`);
   expect(elapsed).toBeLessThan(200);
-  await expect(page.locator('.route-source-note')).toContainText('estimated progress');
+  await expect(page.locator('.route-source-note')).toContainText('Usual route');
   await expect(page.locator('.route-progress')).toBeVisible();
   await expect(page.getByText('Progress unavailable')).toHaveCount(0);
   await expect(page.locator('.estimated-future-path')).toHaveCount(1);
@@ -194,6 +194,5 @@ test('altitude profile exposes an outage and recovers on retry', async ({ page }
   await expect(page.locator('.altitude-chart')).toBeVisible();
   await expect(retry).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'TheAirTraffic', exact: true })).toHaveAttribute('href', 'https://theairtraffic.com/');
-  await expect(page.locator('.trace-provenance')).toContainText('Latest recorded point:');
   expect(errors).toEqual([]);
 });
