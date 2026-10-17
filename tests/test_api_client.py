@@ -231,8 +231,8 @@ def test_live_viewport_stops_fanning_out_when_both_providers_are_down(monkeypatc
 
     assert error.value.status_code == 503
     # A wide viewport may produce many safe cells, but two consecutive
-    # upstream failures are enough to move on to the alternate provider.
-    assert client.session.get.call_count == 4
+    # upstream failures are enough to move on to the next provider (three of them).
+    assert client.session.get.call_count == 6
 
 
 def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
@@ -319,7 +319,32 @@ def test_all_live_providers_unavailable(monkeypatch):
     with pytest.raises(OpenSkyAPIError) as error:
         client.get_states(bbox=(48, 2, 49, 3))
     assert error.value.status_code == 503
-    assert client.session.get.call_count == 2
+    assert client.session.get.call_count == 3
+
+
+def test_failed_provider_is_tried_last_and_adsb_fi_is_a_fallback(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    client = OpenSkyClient()
+    urls = []
+
+    def fake_get(url, **_kwargs):
+        urls.append(url)
+        if "adsb.fi" in url:
+            return _json_response({"now": 1000.5, "aircraft": [{"hex": "abc123", "lat": 48.5, "lon": 2.5, "alt_baro": 3000}]})
+        raise requests.Timeout("down")
+
+    client.session.get = Mock(side_effect=fake_get)
+    result = client.get_states(bbox=(48, 2, 49, 3))
+    assert result["provider"] == "adsb.fi"
+    assert [state[0] for state in result["states"]] == ["abc123"]
+    assert "opendata.adsb.fi/api/v2/lat/" in urls[-1]
+
+    urls.clear()
+    client._live_cache.clear()
+    client._live_provider_unavailable_until = 0.0
+    client.get_states(bbox=(48, 2, 49, 3))
+    assert "adsb.fi" in urls[0]  # providers that just failed no longer go first
 
 
 def test_callsign_route_normalizes_origin_and_destination(monkeypatch):

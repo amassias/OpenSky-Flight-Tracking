@@ -42,6 +42,9 @@ class OpenSkyClient:
         # and the server layer still keeps its own stale snapshot fallback.
         self._live_cache: Dict[str, Dict[str, Any]] = {}
         self._live_provider_unavailable_until = 0.0
+        # Providers that just failed outright are tried last for a while, so a
+        # dead one no longer costs a full timeout on every viewport load.
+        self._live_provider_down_until: Dict[str, float] = {}
         self._live_provider_next_request_at = 0.0
         # OpenSky's authenticated states endpoint is the only live source that
         # accepts the complete viewport bounding box. Keep a separate cache and
@@ -502,6 +505,17 @@ class OpenSkyClient:
                 endpoints.append(f"point/{lat:.5f}/{lon:.5f}/{provider_radius:.1f}")
         return endpoints, True
 
+    @staticmethod
+    def _live_provider_url(provider: str, endpoint: str) -> str:
+        """Public ReAPI hosts share one URL shape; adsb.fi spells it differently."""
+        if provider == "adsb.fi":
+            kind, _, rest = endpoint.partition("/")
+            if kind == "point":
+                lat, lon, radius = rest.split("/")
+                return f"https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{radius}"
+            return f"https://opendata.adsb.fi/api/v2/{endpoint}"
+        return f"https://api.{provider}/v2/{endpoint}"
+
     def _get_airplanes_live_states(
         self,
         icao24_list: Optional[Iterable[str]] = None,
@@ -563,18 +577,21 @@ class OpenSkyClient:
                 except (TypeError, ValueError):
                     request_timeout = 5.0
                 response = self.session.get(
-                    f"https://api.{provider}/v2/{endpoint}",
+                    self._live_provider_url(provider, endpoint),
                     headers={
                         "Accept-Encoding": "gzip",
                         "User-Agent": "SkyTrace/2.0 (+https://github.com/amassias/OpenSky-Flight-Tracking; contact: massias.arthur@gmail.com)",
                     },
-                    timeout=request_timeout,
+                    # A dead host should cost two seconds, not the full read budget.
+                    timeout=(min(2.0, request_timeout), request_timeout),
                 )
                 response_status = getattr(response, "status_code", None)
                 if isinstance(response_status, int) and response_status >= 400:
                     return None, response_status, None
                 response.raise_for_status()
                 payload = response.json()
+                if isinstance(payload, dict) and "ac" not in payload and isinstance(payload.get("aircraft"), list):
+                    payload["ac"] = payload["aircraft"]  # adsb.fi names the list "aircraft"
                 if not isinstance(payload, dict) or not isinstance(payload.get("ac"), list):
                     raise ValueError("Invalid live aircraft response")
                 return payload, response_status, None
@@ -608,7 +625,11 @@ class OpenSkyClient:
             failure_break_count = max(1, min(4, int(float(os.getenv("SKYTRACE_LIVE_FAILURE_BREAK_COUNT", "2")))))
         except (TypeError, ValueError):
             failure_break_count = 2
-        for candidate in ("adsb.lol", "airplanes.live"):
+        providers = sorted(
+            ("adsb.lol", "airplanes.live", "adsb.fi"),
+            key=lambda name: self._live_provider_down_until.get(name, 0.0) > time.time(),
+        )
+        for candidate in providers:
             tile_results = []
             consecutive_failures = 0
             for endpoint in endpoints:
@@ -633,6 +654,8 @@ class OpenSkyClient:
                 if consecutive_failures >= failure_break_count:
                     break
             candidate_payloads = [item[0] for item in tile_results if item[0] is not None]
+            if not candidate_payloads:
+                self._live_provider_down_until[candidate] = time.time() + 120
             if candidate_payloads:
                 payloads = candidate_payloads
                 provider = candidate
