@@ -1,13 +1,22 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
+import { readFileSync } from "node:fs";
 
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), "");
   const apiOrigin = environment.SKYTRACE_API_ORIGIN || "http://localhost:8000";
 
   return {
-    plugins: [react()],
+    plugins: [react(), {
+      name: "aircraft-sprite",
+      // One shared vector sprite in the initial document: no model requests,
+      // duplicated path geometry per marker, or geometry in the JS entry.
+      transformIndexHtml(html) {
+        const sprite = readFileSync(new URL("./src/assets/aircraft/models/sprites.svg", import.meta.url), "utf8");
+        return html.replace("</body>", `${sprite}</body>`);
+      },
+    }],
     server: {
       port: 5173,
       proxy: {

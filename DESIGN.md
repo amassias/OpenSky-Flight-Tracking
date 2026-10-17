@@ -143,6 +143,7 @@ SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks a
 - **One accent.** `accent` (#2997ff on dark, #0066cc on light) marks every action: primary button, focus ring, links, the selected aircraft and the route end. There is no second brand colour.
 - **Status is semantic, not decorative.** `ok` means airborne or live. `warn` is reserved for a degraded feed (paused, offline, signal alert) and `danger` for errors. Aircraft on the ground are grey, never orange.
 - **Aircraft ink.** Every marker uses `aircraft` ink (white on dark, near-black on light), including the dense canvas dots, so zooming never changes an aircraft's colour.
+- Known ICAO types use model-specific overhead silhouettes from a shared SVG sprite. Their outlines and proportions distinguish aircraft while retaining the same ink, heading and state colours. Unmapped types use the existing category symbols; a family match is representative, not an exact airframe-variant claim.
 - **Altitude ramp.** A cool, ordered ramp (cyan to blue, indigo, purple, pink) colours the selected track and its legend only.
 - Leaflet paths and canvas dots cannot read CSS variables, so `MAP_COLORS` in `FlightMap.tsx` mirrors the tokens per theme.
 

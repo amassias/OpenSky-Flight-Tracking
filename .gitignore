@@ -49,6 +49,7 @@ Thumbs.db
 # Test/cache
 .pytest_cache/
 .mypy_cache/
+.cache/aircraft-models/
 .coverage
 coverage/
 node_modules/

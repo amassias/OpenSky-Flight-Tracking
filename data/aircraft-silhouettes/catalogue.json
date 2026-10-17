@@ -1,0 +1,402 @@
+{
+  "models": {
+    "a318": {
+      "name": "Airbus A318",
+      "kind": "airliner"
+    },
+    "a319": {
+      "name": "Airbus A319",
+      "kind": "airliner"
+    },
+    "a320": {
+      "name": "Airbus A320",
+      "kind": "airliner"
+    },
+    "a321": {
+      "name": "Airbus A321",
+      "kind": "airliner"
+    },
+    "a332": {
+      "name": "Airbus A330-200",
+      "kind": "heavy"
+    },
+    "a333": {
+      "name": "Airbus A330-300",
+      "kind": "heavy"
+    },
+    "a343": {
+      "name": "Airbus A340-300",
+      "kind": "heavy"
+    },
+    "a346": {
+      "name": "Airbus A340-600",
+      "kind": "heavy"
+    },
+    "a359": {
+      "name": "Airbus A350-900",
+      "kind": "heavy"
+    },
+    "a380": {
+      "name": "Airbus A380-800",
+      "kind": "heavy"
+    },
+    "b736": {
+      "name": "Boeing 737-600",
+      "kind": "airliner"
+    },
+    "b737": {
+      "name": "Boeing 737-700",
+      "kind": "airliner"
+    },
+    "b738": {
+      "name": "Boeing 737-800",
+      "kind": "airliner"
+    },
+    "b739": {
+      "name": "Boeing 737-900",
+      "kind": "airliner"
+    },
+    "b744": {
+      "name": "Boeing 747-400",
+      "kind": "heavy"
+    },
+    "b748": {
+      "name": "Boeing 747-8",
+      "kind": "heavy"
+    },
+    "b752": {
+      "name": "Boeing 757-200",
+      "kind": "airliner"
+    },
+    "b753": {
+      "name": "Boeing 757-300",
+      "kind": "airliner"
+    },
+    "b762": {
+      "name": "Boeing 767-200",
+      "kind": "heavy"
+    },
+    "b763": {
+      "name": "Boeing 767-300",
+      "kind": "heavy"
+    },
+    "b764": {
+      "name": "Boeing 767-400",
+      "kind": "heavy"
+    },
+    "b772": {
+      "name": "Boeing 777-200",
+      "kind": "heavy"
+    },
+    "b773": {
+      "name": "Boeing 777-300",
+      "kind": "heavy"
+    },
+    "b788": {
+      "name": "Boeing 787-8",
+      "kind": "heavy"
+    },
+    "b789": {
+      "name": "Boeing 787-9",
+      "kind": "heavy"
+    },
+    "ask21": {
+      "name": "Schleicher ASK 21",
+      "kind": "glider"
+    },
+    "atr42": {
+      "name": "ATR 42-500",
+      "kind": "turboprop"
+    },
+    "bae146": {
+      "name": "BAe 146",
+      "kind": "regional"
+    },
+    "beluga": {
+      "name": "Airbus A300-600ST Beluga",
+      "kind": "heavy"
+    },
+    "citation": {
+      "name": "Cessna Citation II",
+      "kind": "small"
+    },
+    "crj700": {
+      "name": "Bombardier CRJ700",
+      "kind": "regional"
+    },
+    "crj900": {
+      "name": "Bombardier CRJ900",
+      "kind": "regional"
+    },
+    "cs100": {
+      "name": "Airbus A220-100",
+      "kind": "regional"
+    },
+    "cs300": {
+      "name": "Airbus A220-300",
+      "kind": "regional"
+    },
+    "e170": {
+      "name": "Embraer E170",
+      "kind": "regional"
+    },
+    "e190": {
+      "name": "Embraer E190",
+      "kind": "regional"
+    },
+    "heli": {
+      "name": "Eurocopter EC135",
+      "kind": "helicopter"
+    },
+    "pa28": {
+      "name": "Piper PA-28",
+      "kind": "small"
+    },
+    "q400": {
+      "name": "De Havilland Canada Dash 8-400",
+      "kind": "turboprop"
+    }
+  },
+  "types": {
+    "A318": {
+      "id": "a318",
+      "match": "type"
+    },
+    "A319": {
+      "id": "a319",
+      "match": "type"
+    },
+    "A19N": {
+      "id": "a319",
+      "match": "family"
+    },
+    "A320": {
+      "id": "a320",
+      "match": "type"
+    },
+    "A20N": {
+      "id": "a320",
+      "match": "family"
+    },
+    "A321": {
+      "id": "a321",
+      "match": "type"
+    },
+    "A21N": {
+      "id": "a321",
+      "match": "family"
+    },
+    "A332": {
+      "id": "a332",
+      "match": "type"
+    },
+    "A338": {
+      "id": "a332",
+      "match": "family"
+    },
+    "A333": {
+      "id": "a333",
+      "match": "type"
+    },
+    "A339": {
+      "id": "a333",
+      "match": "family"
+    },
+    "A343": {
+      "id": "a343",
+      "match": "type"
+    },
+    "A346": {
+      "id": "a346",
+      "match": "type"
+    },
+    "A359": {
+      "id": "a359",
+      "match": "type"
+    },
+    "A35K": {
+      "id": "a359",
+      "match": "family"
+    },
+    "A388": {
+      "id": "a380",
+      "match": "type"
+    },
+    "B736": {
+      "id": "b736",
+      "match": "type"
+    },
+    "B737": {
+      "id": "b737",
+      "match": "type"
+    },
+    "B37M": {
+      "id": "b737",
+      "match": "family"
+    },
+    "B738": {
+      "id": "b738",
+      "match": "type"
+    },
+    "B38M": {
+      "id": "b738",
+      "match": "family"
+    },
+    "B739": {
+      "id": "b739",
+      "match": "type"
+    },
+    "B39M": {
+      "id": "b739",
+      "match": "family"
+    },
+    "B744": {
+      "id": "b744",
+      "match": "type"
+    },
+    "B748": {
+      "id": "b748",
+      "match": "type"
+    },
+    "B752": {
+      "id": "b752",
+      "match": "type"
+    },
+    "B753": {
+      "id": "b753",
+      "match": "type"
+    },
+    "B762": {
+      "id": "b762",
+      "match": "type"
+    },
+    "B763": {
+      "id": "b763",
+      "match": "type"
+    },
+    "B764": {
+      "id": "b764",
+      "match": "type"
+    },
+    "B772": {
+      "id": "b772",
+      "match": "type"
+    },
+    "B77L": {
+      "id": "b772",
+      "match": "family"
+    },
+    "B773": {
+      "id": "b773",
+      "match": "type"
+    },
+    "B77W": {
+      "id": "b773",
+      "match": "family"
+    },
+    "B788": {
+      "id": "b788",
+      "match": "type"
+    },
+    "B789": {
+      "id": "b789",
+      "match": "type"
+    },
+    "B78X": {
+      "id": "b789",
+      "match": "family"
+    },
+    "AS21": {
+      "id": "ask21",
+      "match": "type"
+    },
+    "AT45": {
+      "id": "atr42",
+      "match": "type"
+    },
+    "AT43": {
+      "id": "atr42",
+      "match": "family"
+    },
+    "AT44": {
+      "id": "atr42",
+      "match": "family"
+    },
+    "AT46": {
+      "id": "atr42",
+      "match": "family"
+    },
+    "B462": {
+      "id": "bae146",
+      "match": "type"
+    },
+    "B461": {
+      "id": "bae146",
+      "match": "family"
+    },
+    "B463": {
+      "id": "bae146",
+      "match": "family"
+    },
+    "A3ST": {
+      "id": "beluga",
+      "match": "type"
+    },
+    "C550": {
+      "id": "citation",
+      "match": "type"
+    },
+    "C551": {
+      "id": "citation",
+      "match": "family"
+    },
+    "CRJ7": {
+      "id": "crj700",
+      "match": "type"
+    },
+    "CRJ9": {
+      "id": "crj900",
+      "match": "type"
+    },
+    "BCS1": {
+      "id": "cs100",
+      "match": "type"
+    },
+    "BCS3": {
+      "id": "cs300",
+      "match": "type"
+    },
+    "E170": {
+      "id": "e170",
+      "match": "type"
+    },
+    "E190": {
+      "id": "e190",
+      "match": "type"
+    },
+    "EC35": {
+      "id": "heli",
+      "match": "type"
+    },
+    "P28A": {
+      "id": "pa28",
+      "match": "type"
+    },
+    "P28B": {
+      "id": "pa28",
+      "match": "family"
+    },
+    "P28R": {
+      "id": "pa28",
+      "match": "family"
+    },
+    "P28T": {
+      "id": "pa28",
+      "match": "family"
+    },
+    "DH8D": {
+      "id": "q400",
+      "match": "type"
+    }
+  }
+}

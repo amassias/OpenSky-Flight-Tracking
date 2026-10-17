@@ -1,4 +1,5 @@
 import { airlineBadge, airlineLogo, type AirlineBadge } from "../aircraftIdentity";
+import { aircraftSilhouette } from "../aircraftSilhouette";
 import { AircraftHoverStore } from "../aircraftHover";
 import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
@@ -81,6 +82,7 @@ interface PlaneIconOptions {
   onGround?: boolean;
   icao24?: string;
   kind?: AircraftIconKind;
+  aircraftType?: string | null;
   emergency?: boolean;
   label?: { primary: string; secondary: string; logo?: string | null; badge?: AirlineBadge | null; level?: LabelLevel };
   airborne?: boolean;
@@ -99,13 +101,18 @@ function swapLogoForBadge(logo?: HTMLImageElement | null) {
   logo.remove();
 }
 
-function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", emergency = false, label, airborne = false }: PlaneIconOptions) {
+function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", aircraftType, emergency = false, label, airborne = false }: PlaneIconOptions) {
+  const model = aircraftSilhouette(aircraftType);
+  kind = model?.kind ?? kind;
+  const glyph = model
+    ? `<svg viewBox="0 0 64 64" aria-hidden="true"><use href="${model.symbol}"/>${model.rotor ? `<use href="${model.rotor.symbol}" class="aircraft-model-rotor" style="transform-origin:${model.rotor.cx}px ${model.rotor.cy}px"/>` : ""}</svg>`
+    : `<svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg>`;
   const labelHtml = label
     ? `<span class="aircraft-label label-level-${label.level ?? 3}">${label.logo ? `<img class="airline-logo" src="${escapeHtml(label.logo)}" alt="" width="20" height="20" referrerpolicy="no-referrer"${label.badge ? ` data-badge-text="${escapeHtml(label.badge.text)}" data-badge-color="${escapeHtml(label.badge.color)}"` : ""} />` : label.badge ? airlineBadgeHtml(label.badge) : ""}<b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
     : "";
   return L.divIcon({
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
-    html: `<span class="aircraft-marker kind-${kind} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${airborne ? "airborne" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg"><svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg></span>${labelHtml}`,
+    html: `<span class="aircraft-marker kind-${kind}${model ? " aircraft-model" : ""} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${airborne ? "airborne" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${model ? ` data-aircraft-model="${model.id}" data-aircraft-match="${model.match}"` : ""}${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg">${glyph}</span>${labelHtml}`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -267,8 +274,8 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     aircraft.velocity != null && !aircraft.on_ground ? speedText(aircraft.velocity, units).replace(" ", "") : null,
   ].filter(Boolean).join(" · ");
   const icon = useMemo(
-    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, emergency, airborne: aircraft.on_ground === false, label: selected || labelLevel ? { primary: labelPrimary, secondary: labelSecondary, level: selected ? 3 : labelLevel, logo: selected || labelLevel >= 2 ? logo : null, badge: selected || labelLevel >= 2 ? badge : null } : undefined }),
-    [aircraft.icao24, aircraft.on_ground, active, selected, labelLevel, iconKind, heading, emergency, labelPrimary, labelSecondary, logo, badge],
+    () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, aircraftType: aircraft.aircraft_type, emergency, airborne: aircraft.on_ground === false, label: selected || labelLevel ? { primary: labelPrimary, secondary: labelSecondary, level: selected ? 3 : labelLevel, logo: selected || labelLevel >= 2 ? logo : null, badge: selected || labelLevel >= 2 ? badge : null } : undefined }),
+    [aircraft.icao24, aircraft.aircraft_type, aircraft.on_ground, active, selected, labelLevel, iconKind, heading, emergency, labelPrimary, labelSecondary, logo, badge],
   );
   // A fresh fix is already some seconds old when it arrives, so start from
   // where the aircraft is now rather than where it was reported.
@@ -879,7 +886,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const units = useUnits();
   const fallbackMarkerRef = useRef<L.Marker | null>(null);
   const fallbackIcon = useMemo(
-    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · "), logo: airlineLogo(flight), badge: airlineBadge(flight) } }),
+    () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), aircraftType: flight.aircraft_type, airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · "), logo: airlineLogo(flight), badge: airlineBadge(flight) } }),
     [flight, units],
   );
   useEffect(() => {

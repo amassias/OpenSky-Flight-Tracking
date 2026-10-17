@@ -1,0 +1,462 @@
+{
+  "A318": {
+    "ICAO": "A318",
+    "MODEL": "A318",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "31.44",
+    "WINGSPAN": "34.1"
+  },
+  "A319": {
+    "ICAO": "A319",
+    "MODEL": "A319",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "33.84",
+    "WINGSPAN": "35.8"
+  },
+  "A19N": {
+    "ICAO": "A19N",
+    "MODEL": "A319neo",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "33.84",
+    "WINGSPAN": "35.8"
+  },
+  "A320": {
+    "ICAO": "A320",
+    "MODEL": "A320",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "37.57",
+    "WINGSPAN": "35.8"
+  },
+  "A20N": {
+    "ICAO": "A20N",
+    "MODEL": "A320neo",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "37.57",
+    "WINGSPAN": "35.8"
+  },
+  "A321": {
+    "ICAO": "A321",
+    "MODEL": "A321",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "44.51",
+    "WINGSPAN": "35.8"
+  },
+  "A21N": {
+    "ICAO": "A21N",
+    "MODEL": "A321neo",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "44.51",
+    "WINGSPAN": "35.8"
+  },
+  "A332": {
+    "ICAO": "A332",
+    "MODEL": "A330-200",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "58.82",
+    "WINGSPAN": "60.3"
+  },
+  "A338": {
+    "ICAO": "A338",
+    "MODEL": "A330-800neo",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "58.82",
+    "WINGSPAN": "60.3"
+  },
+  "A333": {
+    "ICAO": "A333",
+    "MODEL": "A330-300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "63.67",
+    "WINGSPAN": "60.3"
+  },
+  "A339": {
+    "ICAO": "A339",
+    "MODEL": "A330-900neo",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "63.66",
+    "WINGSPAN": "64"
+  },
+  "A343": {
+    "ICAO": "A343",
+    "MODEL": "A340-300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4",
+    "LENGTH": "63.69",
+    "WINGSPAN": "60.3"
+  },
+  "A346": {
+    "ICAO": "A346",
+    "MODEL": "A340-600",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4",
+    "LENGTH": "75.36",
+    "WINGSPAN": "63.45"
+  },
+  "A359": {
+    "ICAO": "A359",
+    "MODEL": "A350-900",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "66.8",
+    "WINGSPAN": "64.75"
+  },
+  "A35K": {
+    "ICAO": "A35K",
+    "MODEL": "A350-1000",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2",
+    "LENGTH": "73.78",
+    "WINGSPAN": "64.75"
+  },
+  "A388": {
+    "ICAO": "A388",
+    "MODEL": "A380",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4",
+    "LENGTH": "72.72",
+    "WINGSPAN": "79.75"
+  },
+  "B736": {
+    "ICAO": "B736",
+    "MODEL": "737-600",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B737": {
+    "ICAO": "B737",
+    "MODEL": "737-700",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B37M": {
+    "ICAO": "B37M",
+    "MODEL": "737 MAX 7",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B738": {
+    "ICAO": "B738",
+    "MODEL": "737-800",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B38M": {
+    "ICAO": "B38M",
+    "MODEL": "737 MAX 8",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B739": {
+    "ICAO": "B739",
+    "MODEL": "737-900",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B39M": {
+    "ICAO": "B39M",
+    "MODEL": "737 MAX 9",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B744": {
+    "ICAO": "B744",
+    "MODEL": "747-400 (international, winglets)",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4"
+  },
+  "B748": {
+    "ICAO": "B748",
+    "MODEL": "747-8",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4"
+  },
+  "B752": {
+    "ICAO": "B752",
+    "MODEL": "757-200",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B753": {
+    "ICAO": "B753",
+    "MODEL": "757-300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B762": {
+    "ICAO": "B762",
+    "MODEL": "767-200",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B763": {
+    "ICAO": "B763",
+    "MODEL": "767-300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B764": {
+    "ICAO": "B764",
+    "MODEL": "767-400",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B772": {
+    "ICAO": "B772",
+    "MODEL": "777-200",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B77L": {
+    "ICAO": "B77L",
+    "MODEL": "777-200LR",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B773": {
+    "ICAO": "B773",
+    "MODEL": "777-300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B77W": {
+    "ICAO": "B77W",
+    "MODEL": "777-300ER",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B788": {
+    "ICAO": "B788",
+    "MODEL": "787-8 Dreamliner",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B789": {
+    "ICAO": "B789",
+    "MODEL": "787-9 Dreamliner",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "B78X": {
+    "ICAO": "B78X",
+    "MODEL": "787-10 Dreamliner",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "AS21": {
+    "ICAO": "AS21",
+    "MODEL": "ASK-21Mi",
+    "CLASS": "L",
+    "ENG_TYPE": "P",
+    "ENG_NUM": "1"
+  },
+  "AT45": {
+    "ICAO": "AT45",
+    "MODEL": "ATR-42-500",
+    "CLASS": "L",
+    "ENG_TYPE": "T",
+    "ENG_NUM": "2"
+  },
+  "AT43": {
+    "ICAO": "AT43",
+    "MODEL": "ATR-42-300",
+    "CLASS": "L",
+    "ENG_TYPE": "T",
+    "ENG_NUM": "2"
+  },
+  "AT44": {
+    "ICAO": "AT44",
+    "MODEL": "ATR-42-400",
+    "CLASS": "L",
+    "ENG_TYPE": "T",
+    "ENG_NUM": "2"
+  },
+  "AT46": {
+    "ICAO": "AT46",
+    "MODEL": "ATR-42-600",
+    "CLASS": "L",
+    "ENG_TYPE": "T",
+    "ENG_NUM": "2"
+  },
+  "B462": {
+    "ICAO": "B462",
+    "MODEL": "BAe-146-200",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4"
+  },
+  "B461": {
+    "ICAO": "B461",
+    "MODEL": "BAe-146-100",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4"
+  },
+  "B463": {
+    "ICAO": "B463",
+    "MODEL": "BAe-146-300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "4"
+  },
+  "A3ST": {
+    "ICAO": "A3ST",
+    "MODEL": "A-300ST Beluga",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "C550": {
+    "ICAO": "C550",
+    "MODEL": "550 Citation 2",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "C551": {
+    "ICAO": "C551",
+    "MODEL": "551 Citation 2SP",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "CRJ7": {
+    "ICAO": "CRJ7",
+    "MODEL": "Challenger 870",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "CRJ9": {
+    "ICAO": "CRJ9",
+    "MODEL": "Challenger 890",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "BCS1": {
+    "ICAO": "BCS1",
+    "MODEL": "BD-500 CSeries CS100",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "BCS3": {
+    "ICAO": "BCS3",
+    "MODEL": "BD-500 CSeries CS300",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "E170": {
+    "ICAO": "E170",
+    "MODEL": "170",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "E190": {
+    "ICAO": "E190",
+    "MODEL": "190",
+    "CLASS": "L",
+    "ENG_TYPE": "J",
+    "ENG_NUM": "2"
+  },
+  "EC35": {
+    "ICAO": "EC35",
+    "MODEL": "EC-135 Bluecopter",
+    "CLASS": "H",
+    "ENG_TYPE": "T",
+    "ENG_NUM": "2"
+  },
+  "P28A": {
+    "ICAO": "P28A",
+    "MODEL": "PA-28",
+    "CLASS": "L",
+    "ENG_TYPE": "P",
+    "ENG_NUM": "1",
+    "LENGTH": "7.10",
+    "WINGSPAN": "9.14"
+  },
+  "P28B": {
+    "ICAO": "P28B",
+    "MODEL": "PA-28B",
+    "CLASS": "L",
+    "ENG_TYPE": "P",
+    "ENG_NUM": "1",
+    "LENGTH": "7.10",
+    "WINGSPAN": "9.14"
+  },
+  "P28R": {
+    "ICAO": "P28R",
+    "MODEL": "PA-28R",
+    "CLASS": "L",
+    "ENG_TYPE": "P",
+    "ENG_NUM": "1",
+    "LENGTH": "7.10",
+    "WINGSPAN": "9.14"
+  },
+  "P28T": {
+    "ICAO": "P28T",
+    "MODEL": "PA-28T",
+    "CLASS": "L",
+    "ENG_TYPE": "P",
+    "ENG_NUM": "1",
+    "LENGTH": "7.10",
+    "WINGSPAN": "9.14"
+  },
+  "DH8D": {
+    "ICAO": "DH8D",
+    "MODEL": "Dash 8 (400)",
+    "CLASS": "L",
+    "ENG_TYPE": "T",
+    "ENG_NUM": "2"
+  }
+}

@@ -225,3 +225,7 @@ The new cabin/graph browser suite covers published data, empty and error states,
 Validation evidence: [14 October global quality audit](docs/audits/2026-10-14-global-quality.md).
 
 Logo maintenance: `python3 scripts/check_airline_logos.py` validates the catalogue, sourced local files and aircraft-model metadata offline (also run by CI). `python3 scripts/check_airline_logos.py --online` checks enabled remote PNGs without editing the catalogue; `--iata AZ,VF,U2` limits network checks. A failed image retains the operator badge. Review reused designators against the dated IATA source before enabling a logo. Local replacements are unchanged source assets; `public/airline-logos/README.md` records attribution. Ten FAA-sourced type families extend `data/aircraft-types.json` to 69 entries, with provenance in `data/aircraft-type-sources.json`; a shared type code never confirms the exact airframe variant.
+
+### Aircraft model silhouettes
+
+The live map uses 39 GPLv2 model silhouettes for 60 explicit ICAO type/family codes, with reference records from OpenAircraftType (CC-BY-SA-3.0). A single SVG sprite is embedded in the initial HTML; markers reference its symbols without loading models or additional images. Unsupported types retain the category glyph, and dense view still uses canvas dots. Sources, licences, pinned checksums and the offline rebuild command are in [the silhouette catalogue](data/aircraft-silhouettes/README.md).
