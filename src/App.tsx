@@ -260,7 +260,11 @@ export function App() {
     enabled: Boolean(detailsFlight) && detailsFlight?.data_source !== "scheduled",
     staleTime: 30_000,
     refetchInterval: detailsFlight?.data_source === "live-nearby" ? 90_000 : false,
-    retry: false,
+    // Provider rate limits are transient: retry twice, and keep the drawn trace
+    // while the same aircraft's key changes (callsign or route arriving late).
+    retry: 2,
+    retryDelay: (attempt) => 1_000 * (attempt + 1),
+    placeholderData: (previous) => (previous?.track?.icao24 && previous.track.icao24.toLowerCase() === detailsFlight?.icao24.toLowerCase() ? previous : undefined),
   });
 
   const currentTrack = useMemo(() => matchingFlightTrack(track.data, detailsFlight), [detailsFlight, track.data]);
