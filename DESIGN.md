@@ -12,7 +12,7 @@ colors:
   line-strong: "rgba(255, 255, 255, 0.16)"
   text: "#f5f5f7"
   muted: "#a1a1a6"
-  quiet: "#8e8e93"
+  quiet: "#98989d"
   accent: "#2997ff"
   accent-press: "#0a84ff"
   accent-soft: "rgba(41, 151, 255, 0.16)"
@@ -20,16 +20,24 @@ colors:
   warn: "#ffd60a"
   danger: "#ff453a"
   aircraft: "#f5f5f7"
+  halo: "#0b0b0c"
   aircraft-ground: "#8e8e93"
   light-bg: "#f5f5f7"
   light-panel: "#ffffff"
   light-panel-solid: "#ffffff"
   light-text: "#1d1d1f"
   light-muted: "#515154"
-  light-quiet: "#6e6e73"
+  light-quiet: "#68686d"
   light-accent: "#0066cc"
   light-ok: "#248a3d"
   light-aircraft: "#1d1d1f"
+  light-halo: "#ffffff"
+  light-aircraft-ground: "#86868b"
+  light-danger: "#d70015"
+  light-warn: "#b25000"
+  shade-soft: "rgba(0, 0, 0, 0.18)"
+  shade: "rgba(0, 0, 0, 0.4)"
+  shade-strong: "rgba(0, 0, 0, 0.55)"
   altitude-low: "#64d2ff"
   altitude-climb: "#0a84ff"
   altitude-cruise: "#5e5ce6"
@@ -67,16 +75,42 @@ typography:
     fontWeight: 400
     lineHeight: 1.45
     letterSpacing: "-0.01em"
+  lead:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "-0.01em"
   caption:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
     fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.35
     letterSpacing: "0"
+  label:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "0"
+  readout:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "20px"
+    fontWeight: 600
+    lineHeight: 1.1
+    letterSpacing: "-0.01em"
+  numeral:
+    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, system-ui, sans-serif"
+    fontSize: "30px"
+    fontWeight: 650
+    lineHeight: 1.05
+    letterSpacing: "-0.03em"
 rounded:
+  xs: "2px"
   sm: "6px"
   md: "8px"
   lg: "10px"
+  xl: "14px"
   pill: "980px"
 spacing:
   xs: "4px"
@@ -145,11 +179,12 @@ SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks a
 - **Aircraft ink.** Every marker uses `aircraft` ink (white on dark, near-black on light), including the dense canvas silhouettes, so zooming never changes an aircraft's colour.
 - Known ICAO types use model-specific overhead silhouettes from a shared SVG sprite. Their outlines and proportions distinguish aircraft while retaining the same ink, heading and state colours. Unmapped types use the existing category symbols; a family match is representative, not an exact airframe-variant claim.
 - **Altitude ramp.** A cool, ordered ramp (cyan to blue, indigo, purple, pink) colours the selected track and its legend only.
-- Map layers (paths and silhouettes drawn by MapLibre GL) cannot read CSS variables, so `MAP_COLORS` in `aircraftLayer.ts` mirrors the tokens per theme.
+- **One source for map colours.** Map layers (paths and silhouettes drawn by MapLibre GL) cannot use CSS variables, so `mapColors(theme)` in `mapColors.ts` reads `--aircraft`, `--aircraft-ground`, `--accent`, `--halo` and `--danger` from the theme once per theme. The stylesheet is the only place those values are written.
+- **Shades.** Marker drop shadows and photo chips use `--shade-soft`, `--shade` and `--shade-strong`; they are black in both themes.
 
 ## Typography
 
-System type first: `-apple-system`/SF on Apple platforms, Inter (loaded from Google Fonts in `index.html`) elsewhere. The weight ladder is 400 / 500 / 600, with headlines at 600 and tight negative tracking. Numbers use `font-variant-numeric: tabular-nums` instead of a monospace face, and uppercase tracked labels are not used. The UI floor is 12px.
+System type first: `-apple-system`/SF on Apple platforms, Inter (loaded from Google Fonts in `index.html`) elsewhere. The size ladder is 12 / 13 / 14 / 15 / 16 / 17 / 20 / 22 / 28 / 30 px (`label`, `caption`, `body`, `lead`, `body-strong`, `title`, `readout`, `headline`, `display`, `numeral`). The weight ladder is 400 / 500 / 600 (650 for the route `numeral`), with headlines at 600 and tight negative tracking. Numbers use `font-variant-numeric: tabular-nums` instead of a monospace face, and uppercase tracked labels are not used. The UI floor is 12px.
 
 ## Layout
 
@@ -161,7 +196,7 @@ Panels use opaque graphite or paper surfaces and a hairline border. `--material`
 
 ## Shapes
 
-The CSS tokens are authoritative: `sm` 6 px, `md` 8 px, `lg` 10 px and `pill` 980 px. Small fields and tiles use `sm`, rows use `md`, panels use `lg`, and pill controls retain their existing shape.
+The CSS tokens (`--r-*`) and this scale are the same: `xs` 2 px (progress tracks, badges), `sm` 6 px, `md` 8 px, `lg` 10 px, `xl` 14 px (tour and shortcut cards) and `pill` 980 px. Small fields and tiles use `sm`, rows use `md`, panels use `lg`, and pill controls retain their existing shape.
 
 ## Motion
 

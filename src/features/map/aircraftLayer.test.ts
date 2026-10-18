@@ -1,7 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { LiveAircraft, MapTheme } from "../../shared/types";
 import type { AircraftFrameOptions } from "./aircraftLayer";
-import { AircraftFrames, MAP_COLORS, updateIntervalMs } from "./aircraftLayer";
+import { AircraftFrames, updateIntervalMs } from "./aircraftLayer";
+import { resetMapColors } from "./mapColors";
+
+const THEME_CSS = `
+  :root { --aircraft: #f5f5f7; --aircraft-ground: #8e8e93; --accent: #2997ff; --halo: #0b0b0c; --danger: #ff453a; }
+  .theme-light { --aircraft: #1d1d1f; --aircraft-ground: #86868b; --accent: #0066cc; --halo: #ffffff; --danger: #d70015; }
+`;
+let themeStyle: HTMLStyleElement;
+beforeAll(() => {
+  resetMapColors();
+  themeStyle = document.createElement("style");
+  themeStyle.textContent = THEME_CSS;
+  document.head.append(themeStyle);
+});
+afterAll(() => { themeStyle.remove(); resetMapColors(); });
 
 const NOW = 10_000;
 const plane = (over: Partial<LiveAircraft> = {}): LiveAircraft => ({
@@ -52,10 +66,10 @@ describe("AircraftFrames", () => {
       plane({ icao24: "aa0005" }),
     ], NOW, { previewId: "aa0004", excludeId: "aa0005" });
     const color = (id: string) => drawn.find(item => item.id === id)?.color;
-    expect(color("aa0001")).toBe(MAP_COLORS.dark.aircraft);
-    expect(color("aa0002")).toBe(MAP_COLORS.dark.danger);
-    expect(color("aa0003")).toBe(MAP_COLORS.dark.ground);
-    expect(color("aa0004")).toBe(MAP_COLORS.dark.accent);
+    expect(color("aa0001")).toBe("#f5f5f7");
+    expect(color("aa0002")).toBe("#ff453a");
+    expect(color("aa0003")).toBe("#8e8e93");
+    expect(color("aa0004")).toBe("#2997ff");
     expect(color("aa0005")).toBeUndefined();
   });
 
@@ -70,7 +84,7 @@ describe("AircraftFrames", () => {
   });
 
   it("follows the theme", () => {
-    expect(draw([plane()], NOW, { theme: "light" })[0].color).toBe(MAP_COLORS.light.aircraft);
+    expect(draw([plane()], NOW, { theme: "light" })[0].color).toBe("#1d1d1f");
   });
 
   it("skips aircraft without a position", () => {
