@@ -1,4 +1,4 @@
-import data_loader
+from backend import data_loader
 
 
 def test_current_names_replace_reassigned_legacy_codes_and_keep_unknowns(monkeypatch):

@@ -1,0 +1,56 @@
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../../shared/api";
+import { operatorCode } from "../../../shared/aircraftIdentity";
+import { cabinSummary, cabinTone, checkedAgo, distinctSeatMapUrl } from "../cabin";
+import type { Flight } from "../../../shared/types";
+
+export function AircraftCabin({ flight }: { flight: Flight }) {
+  // Reset native disclosures when a different aircraft/configuration is selected.
+  const registration = flight.registration_source === "schedule" ? null : flight.registration ?? null;
+  const key = [flight.icao24, operatorCode(flight), flight.aircraft_type?.toUpperCase(), registration].join(":");
+  return <CabinContent key={key} flight={flight} />;
+}
+
+function CabinContent({ flight }: { flight: Flight }) {
+  const operator = operatorCode(flight);
+  const type = flight.aircraft_type?.toUpperCase() ?? "";
+  const registration = flight.registration_source === "schedule" ? null : flight.registration ?? null;
+  const { data } = useQuery({
+    queryKey: ["aircraft-enrichment", operator, type, registration],
+    queryFn: ({ signal }) => api.aircraftEnrichment(operator, type, registration, signal),
+    enabled: Boolean(operator && type), staleTime: 24 * 60 * 60_000, retry: false,
+  });
+  if (!operator || !type) return null;
+  if (!data?.configurations?.length || data.operator_code !== operator || data.aircraft_type !== type) return null;
+  return <section className="cabin-section" aria-label="Cabin configurations">
+    <div className="cabin-heading"><h3>Cabin</h3><span className="conditions-note">{data.match_level === "airframe" ? "Aircraft layout" : "Typical layout"}</span></div>
+    {data.configurations.map(config => {
+      const seatMapUrl = distinctSeatMapUrl(config);
+      return <details className="cabin-variant" key={config.id} open={data.configurations.length === 1}>
+        <summary>{config.total_seats} seats <span>{cabinSummary(config)}</span></summary>
+        <div className="cabin-inventory">
+          {config.classes.map(c => <div key={c.name} className="cabin-class" data-tone={cabinTone(c.name)}>
+            <div className="cabin-class-heading"><h4><span className="cabin-swatch" aria-hidden="true" />{c.name}</h4><strong>{c.seats}<span> seats</span></strong></div>
+          </div>)}
+          <details className="cabin-inventory-toggle">
+            <summary>Show seat inventory</summary>
+            <p className="cabin-inventory-caption">Capacity illustration · not seat positions</p>
+            {config.classes.map(c => <div key={c.name} className="cabin-class" data-tone={cabinTone(c.name)}>
+              <p className="conditions-note">{c.name}</p>
+              <div className="cabin-seat-grid" role="img" aria-label={`${c.name}: ${c.seats} seats. Capacity illustration, not seat positions.`}>
+                {Array.from({ length: c.seats }, (_, index) => <svg key={index} className="cabin-seat" viewBox="0 0 16 18" aria-hidden="true"><rect className="seat-back" x="3" y="1" width="10" height="10" rx="2" /><path className="seat-cushion" d="M3 9h10v5H3z" /><path className="seat-arms" d="M1 8v7h14V8M4 15v2m8-2v2" /></svg>)}
+              </div>
+            </div>)}
+          </details>
+          {seatMapUrl && <a className="cabin-map-link" href={seatMapUrl} target="_blank" rel="noreferrer">Seat map <span aria-hidden="true">↗</span></a>}
+        </div>
+        {config.note && <p className="conditions-note">{config.note}</p>}
+        {config.amenities && <ul className="cabin-amenities">{Object.values(config.amenities).filter(Boolean).map(value => <li key={value}>{value}</li>)}</ul>}
+        <div className="cabin-sources">
+          <a href={config.source.url} target="_blank" rel="noreferrer" title={`${checkedAgo(config.source.checked_at)} · ${config.source.checked_at}`}>{config.source.name} ↗</a>
+          {config.assignment_source && <a href={config.assignment_source.url} target="_blank" rel="noreferrer">Aircraft match ↗</a>}
+        </div>
+      </details>;
+    })}
+  </section>;
+}

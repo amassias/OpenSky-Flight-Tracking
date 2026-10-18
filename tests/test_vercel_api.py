@@ -4,7 +4,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from api.index import app
-import server
+from backend import server
 
 
 client = TestClient(app)

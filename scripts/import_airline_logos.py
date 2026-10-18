@@ -173,7 +173,7 @@ def import_catalogue(root, archives, assignments, blocked, obsolete, existing):
     for extension, codes in sorted(groups.items()):
         compact += f'  ..."{" ".join(codes)}".split(" ").map(code => [code, `/airline-logos/operators/${{code}}{extension}`]),\n'
     compact += ']);\n'
-    target = root / 'src/airlineOperatorLogos.ts'
+    target = root / 'src/shared/airlineOperatorLogos.ts'
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(compact)
     return output
@@ -202,11 +202,11 @@ def main():
             raise SystemExit(f'Archive checksum mismatch: {revision}')
         lock[revision] = {'repository': source['repository'], 'sha256': checksum}
         archives.append(read_archive(payload))
-    table = (ROOT / 'src/airlineCodes.ts').read_text().split(' = ', 1)[1].strip().removesuffix(';')
+    table = (ROOT / 'src/shared/airlineCodes.ts').read_text().split(' = ', 1)[1].strip().removesuffix(';')
     assignments = json.loads(table)
     legacy = json.loads((ROOT / 'data/airline-logos.json').read_text())
     # Use exactly the resolver's legacy mappings, including its explicit aliases.
-    identity = (ROOT / 'src/aircraftIdentity.ts').read_text()
+    identity = (ROOT / 'src/shared/aircraftIdentity.ts').read_text()
     overrides = dict(re.findall(r'\b([A-Z]{3}): "([A-Z0-9]{2})"', identity.split('const OVERRIDES', 1)[1].split('};', 1)[0]))
     enabled = {x['iata'] for x in legacy if not x.get('disabled_reason')}
     existing = {op for op, iata in overrides.items() if iata in enabled}

@@ -2,10 +2,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import aircraft_history
-import server
-from api_client import OpenSkyClient
-from registrations import n_number_to_icao24
+from backend import aircraft_history
+from backend import server
+from backend.api_client import OpenSkyClient
+from backend.registrations import n_number_to_icao24
 
 
 def handler():

@@ -1,0 +1,294 @@
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert } from "../../../shared/components/icons";
+import { usePersistentState } from "../../../shared/hooks/usePersistentState";
+import type { Flight } from "../../../shared/types";
+import { callsignsForFlightNumber, distanceKm, flightNumberForCallsign, emergencyInfo, flightId, formatAltitude, formatSpeed, formatTime, routeLabel, statusLabel, verticalTrend } from "../../../shared/utils";
+import { useNowSeconds } from "../../map/aircraftMotion";
+import { positionAge, positionAgeLabel } from "../flightTelemetry";
+import { useUnits } from "../../../shared/units";
+
+/** Cards rendered per step: a zoomed-out map can hold thousands of aircraft. */
+const PAGE_SIZE = 100;
+
+type StatusFilter = "all" | "airborne" | "on_ground" | "completed";
+type SortOrder = "time_desc" | "time_asc" | "airline_asc" | "distance_asc" | "altitude_desc" | "speed_desc";
+
+interface FlightListProps {
+  flights: Flight[];
+  /** "live" lists aircraft in the map view; "airport" lists recorded movements. */
+  variant?: "live" | "airport";
+  selectedFlight: Flight | null;
+  loading: boolean;
+  errorMessage?: string;
+  notice?: string;
+  hasSearched: boolean;
+  onSelect: (flight: Flight) => void;
+  onPreview?: (flight: Flight | null) => void;
+  onRetry: () => void;
+  /** Map centre for the "Nearest" sort; live positions are measured from it. */
+  referencePoint?: [number, number] | null;
+}
+
+interface FlightCardProps {
+  flight: Flight;
+  selected: boolean;
+  onSelect: (flight: Flight) => void;
+  onPreview?: (flight: Flight | null) => void;
+  now?: number;
+}
+
+const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPreview, now }: FlightCardProps) {
+  useUnits();
+  const age = now == null ? null : positionAge(flight, now);
+  const freshness = age == null ? "unknown" : age > 60 ? "delayed" : "recent";
+  const status = statusLabel(flight.status, flight.on_ground);
+  const time = flight.primary_time ?? flight.first_seen ?? flight.last_seen;
+  const emergency = emergencyInfo(flight);
+  const trend = flight.on_ground ? null : verticalTrend(flight.vertical_rate);
+  const airframe = [flight.registration_source === "schedule" ? null : flight.registration, flight.data_source === "live-nearby" ? null : flight.aircraft_type].filter(Boolean).join(" · ");
+  const operator = flight.airline_name || airframe || "Unidentified operator";
+  const flightNumber = flightNumberForCallsign(flight.callsign);
+  const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
+  return (
+    <button
+      type="button"
+      className={`flight-card ${selected ? "selected" : ""} ${emergency ? "is-emergency" : ""}`}
+      onClick={() => onSelect(flight)}
+      onMouseEnter={() => onPreview?.(flight)}
+      onMouseLeave={() => onPreview?.(null)}
+      onFocus={() => onPreview?.(flight)}
+      onBlur={() => onPreview?.(null)}
+      aria-pressed={selected}
+    >
+      <span className="flight-card-main">
+        <span className="flight-identity">
+          <span className="callsign-row">
+            <span className={`status-dot status-${statusKey} ${now != null ? `freshness-${freshness}` : ""}`} aria-hidden="true" />
+            <span className="callsign mono">{flight.callsign || flight.icao24.toUpperCase()}</span>
+            {flightNumber && <span className="flight-number mono" title="Flight number on tickets">{flightNumber}</span>}
+          </span>
+          <span className="airline">{operator}{flight.airline_name && airframe ? <span className="airframe"> · {airframe}</span> : null}</span>
+        </span>
+        <span className="route mono">{flight.data_source === "live-nearby" ? flight.aircraft_type || "" : routeLabel(flight)}</span>
+        <span className="flight-meta">
+          {emergency
+            ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
+            : <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>}
+          {now != null && <span className={`flight-position-age freshness-${freshness}`} title="Age of the last received coordinates; Airborne describes the last reported state">{positionAgeLabel(age)}</span>}
+          {time != null && <>
+            <span>·</span>
+            <span>{formatTime(time)} UTC</span>
+          </>}
+          <span className="flight-meta-divider" aria-hidden="true" />
+          <span className="flight-altitude">
+            {formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}
+            {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-label="Climbing" />}
+            {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-label="Descending" />}
+          </span>
+          <span>·</span>
+          <span>{formatSpeed(flight.velocity)}</span>
+        </span>
+      </span>
+      <Plane className="flight-plane" size={17} aria-hidden="true" />
+    </button>
+  );
+});
+
+export function FlightList({
+  flights,
+  variant = "airport",
+  selectedFlight,
+  loading,
+  errorMessage,
+  notice,
+  hasSearched,
+  onSelect,
+  onPreview,
+  onRetry,
+  referencePoint = null,
+}: FlightListProps) {
+  const [query, setQuery] = useState("");
+  const live = variant === "live";
+  const now = useNowSeconds(live);
+  const [status, setStatus] = usePersistentState<StatusFilter>("skytrace-list-status", "all");
+  // Recorded movements read best by time; aircraft in view by distance.
+  const [sort, setSort] = usePersistentState<SortOrder>(live ? "skytrace-list-sort-live" : "skytrace-list-sort", live ? "distance_asc" : "time_desc");
+
+  const visibleFlights = useMemo(() => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const flightNumbers = terms.map(callsignsForFlightNumber);
+    const filtered = flights.filter((flight) => {
+      const searchable = [
+        flight.callsign,
+        flight.icao24,
+        flight.airline_name,
+        flight.departure_airport,
+        flight.arrival_airport,
+        flight.departure_airport_name,
+        flight.arrival_airport_name,
+        flight.registration,
+        flight.aircraft_type,
+        flight.aircraft_description,
+      ].filter(Boolean).join(" ").toLowerCase();
+      const callsign = (flight.callsign || "").toLowerCase();
+      const matchesText = terms.every((term, index) => searchable.includes(term) || flightNumbers[index].some((form) => callsign.startsWith(form)));
+      const actualStatus = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
+      return matchesText && (status === "all" || actualStatus === status);
+    });
+
+    const distance = (flight: Flight) => referencePoint && flight.latitude != null && flight.longitude != null
+      ? distanceKm(referencePoint, [flight.latitude, flight.longitude])
+      : Number.POSITIVE_INFINITY;
+    return [...filtered].sort((a, b) => {
+      // An aircraft declaring an emergency always leads the board.
+      const urgency = Number(Boolean(emergencyInfo(b))) - Number(Boolean(emergencyInfo(a)));
+      if (urgency) return urgency;
+      if (sort === "distance_asc") return distance(a) - distance(b);
+      if (sort === "altitude_desc" || sort === "speed_desc") {
+        const metric = (flight: Flight) => sort === "altitude_desc"
+          ? flight.baro_altitude ?? flight.geo_altitude
+          : flight.velocity;
+        const aValue = metric(a);
+        const bValue = metric(b);
+        const aKnown = aValue != null && Number.isFinite(aValue);
+        const bKnown = bValue != null && Number.isFinite(bValue);
+        if (!aKnown || !bKnown) return Number(bKnown) - Number(aKnown);
+        return bValue - aValue;
+      }
+      if (sort === "airline_asc") return (a.airline_name || "").localeCompare(b.airline_name || "");
+      const aTime = a.primary_time ?? a.first_seen ?? a.last_seen ?? 0;
+      const bTime = b.primary_time ?? b.first_seen ?? b.last_seen ?? 0;
+      return sort === "time_asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [flights, query, referencePoint, sort, status]);
+
+  const filtersActive = query.trim() !== "" || status !== "all";
+
+  // Render the board in pages and grow it as the visitor scrolls near the end.
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  useEffect(() => { setLimit(PAGE_SIZE); }, [query, sort, status, variant]);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const hasMore = visibleFlights.length > limit;
+  useEffect(() => {
+    const sentinel = moreRef.current;
+    if (!hasMore || !sentinel || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setLimit((current) => current + PAGE_SIZE);
+    // The viewport root also respects the clipping of whichever ancestor scrolls.
+    }, { threshold: 0 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, limit]);
+
+  // ↑/↓ (and Home/End) move between flight cards, like a native list.
+  function moveFocus(event: KeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const cards = [...event.currentTarget.querySelectorAll<HTMLButtonElement>(".flight-card")];
+    const index = cards.indexOf(document.activeElement as HTMLButtonElement);
+    if (index < 0 || !cards.length) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0
+      : event.key === "End" ? cards.length - 1
+      : Math.min(cards.length - 1, Math.max(0, index + (event.key === "ArrowDown" ? 1 : -1)));
+    cards[next].focus();
+  }
+  function clearFilters() {
+    setQuery("");
+    setStatus("all");
+  }
+
+  return (
+    <section className="flight-list-section" aria-label="Flight results">
+      <div className="list-toolbar">
+        <label className="compact-search">
+          <Search size={15} aria-hidden="true" />
+          <span className="sr-only">Filter flights</span>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter this list" title="Search callsign, airline, registration, aircraft type or route; combine terms to narrow results" />
+        </label>
+        <label className="select-control" title="Filter by status">
+          <Filter size={14} aria-hidden="true" />
+          <span className="sr-only">Flight status</span>
+          <select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)}>
+            <option value="all">All status</option>
+            <option value="airborne">Airborne</option>
+            <option value="on_ground">On ground</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+        <label className="select-control" title="Sort flights">
+          <ArrowDownUp size={14} aria-hidden="true" />
+          <span className="sr-only">Sort order</span>
+          <select value={sort} onChange={(event) => setSort(event.target.value as SortOrder)}>
+            {!live && <option value="time_desc">Latest</option>}
+            {!live && <option value="time_asc">Earliest</option>}
+            <option value="airline_asc">Airline A–Z</option>
+            <option value="distance_asc" disabled={!referencePoint}>Nearest</option>
+            <option value="altitude_desc">Highest</option>
+            <option value="speed_desc">Fastest</option>
+          </select>
+        </label>
+      </div>
+
+      {notice && <div className="data-notice-inline" role="status">{notice}</div>}
+      {filtersActive && flights.length > 0 && (
+        <div className="list-filter-count" role="status">
+          <span className="mono">{visibleFlights.length} of {flights.length} shown</span>
+          <button type="button" onClick={clearFilters}>Clear</button>
+        </div>
+      )}
+
+      <div className="flight-list" aria-busy={loading} onKeyDown={moveFocus}>
+        {loading && flights.length === 0 && <div className="movement-loading" role="status">
+          <span className="movement-loading-radar" aria-hidden="true"><span /></span>
+          <div><strong>Loading airport movements</strong><span>Checking recorded flights and the latest available traffic…</span></div>
+        </div>}
+        {loading && flights.length > 0 && <div className="list-refreshing" role="status"><span /> Refreshing movements</div>}
+        {!loading && errorMessage && (
+          <div className="message-state error-state">
+            <span className="message-icon">!</span>
+            <h3>{flights.length ? "Refresh failed · previous results kept" : "Flight data unavailable"}</h3>
+            <p>{errorMessage}</p>
+            <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>
+          </div>
+        )}
+        {!loading && !errorMessage && hasSearched && flights.length === 0 && (
+          <div className="message-state">
+            <Plane size={26} aria-hidden="true" />
+            <h3>{live ? "No aircraft in view" : notice ? "Historical data unavailable" : "No movements found"}</h3>
+            {/* The notice itself is already shown above the list; say what to do instead of repeating it. */}
+            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice ? "Try again in a moment, or switch to Live for the aircraft around this airport now." : "No recorded flights for this airport and date. Try the previous day."}</p>
+            {notice && <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>}
+          </div>
+        )}
+        {!loading && !errorMessage && flights.length > 0 && visibleFlights.length === 0 && (
+          <div className="message-state compact">
+            <h3>No matching flights</h3>
+            <p>Nothing in this list matches the current filter.</p>
+            <button type="button" className="secondary-button" onClick={clearFilters}>Clear filters</button>
+          </div>
+        )}
+        {!loading && !errorMessage && !hasSearched && (
+          <div className="message-state">
+            <h3>No airport selected</h3>
+            <p>Search an airport to list its departures and arrivals.</p>
+          </div>
+        )}
+        {visibleFlights.slice(0, limit).map((flight) => (
+          <FlightCard
+            key={flightId(flight)}
+            flight={flight}
+            now={live ? now : undefined}
+            selected={selectedFlight ? flightId(selectedFlight) === flightId(flight) : false}
+            onSelect={onSelect}
+            onPreview={onPreview}
+          />
+        ))}
+        {hasMore && (
+          <button type="button" ref={moreRef} className="list-more" onClick={() => setLimit((current) => current + PAGE_SIZE)}>
+            Show more · {visibleFlights.length - limit} remaining
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}

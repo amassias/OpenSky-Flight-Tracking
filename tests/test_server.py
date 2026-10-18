@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import server
-from api_client import OpenSkyAPIError
+from backend import server
+from backend.api_client import OpenSkyAPIError
 
 
 def handler():
@@ -457,7 +457,7 @@ def test_operational_episode_matching_rejects_other_flights(change):
 def test_track_provider_failure_is_retryable_not_empty_success():
     fake_client = Mock()
     fake_client.get_track.side_effect = OpenSkyAPIError("Trace provider unavailable", status_code=503)
-    with patch("server.api_client", fake_client):
+    with patch("backend.server.api_client", fake_client):
         with pytest.raises(OpenSkyAPIError):
             handler().handle_track("39abcd", "0", "AFR123")
 
@@ -474,7 +474,7 @@ def test_vercel_track_outage_returns_503_to_browser():
 
 def test_real_trace_parser_reaches_browser_with_matching_identity(monkeypatch):
     import time
-    from api_client import OpenSkyClient
+    from backend.api_client import OpenSkyClient
     from fastapi.testclient import TestClient
     from api.index import app
 

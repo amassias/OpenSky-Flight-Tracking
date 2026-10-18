@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from flight_logic import _chunked, _operations_match_current_flight, _parse_utc_date, _safe_float, _safe_int
+from backend.flight_logic import _chunked, _operations_match_current_flight, _parse_utc_date, _safe_float, _safe_int
 
 
 def test_safe_conversions_fall_back_on_bad_input():

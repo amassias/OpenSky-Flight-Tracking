@@ -1,5 +1,7 @@
 # SkyTrace
 
+Navigation du projet : [carte du dépôt](docs/REPOSITORY.md) · [documentation](docs/README.md) · [tâches ouvertes](https://github.com/amassias/OpenSky-Flight-Tracking/issues).
+
 Explore the aircraft above you, follow a flight across the map, or inspect traffic around an airport. SkyTrace combines live positions, recorded airport movements, route details and aircraft profiles in one responsive interface.
 
 [Open the public demo](https://opensky-flight-tracking.vercel.app/) · [Run locally](#run-locally) · [Data and privacy](#data-and-privacy)
@@ -104,7 +106,7 @@ Never commit `.env`. It is already ignored by Git.
 Start the API server:
 
 ```bash
-python3 server.py
+python3 -m backend.server
 ```
 
 In another terminal, start Vite:
@@ -123,7 +125,7 @@ If local OpenSky credentials are unavailable, set `SKYTRACE_API_ORIGIN=https://o
 
 ```bash
 npm run build
-python3 server.py
+python3 -m backend.server
 ```
 
 The server automatically serves `dist/index.html` and its hashed assets. Open `http://localhost:8000`.
@@ -185,7 +187,7 @@ MIT
 
 Interface icons are from [Font Awesome Free](https://fontawesome.com) (solid set) by Fonticons, Inc., licensed under [CC BY 4.0](https://fontawesome.com/license/free). Regenerate them with `node scripts/build-icons.mjs <fontawesome-free-web-folder>`.
 
-Ticket flight numbers (AF1234) are matched to callsigns (AFR1234) with `src/airlineCodes.ts`, generated from the bundled OpenFlights airline list by `python3 scripts/build_airline_codes.py`. Only active airlines with both an IATA and an ICAO code are kept.
+Ticket flight numbers (AF1234) are matched to callsigns (AFR1234) with `src/shared/airlineCodes.ts`, generated from the bundled OpenFlights airline list by `python3 scripts/build_airline_codes.py`. Only active airlines with both an IATA and an ICAO code are kept.
 
 ### Airport schedules and data coverage
 

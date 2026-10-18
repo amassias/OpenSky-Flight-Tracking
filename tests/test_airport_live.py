@@ -2,8 +2,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import airport_live
-import server
+from backend import airport_live
+from backend import server
 
 
 AIRPORT = {"icao": "LFPG", "latitude": 49.0097, "longitude": 2.5478, "elevation_ft": 392}
@@ -155,7 +155,7 @@ def test_airport_board_uses_one_point_request_around_the_airport():
 
 
 def test_airport_board_falls_back_when_the_public_provider_is_rate_limited():
-    from api_client import OpenSkyAPIError
+    from backend.api_client import OpenSkyAPIError
 
     server.BOARD_RESPONSE_CACHE.clear()
     rows = [["a1b2c3", "AFR1234 ", "France", 100, 100, 2.55, 49.012, 0.0, True, 6.0, 90.0, 0.0, None, None, None, False, 0, None, {}]]

@@ -2,8 +2,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import server
-from api_client import OpenSkyClient
+from backend import server
+from backend.api_client import OpenSkyClient
 
 # Shaped like AeroAPI v4 GET /airports/{id}/flights/scheduled_arrivals.
 ARRIVAL = {

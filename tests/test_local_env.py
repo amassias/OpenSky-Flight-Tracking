@@ -1,6 +1,6 @@
 import os
 
-from local_env import load_local_env
+from backend.local_env import load_local_env
 
 
 def test_pulled_vercel_system_variables_do_not_leak_into_local_runs(tmp_path, monkeypatch):

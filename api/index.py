@@ -6,9 +6,9 @@ from typing import Callable, TypeVar
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 
-from api_client import OpenSkyAPIError
-from server import FlightServerHandler
-from aircraft_enrichment import aircraft_enrichment
+from backend.api_client import OpenSkyAPIError
+from backend.server import FlightServerHandler
+from backend.aircraft_enrichment import aircraft_enrichment
 
 
 app = FastAPI(

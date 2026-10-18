@@ -1,5 +1,5 @@
-import flightaware
-from api_client import OpenSkyClient
+from backend import flightaware
+from backend.api_client import OpenSkyClient
 
 
 def test_ident_strips_punctuation_and_caps_length():

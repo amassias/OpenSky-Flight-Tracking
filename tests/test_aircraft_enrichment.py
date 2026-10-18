@@ -3,8 +3,8 @@ from datetime import date
 from unittest.mock import patch
 
 import pytest
-from aircraft_enrichment import CABINS, aircraft_enrichment
-from server import FlightServerHandler
+from backend.aircraft_enrichment import CABINS, aircraft_enrichment
+from backend.server import FlightServerHandler
 
 
 def test_catalogue_totals_sources_and_unknowns():
@@ -43,7 +43,7 @@ def test_variants_are_never_presented_as_airframe_matches():
 
 def test_route_is_independent_of_profile_and_operations():
     handler = object.__new__(FlightServerHandler)
-    with patch("server.api_client.get_callsign_route", return_value={"route_source": "callsign", "departure_latitude": 49}), patch("server.api_client.get_aircraft_profile") as profile, patch("server.api_client.get_flightaware_details") as operations:
+    with patch("backend.server.api_client.get_callsign_route", return_value={"route_source": "callsign", "departure_latitude": 49}), patch("backend.server.api_client.get_aircraft_profile") as profile, patch("backend.server.api_client.get_flightaware_details") as operations:
         assert handler.handle_flight_route("afr123")["departure_latitude"] == 49
         profile.assert_not_called()
         operations.assert_not_called()

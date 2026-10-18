@@ -72,7 +72,7 @@ for operator, item in operators.items():
     validate_image(payload, Path(item["url"]).suffix)
     if hashlib.sha256(payload).hexdigest() != item["sha256"] or item["revision"] not in item["source"]:
         raise SystemExit(f"Operator logo provenance mismatch: {operator}")
-compact = (ROOT / "src/airlineOperatorLogos.ts").read_text()
+compact = (ROOT / "src/shared/airlineOperatorLogos.ts").read_text()
 compiled = {}
 for codes, extension in re.findall(r'\.\.\."([A-Z ]+)"\.split\(" "\)\.map\(code => \[code, `/airline-logos/operators/\$\{code\}(\.png|\.svg)`\]\)', compact):
     compiled.update({code: f"/airline-logos/operators/{code}{extension}" for code in codes.split()})

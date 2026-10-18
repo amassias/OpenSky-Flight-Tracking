@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from aircraft_tracks import AircraftTracks, TraceUnavailable
+from backend.aircraft_tracks import AircraftTracks, TraceUnavailable
 
 NOW = 1_800_000_000
 
@@ -23,8 +23,8 @@ def trace(age=10, *, code="abc123", callsign="TEST42", altitude=10000):
 
 @pytest.fixture(autouse=True)
 def clock(monkeypatch):
-    monkeypatch.setattr("aircraft_tracks.time.time", lambda: NOW)
-    monkeypatch.setattr("aircraft_tracks.time.sleep", lambda _: None)
+    monkeypatch.setattr("backend.aircraft_tracks.time.time", lambda: NOW)
+    monkeypatch.setattr("backend.aircraft_tracks.time.sleep", lambda _: None)
 
 
 def test_independent_source_and_metres_are_returned_and_cached():

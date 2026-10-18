@@ -1,0 +1,1433 @@
+#!/usr/bin/env python3
+"""
+OpenSky Flight Intelligence Server
+
+Run with: python3 -m backend.server
+Open: http://localhost:8000
+"""
+
+import http.server
+import json
+import math
+import logging
+import mimetypes
+import os
+import re
+import socketserver
+import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
+
+from backend.local_env import load_local_env
+
+from backend import aircraft_history
+from backend import airport_live
+from backend.api_client import OpenSkyAPIError, OpenSkyClient
+from backend.registrations import looks_like_icao24, n_number_to_icao24
+from backend.aircraft_enrichment import AIRCRAFT_TYPES, aircraft_enrichment
+from backend.data_loader import get_airline_name, load_airlines, load_airports, search_airports
+from backend.flight_logic import (
+    _chunked,
+    _extract_current_flight_leg,
+    _iso_from_timestamp,
+    _operations_match_current_flight,
+    _parse_utc_date,
+    _safe_float,
+    _safe_int,
+)
+
+load_local_env()
+
+LIVE_AIRLINE_CALLSIGN = re.compile(r"^([A-Z]{3})[0-9]")
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "dist")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+PORT = int(os.getenv("PORT", "8000"))
+
+print("Loading airports database...")
+ALL_AIRPORTS = load_airports()
+print(f"Loaded {len(ALL_AIRPORTS)} airports")
+
+api_client = OpenSkyClient()
+
+POPULAR_AIRPORTS = [
+    "LFPG",
+    "LFPO",
+    "EGLL",
+    "EHAM",
+    "EDDF",
+    "LEMD",
+    "LIRF",
+    "LSZH",
+    "KJFK",
+    "KLAX",
+    "OMDB",
+    "RJTT",
+]
+
+LIVE_SNAPSHOT_CACHE_SECONDS = 60
+HISTORY_RESPONSE_CACHE = {}
+# Last good live board per airport, served (marked degraded) during a provider blip.
+BOARD_RESPONSE_CACHE = {}
+BOARD_STALE_SECONDS = 300
+
+AIRCRAFT_TYPE_DESCRIPTIONS = AIRCRAFT_TYPES
+
+
+def _describe_aircraft_type(type_code):
+    normalized = str(type_code or "").strip().upper()
+    return AIRCRAFT_TYPE_DESCRIPTIONS.get(normalized)
+
+
+def _validate_airport_icao(icao: str) -> str:
+    airport = (icao or "").strip().upper()
+    if len(airport) != 4 or not airport.isalnum():
+        raise ValueError("Airport ICAO must be a 4-character code.")
+    if airport not in ALL_AIRPORTS:
+        raise ValueError(f"Airport {airport} was not found in the local airport database.")
+    return airport
+
+
+def _validate_icao24(icao24: str) -> str:
+    code = (icao24 or "").strip().lower()
+    if len(code) != 6:
+        raise ValueError("icao24 must contain exactly 6 hexadecimal characters.")
+    try:
+        int(code, 16)
+    except ValueError as exc:
+        raise ValueError("icao24 must be a valid hexadecimal string.") from exc
+    return code
+
+
+class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    allow_reuse_address = True
+
+
+class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        parsed_path = urlparse(self.path)
+        query_params = parse_qs(parsed_path.query)
+
+        if parsed_path.path.startswith("/api/"):
+            self._handle_api_request(parsed_path.path, query_params)
+            return
+
+        if parsed_path.path in ("/", "/index.html"):
+            if os.path.exists(os.path.join(FRONTEND_DIST_DIR, "index.html")):
+                self._serve_frontend_file("index.html", cache_seconds=0)
+            else:
+                self._serve_static_file("index.html", cache_seconds=0)
+            return
+
+        if parsed_path.path.startswith("/assets/"):
+            self._serve_frontend_file(parsed_path.path.lstrip("/"), cache_seconds=31536000)
+            return
+
+        if parsed_path.path.startswith("/static/"):
+            # Prevent stale JS/CSS during active development; keep other assets cacheable.
+            ext = os.path.splitext(parsed_path.path)[1].lower()
+            if ext in (".js", ".css", ".map"):
+                cache_seconds = 0
+            else:
+                cache_seconds = 86400
+            self._serve_static_file(parsed_path.path.lstrip("/"), cache_seconds=cache_seconds)
+            return
+
+        if parsed_path.path == "/aircraft.svg":
+            self._serve_static_file("static/aircraft.svg", cache_seconds=86400)
+            return
+
+        # The React client owns navigation. Serve its shell for unknown routes
+        # whenever a production build is available.
+        if os.path.exists(os.path.join(FRONTEND_DIST_DIR, "index.html")):
+            self._serve_frontend_file("index.html", cache_seconds=0)
+            return
+
+        super().do_GET()
+
+    def _handle_api_request(self, path, query_params):
+        try:
+            if path == "/api/health":
+                self.send_json_response(200, self.handle_health())
+                return
+
+            if path == "/api/search-airports":
+                query = query_params.get("q", [""])[0].strip()
+                limit = _safe_int(query_params.get("limit", ["15"])[0], default=15)
+                limit = max(1, min(limit, 100))
+                self.send_json_response(200, self.handle_search_airports(query, limit))
+                return
+
+            if path == "/api/map-airports":
+                self.send_json_response(200, self.handle_get_map_airports())
+                return
+
+            if path == "/api/airports":
+                self.send_json_response(200, self.handle_get_popular_airports())
+                return
+
+            if path in ("/api/flights", "/api/fetch-flights"):
+                airport = query_params.get("airport", ["LFPG"])[0]
+                date_str = query_params.get("date", [datetime.now(timezone.utc).strftime("%Y-%m-%d")])[0]
+                mode = query_params.get("mode", ["departure"])[0]
+                payload = self.handle_flights(airport, date_str, mode)
+                self.send_json_response(200, payload)
+                return
+
+            if path == "/api/airport-conditions":
+                self.send_json_response(200, self.handle_airport_conditions(query_params.get("airport", [""])[0]))
+                return
+
+            if path == "/api/aircraft-history":
+                self.send_json_response(200, self.handle_aircraft_history(query_params.get("icao24", [""])[0]))
+                return
+
+            if path == "/api/aircraft-flights":
+                self.send_json_response(200, self.handle_aircraft_flights(query_params.get("registration", [""])[0]))
+                return
+
+            if path == "/api/aircraft-lookup":
+                self.send_json_response(200, self.handle_aircraft_lookup(query_params.get("q", [""])[0]))
+                return
+
+            if path == "/api/emergencies":
+                self.send_json_response(200, self.handle_emergencies())
+                return
+
+            if path == "/api/callsign-lookup":
+                self.send_json_response(200, self.handle_callsign_lookup(query_params.get("callsign", [""])[0]))
+                return
+
+            if path == "/api/airport-schedule":
+                self.send_json_response(200, self.handle_airport_schedule(
+                    query_params.get("airport", [""])[0], query_params.get("direction", ["departure"])[0]))
+                return
+
+            if path == "/api/airport-board":
+                self.send_json_response(200, self.handle_airport_board(query_params.get("airport", [""])[0]))
+                return
+
+            if path == "/api/live-flights":
+                lamin = query_params.get("lamin", [None])[0]
+                lomin = query_params.get("lomin", [None])[0]
+                lamax = query_params.get("lamax", [None])[0]
+                lomax = query_params.get("lomax", [None])[0]
+                time_param = query_params.get("time", [None])[0]
+                fallback_only = query_params.get("fallback", ["0"])[0].strip().lower() in {"1", "true", "yes"}
+
+                if None in (lamin, lomin, lamax, lomax):
+                    raise ValueError("Missing bounding box parameters: lamin, lomin, lamax, lomax")
+
+                payload = self.handle_live_flights(lamin, lomin, lamax, lomax, time_param, fallback_only)
+                self.send_json_response(200, payload)
+                return
+
+            if path == "/api/flight-route":
+                self.send_json_response(200, self.handle_flight_route(query_params.get("callsign", [""])[0]))
+                return
+
+            if path == "/api/aircraft-enrichment":
+                self.send_json_response(200, aircraft_enrichment(query_params.get("operator", [""])[0], query_params.get("type", [""])[0], query_params.get("registration", [""])[0]))
+                return
+
+            if path == "/api/flight-info":
+                icao24 = query_params.get("icao24", [""])[0]
+                callsign = query_params.get("callsign", [""])[0]
+                payload = self.handle_flight_info(icao24, callsign)
+                self.send_json_response(200, payload)
+                return
+
+            if path == "/api/track":
+                icao24 = query_params.get("icao24", [""])[0]
+                time_param = query_params.get("time", ["0"])[0]
+                payload = self.handle_track(icao24, time_param, query_params.get("callsign", [""])[0])
+                self.send_json_response(200, payload)
+                return
+
+            self.send_error_response(404, f"Unknown API endpoint: {path}")
+
+        except ValueError as exc:
+            self.send_error_response(400, str(exc))
+        except OpenSkyAPIError as exc:
+            status = exc.status_code if exc.status_code in (400, 401, 403, 404, 429) else 502
+            self.send_error_response(status, str(exc), details=exc.payload)
+        except Exception:
+            # Same contract as the Vercel entry point: internals stay in the log.
+            logging.exception("Unhandled SkyTrace API error")
+            self.send_error_response(500, "Internal server error.")
+
+    def send_json_response(self, status_code, data):
+        self.send_response(status_code)
+        self.send_header("Content-type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
+
+    def send_error_response(self, status_code, message, details=None):
+        payload = {"success": False, "error": message}
+        if details:
+            payload["details"] = details
+        self.send_json_response(status_code, payload)
+
+    def _serve_static_file(self, relative_path, cache_seconds=0):
+        target = os.path.join(BASE_DIR, relative_path)
+        target = os.path.abspath(target)
+
+        # Prevent path traversal
+        if not target.startswith(os.path.abspath(BASE_DIR)):
+            self.send_error_response(403, "Forbidden")
+            return
+
+        if not os.path.exists(target) or not os.path.isfile(target):
+            self.send_error_response(404, f"File not found: {relative_path}")
+            return
+
+        mime_type = mimetypes.guess_type(target)[0] or "application/octet-stream"
+
+        with open(target, "rb") as fh:
+            self.send_response(200)
+            self.send_header("Content-type", mime_type)
+            if cache_seconds > 0:
+                self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
+            else:
+                self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(fh.read())
+
+    def _serve_frontend_file(self, relative_path, cache_seconds=0):
+        target = os.path.abspath(os.path.join(FRONTEND_DIST_DIR, relative_path))
+        dist_root = os.path.abspath(FRONTEND_DIST_DIR)
+
+        if not target.startswith(dist_root + os.sep) and target != dist_root:
+            self.send_error_response(403, "Forbidden")
+            return
+
+        if not os.path.isfile(target):
+            self.send_error_response(404, f"Frontend file not found: {relative_path}")
+            return
+
+        mime_type = mimetypes.guess_type(target)[0] or "application/octet-stream"
+        with open(target, "rb") as fh:
+            self.send_response(200)
+            self.send_header("Content-type", mime_type)
+            self.send_header("Cache-Control", f"public, max-age={cache_seconds}" if cache_seconds else "no-store")
+            self.end_headers()
+            self.wfile.write(fh.read())
+
+    def handle_health(self):
+        return {
+            "success": True,
+            "airports_loaded": len(ALL_AIRPORTS),
+            "credentials_configured": api_client.credentials_available(),
+            "flightaware_configured": bool(os.getenv("FLIGHTAWARE_AEROAPI_KEY")),
+            # Per-instance AeroAPI pages spent against the configured ceilings.
+            "flightaware_budget": api_client.flightaware_budget_state(),
+            # The map's live tiles come from public ADS-B feeds (fallback=1),
+            # which need no OpenSky account; credentials only add history.
+            "live_available": True,
+            "server_time_utc": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _airport_payload(self, icao):
+        record = ALL_AIRPORTS.get(icao)
+        if not record:
+            return {
+                "icao": icao,
+                "iata": "",
+                "name": icao,
+                "display_name": icao,
+                "country": "",
+                "region": "",
+                "latitude": None,
+                "longitude": None,
+            }
+
+        return {
+            "icao": icao,
+            "iata": record.get("iata", ""),
+            "name": record.get("name") or icao,
+            "display_name": record.get("display_name") or icao,
+            "country": record.get("country", ""),
+            "region": record.get("region", ""),
+            "city": record.get("city"), "timezone": record.get("timezone"),
+            "airport_type": record.get("airport_type"), "scheduled_service": record.get("scheduled_service"),
+            "military_designation": record.get("military_designation"), "website": record.get("website"),
+            "metadata_source": record.get("metadata_source"),
+            "latitude": _safe_float(record.get("latitude")),
+            "longitude": _safe_float(record.get("longitude")),
+        }
+
+    def handle_search_airports(self, query, limit):
+        if not query:
+            return self.handle_get_popular_airports()[: min(limit, 12)]
+
+        results = search_airports(query, limit=limit)
+        return [self._airport_payload(icao) for icao, _ in results]
+
+    def handle_get_popular_airports(self):
+        return [self._airport_payload(icao) for icao in POPULAR_AIRPORTS if icao in ALL_AIRPORTS]
+
+    def handle_get_map_airports(self):
+        airports = [self._airport_payload(icao) for icao in ALL_AIRPORTS]
+        return [airport for airport in airports
+                if airport["latitude"] is not None and airport["longitude"] is not None
+                and -90 <= airport["latitude"] <= 90 and -180 <= airport["longitude"] <= 180]
+
+    def _state_row_to_object(self, row):
+        def idx(i):
+            return row[i] if len(row) > i else None
+
+        state = {
+            "icao24": idx(0),
+            "callsign": (idx(1) or "").strip(),
+            "origin_country": idx(2),
+            "time_position": idx(3),
+            "last_contact": idx(4),
+            "longitude": idx(5),
+            "latitude": idx(6),
+            "baro_altitude": idx(7),
+            "on_ground": idx(8),
+            "velocity": idx(9),
+            "true_track": idx(10),
+            "vertical_rate": idx(11),
+            "sensors": idx(12),
+            "geo_altitude": idx(13),
+            "squawk": idx(14),
+            "spi": idx(15),
+            "position_source": idx(16),
+            "category": idx(17),
+        }
+        # Public ADS-B fallbacks append a sanitised aircraft profile after the
+        # standard OpenSky state-vector fields. Native OpenSky rows remain
+        # unchanged and simply have no profile to merge.
+        profile = idx(18)
+        if isinstance(profile, dict):
+            state.update(profile)
+        return state
+
+    @staticmethod
+    def _live_airline(callsign):
+        """Airline from an airline-style callsign (three letters then a digit).
+
+        Registration-style callsigns (FHABC, N123AB) are general aviation and
+        must not be matched against airline ICAO codes.
+        """
+        match = LIVE_AIRLINE_CALLSIGN.match(str(callsign or "").strip().upper())
+        if not match:
+            return None, None
+        code = match.group(1)
+        name = load_airlines().get(code)
+        return (code, name) if name else (None, None)
+
+    def _parse_states(self, states_list):
+        parsed = []
+        for state in states_list or []:
+            if len(state) > 6 and state[5] is not None and state[6] is not None:
+                parsed_state = self._state_row_to_object(state)
+                parsed_state["data_source"] = "live-nearby"
+                airline_code, airline_name = self._live_airline(parsed_state.get("callsign"))
+                if airline_name:
+                    parsed_state["airline_code"] = airline_code
+                    parsed_state["airline_name"] = airline_name
+                parsed.append(parsed_state)
+        return parsed
+
+    def _airport_name(self, icao):
+        if not icao:
+            return None
+        entry = ALL_AIRPORTS.get(str(icao).upper())
+        return entry.get("display_name") if entry else str(icao).upper()
+
+    def _normalize_flight(self, flight, mode):
+        callsign = (flight.get("callsign") or "").strip()
+        airline_code = ""
+        if len(callsign) >= 3:
+            code = "".join(ch for ch in callsign[:3] if ch.isalpha())
+            airline_code = code.upper()
+
+        departure_airport = (flight.get("estDepartureAirport") or "").strip().upper() or None
+        arrival_airport = (flight.get("estArrivalAirport") or "").strip().upper() or None
+        first_seen = _safe_int(flight.get("firstSeen"))
+        last_seen = _safe_int(flight.get("lastSeen"))
+        primary_time = first_seen if mode == "departure" else last_seen
+        if primary_time is None:
+            primary_time = first_seen or last_seen
+
+        normalized = {
+            "icao24": (flight.get("icao24") or "").strip().lower(),
+            "callsign": callsign,
+            "airline_code": airline_code,
+            "airline_name": get_airline_name(airline_code) if airline_code else "",
+            "first_seen": first_seen,
+            "last_seen": last_seen,
+            "first_seen_iso": _iso_from_timestamp(first_seen),
+            "last_seen_iso": _iso_from_timestamp(last_seen),
+            "primary_time": primary_time,
+            "primary_time_iso": _iso_from_timestamp(primary_time),
+            "departure_airport": departure_airport,
+            "departure_airport_name": self._airport_name(departure_airport),
+            "arrival_airport": arrival_airport,
+            "arrival_airport_name": self._airport_name(arrival_airport),
+            "route_source": "opensky" if departure_airport or arrival_airport else "unknown",
+            "route_provider": "OpenSky" if departure_airport or arrival_airport else None,
+            "status": "unknown",
+            "latitude": None,
+            "longitude": None,
+            "baro_altitude": None,
+            "geo_altitude": None,
+            "velocity": None,
+            "true_track": None,
+            "vertical_rate": None,
+            "on_ground": None,
+            "category": None,
+            # Backward compatibility for previous frontend fields
+            "dep_timestamp": first_seen,
+            "dep_time_local": _iso_from_timestamp(first_seen),
+            "arr_airport": arrival_airport,
+        }
+
+        return normalized
+
+    def _enrich_live_states(self, flights):
+        if not flights:
+            return
+
+        now_ts = int(time.time())
+
+        candidates = []
+        for flight in flights:
+            icao24 = flight.get("icao24")
+            anchor_time = flight.get("last_seen") or flight.get("first_seen")
+            if not icao24 or anchor_time is None:
+                continue
+
+            # Live state vectors are useful mostly for recent movements.
+            if now_ts - anchor_time <= 36 * 3600:
+                candidates.append(icao24)
+
+        if not candidates:
+            return
+
+        unique_candidates = sorted(set(candidates))
+        state_by_icao = {}
+
+        for chunk in _chunked(unique_candidates, 50):
+            states_payload = api_client.get_states(icao24_list=chunk, extended=True)
+            for state_row in states_payload.get("states", []) or []:
+                state = self._state_row_to_object(state_row)
+                if state.get("icao24"):
+                    state_by_icao[state["icao24"].lower()] = state
+
+        for flight in flights:
+            icao = flight.get("icao24")
+            if not icao:
+                continue
+
+            state = state_by_icao.get(icao)
+            if not state:
+                # If no live state now, infer a broad status from timestamps.
+                if flight.get("last_seen") and now_ts - flight["last_seen"] > 3600:
+                    flight["status"] = "completed"
+                continue
+
+            flight.update(
+                {
+                    "latitude": state.get("latitude"),
+                    "longitude": state.get("longitude"),
+                    "baro_altitude": state.get("baro_altitude"),
+                    "geo_altitude": state.get("geo_altitude"),
+                    "velocity": state.get("velocity"),
+                    "true_track": state.get("true_track"),
+                    "vertical_rate": state.get("vertical_rate"),
+                    "on_ground": state.get("on_ground"),
+                    "category": state.get("category"),
+                    "last_contact": state.get("last_contact"),
+                }
+            )
+
+            if state.get("on_ground") is True:
+                flight["status"] = "on_ground"
+            elif state.get("on_ground") is False:
+                flight["status"] = "airborne"
+            else:
+                flight["status"] = "unknown"
+
+    def _live_nearby_flights(self, airport):
+        """Return a clearly labelled live snapshot for a history outage.
+
+        This is intentionally limited to the current airport area. A live
+        position is not presented as a historical departure or arrival.
+        """
+        metadata = self._airport_payload(airport)
+        latitude = metadata.get("latitude")
+        longitude = metadata.get("longitude")
+        if latitude is None or longitude is None:
+            return []
+
+        bbox = (
+            max(-90.0, latitude - 0.3),
+            max(-180.0, longitude - 0.45),
+            min(90.0, latitude + 0.3),
+            min(180.0, longitude + 0.45),
+        )
+        try:
+            # History already spent its bounded OpenSky proxy attempt. Use one
+            # direct ADS-B tile for the live fallback instead of waiting on the
+            # same unavailable proxy a second time.
+            states_payload = api_client.get_live_fallback_states(bbox=bbox)
+            now = _safe_int((states_payload or {}).get("time"), default=int(time.time()))
+            parsed_states = self._parse_states((states_payload or {}).get("states", []))
+            if not (states_payload or {}).get("degraded"):
+                self._cache_live_snapshot(parsed_states, now)
+        except OpenSkyAPIError:
+            # The map may already have a successful snapshot while this
+            # history request hits a transient provider error. Reuse that
+            # snapshot briefly so the airport panel stays in sync with the
+            # aircraft the user can see on the map.
+            cached = getattr(self, "_live_snapshot_cache", None)
+            if not isinstance(cached, dict) or time.time() - cached.get("cached_at", 0) > LIVE_SNAPSHOT_CACHE_SECONDS:
+                return []
+            now = _safe_int(cached.get("time"), default=int(time.time()))
+            parsed_states = [
+                state for state in cached.get("states", [])
+                if isinstance(state, dict)
+                and state.get("latitude") is not None
+                and state.get("longitude") is not None
+                and bbox[0] <= state["latitude"] <= bbox[2]
+                and bbox[1] <= state["longitude"] <= bbox[3]
+            ]
+
+        nearby = []
+        for state in parsed_states:
+            icao24 = (state.get("icao24") or "").strip().lower()
+            if not icao24:
+                continue
+            callsign = (state.get("callsign") or "").strip()
+            airline_code = "".join(ch for ch in callsign[:3] if ch.isalpha()).upper()
+            timestamp = state.get("time_position") or state.get("last_contact") or now
+            nearby.append(
+                {
+                    "icao24": icao24,
+                    "callsign": callsign,
+                    "airline_code": airline_code,
+                    "airline_name": get_airline_name(airline_code) if airline_code else "",
+                    "first_seen": timestamp,
+                    "last_seen": timestamp,
+                    "first_seen_iso": _iso_from_timestamp(timestamp),
+                    "last_seen_iso": _iso_from_timestamp(timestamp),
+                    "primary_time": timestamp,
+                    "primary_time_iso": _iso_from_timestamp(timestamp),
+                    "departure_airport": None,
+                    "departure_airport_name": None,
+                    "arrival_airport": None,
+                    "arrival_airport_name": None,
+                    "status": "on_ground" if state.get("on_ground") is True else "airborne" if state.get("on_ground") is False else "unknown",
+                    "latitude": state.get("latitude"),
+                    "longitude": state.get("longitude"),
+                    "baro_altitude": state.get("baro_altitude"),
+                    "geo_altitude": state.get("geo_altitude"),
+                    "velocity": state.get("velocity"),
+                    "true_track": state.get("true_track"),
+                    "vertical_rate": state.get("vertical_rate"),
+                    "on_ground": state.get("on_ground"),
+                    "category": state.get("category"),
+                    "data_source": "live-nearby",
+                }
+            )
+        return nearby
+
+    def _cache_live_snapshot(self, states, timestamp):
+        entry = {
+            "cached_at": time.time(),
+            "time": timestamp,
+            "states": states,
+        }
+        history = [
+            item for item in getattr(self, "_live_snapshot_history", [])
+            if isinstance(item, dict)
+            and time.time() - item.get("cached_at", 0) <= LIVE_SNAPSHOT_CACHE_SECONDS
+        ]
+        history.append(entry)
+        # Keep a few viewport snapshots: if a wide request is rate limited
+        # immediately after a zoom-out, the map can still reuse aircraft from
+        # the recent narrower boxes instead of going blank.
+        self._live_snapshot_history = history[-8:]
+        self._live_snapshot_cache = entry
+
+    def _cached_live_states_for_bbox(self, bbox):
+        """Return recent live states that fall inside a requested viewport."""
+        now = time.time()
+        entries = [
+            item for item in getattr(self, "_live_snapshot_history", [])
+            if isinstance(item, dict)
+            and now - item.get("cached_at", 0) <= LIVE_SNAPSHOT_CACHE_SECONDS
+        ]
+        latest = getattr(self, "_live_snapshot_cache", None)
+        if isinstance(latest, dict) and latest not in entries:
+            entries.append(latest)
+        if not entries:
+            return None
+
+        lat_min, lon_min, lat_max, lon_max = bbox
+        states_by_icao = {}
+        latest_time = None
+        for entry in sorted(entries, key=lambda item: item.get("cached_at", 0), reverse=True):
+            entry_time = _safe_int(entry.get("time"), default=None)
+            if entry_time is not None and (latest_time is None or entry_time > latest_time):
+                latest_time = entry_time
+            for state in entry.get("states", []) or []:
+                if not isinstance(state, dict):
+                    continue
+                latitude = _safe_float(state.get("latitude"))
+                longitude = _safe_float(state.get("longitude"))
+                if latitude is None or longitude is None:
+                    continue
+                if not (lat_min <= latitude <= lat_max and lon_min <= longitude <= lon_max):
+                    continue
+                key = str(state.get("icao24") or f"{latitude:.4f}:{longitude:.4f}").lower()
+                states_by_icao.setdefault(key, state)
+
+        return {"time": latest_time, "states": list(states_by_icao.values())}
+
+    def _flights_response(self, airport, mode, target_date, flights, *, source="opensky", notice=None):
+        unique_airlines = {
+            flight.get("airline_code")
+            for flight in flights
+            if flight.get("airline_code") and flight.get("airline_code") != ""
+        }
+        summary = {
+            "total": len(flights),
+            "live_airborne": sum(1 for f in flights if f.get("status") == "airborne"),
+            "live_on_ground": sum(1 for f in flights if f.get("status") == "on_ground"),
+            "unique_airlines": len(unique_airlines),
+        }
+        return {
+            "success": True,
+            "airport": airport,
+            "airport_meta": self._airport_payload(airport),
+            "airport_name": self._airport_name(airport),
+            "mode": mode,
+            "date": target_date.isoformat(),
+            "date_basis": "UTC",
+            "count": len(flights),
+            "summary": summary,
+            "flights": flights,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "source": source,
+            "notice": notice,
+        }
+
+    def handle_flights(self, airport_icao, date_str, mode):
+        airport = _validate_airport_icao(airport_icao)
+        target_date = _parse_utc_date(date_str)
+
+        mode_normalized = (mode or "departure").strip().lower()
+        if mode_normalized not in ("departure", "arrival"):
+            raise ValueError("mode must be either 'departure' or 'arrival'.")
+
+        cache_key = (airport, target_date.isoformat(), mode_normalized)
+        now = time.time()
+        cache_enabled = bool(os.getenv("VERCEL"))
+        cached_response = HISTORY_RESPONSE_CACHE.get(cache_key) if cache_enabled else None
+        if cached_response and now < cached_response[0]:
+            return cached_response[1]
+
+        start_utc = datetime.combine(target_date, datetime.min.time(), tzinfo=timezone.utc)
+        end_utc = start_utc + timedelta(days=1)
+
+        begin_ts = int(start_utc.timestamp())
+        end_ts = int(end_utc.timestamp())
+
+        try:
+            if mode_normalized == "arrival":
+                records = api_client.get_arrivals(airport, begin_ts, end_ts)
+            else:
+                records = api_client.get_departures(airport, begin_ts, end_ts)
+        except OpenSkyAPIError as exc:
+            # OpenSky history requires a working authenticated account and can
+            # be unavailable while the live ADS-B providers still respond. On
+            # Vercel, keep the airport search useful by returning a clearly
+            # labelled nearby snapshot instead of turning the whole panel into
+            # an error state. Local development keeps the original error so a
+            # missing credential is still actionable.
+            if not os.getenv("VERCEL"):
+                raise
+            live_flights = self._live_nearby_flights(airport)
+            live_flights.sort(key=lambda item: item.get("primary_time") or 0, reverse=True)
+            history_reason = "requires valid OpenSky credentials" if exc.status_code in (401, 403) else "is temporarily unavailable"
+            notice = (
+                f"OpenSky history {history_reason} for {target_date.isoformat()}. Showing a live traffic snapshot around {airport}; these are not recorded {mode_normalized}s."
+                if live_flights
+                else f"OpenSky history {history_reason} for {target_date.isoformat()}. Live traffic remains available on the map."
+            )
+            response = self._flights_response(
+                airport,
+                mode_normalized,
+                target_date,
+                live_flights,
+                source="live-nearby" if live_flights else "unavailable",
+                notice=notice,
+            )
+            if cache_enabled:
+                HISTORY_RESPONSE_CACHE[cache_key] = (now + 45, response)
+            return response
+
+        if not isinstance(records, list):
+            raise OpenSkyAPIError("OpenSky returned an invalid flight list.", payload={"response_type": type(records).__name__})
+
+        flights = [self._normalize_flight(flight, mode_normalized) for flight in records if isinstance(flight, dict)]
+
+        # Remove malformed records without icao24.
+        flights = [f for f in flights if f.get("icao24")]
+
+        # The map already refreshes live positions independently. Waiting for
+        # another state-vector pass here delays a complete historical result,
+        # especially on a serverless cold start. Keep local development's
+        # combined view, but return the recorded list immediately in Vercel.
+        if not os.getenv("VERCEL"):
+            self._enrich_live_states(flights)
+
+        sort_key = "first_seen" if mode_normalized == "departure" else "last_seen"
+        flights.sort(key=lambda item: item.get(sort_key) or 0, reverse=True)
+
+        response = self._flights_response(airport, mode_normalized, target_date, flights)
+        if cache_enabled:
+            if len(HISTORY_RESPONSE_CACHE) >= 128:
+                oldest_key = min(HISTORY_RESPONSE_CACHE, key=lambda item: HISTORY_RESPONSE_CACHE[item][0])
+                HISTORY_RESPONSE_CACHE.pop(oldest_key, None)
+            HISTORY_RESPONSE_CACHE[cache_key] = (now + 300, response)
+        return response
+
+    def handle_airport_conditions(self, airport_icao):
+        """Weather, wind-favoured runways, delays and reference data for one airport.
+
+        Each upstream source fails on its own: a missing METAR or an FAA outage
+        leaves the other sections intact and is reported in `unavailable`.
+        """
+        airport = _validate_airport_icao(airport_icao)
+        meta = self._airport_payload(airport)
+        details = airport_live.airport_details(airport)
+        unavailable = []
+        weather = None
+        try:
+            weather = airport_live.fetch_weather(airport, meta.get("latitude"), meta.get("longitude"))
+        except Exception:  # noqa: BLE001 - any provider failure is reported, never fatal
+            unavailable.append("weather")
+        runways = airport_live.runway_wind_components(
+            details["runways"],
+            None if not weather or weather.get("wind_variable") else weather.get("wind_dir"),
+            weather.get("wind_kt") if weather else None,
+        )
+        delays = None
+        if airport_live.faa_covers(airport, meta.get("country") or ""):
+            try:
+                delays = airport_live.faa_delays(airport, meta.get("iata") or "")
+            except Exception:  # noqa: BLE001
+                unavailable.append("delays")
+        return {
+            "success": True,
+            "airport": {**meta, "elevation_ft": details["elevation_ft"], "wikipedia": details["wikipedia"]},
+            "weather": weather,
+            "runways": runways["runways"],
+            "favoured_runways": runways["favoured"],
+            "runway_basis": runways["basis"],
+            "frequencies": details["frequencies"],
+            "delays": delays,
+            "unavailable": unavailable,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def handle_aircraft_history(self, icao24):
+        """One airframe: registry facts, owners and operators over time, and its registry today.
+
+        The offline sources (OpenSky snapshots, FAA registry) are free and instant;
+        the current registered owner comes from ADSBDB's keyless registry lookup.
+        """
+        code = _validate_icao24(icao24)
+        history = aircraft_history.airframe_history(code)
+        registry = api_client.get_aircraft_registry(code)
+        registration = (registry or {}).get("registration") or next((entry["registration"] for entry in history["history"] if entry["registration"] and entry["icao24"] == code), None)
+        sources = list(history["sources"])
+        if registry:
+            sources.append("ADSBDB registry")
+        return {
+            "success": True,
+            **history,
+            "registration": registration,
+            "registry": registry,
+            "found": bool(history["found"] or registry),
+            "sources": sources,
+        }
+
+    def handle_aircraft_flights(self, registration):
+        """Recent flights flown by one tail (FlightAware, on demand, within the shared page budget)."""
+        ident = "".join(character for character in str(registration or "").upper() if character.isalnum())
+        if not ident or len(ident) > 10:
+            raise ValueError("registration must be a valid aircraft registration.")
+        return {"success": True, "registration": ident, "provider": "FlightAware AeroAPI", **api_client.get_flightaware_aircraft_flights(ident)}
+
+    def handle_aircraft_lookup(self, query):
+        """Resolve a registration or hex code typed by a visitor to an ICAO24 code."""
+        text = "".join(str(query or "").upper().split())
+        if not text or len(text) > 10:
+            raise ValueError("Enter a registration or a 6-character ICAO24 code.")
+        if looks_like_icao24(text):
+            code = text.lower()
+            registry = api_client.get_aircraft_registry(code)
+            return {"success": True, "icao24": code, "registration": (registry or {}).get("registration"), "registry": registry}
+        # US registrations convert to their ICAO24 code arithmetically; other
+        # countries are looked up in ADSBDB's registry.
+        code = n_number_to_icao24(text)
+        registry = api_client.get_aircraft_registry(text)
+        code = (registry or {}).get("icao24") or code
+        if not code:
+            raise ValueError(f"No aircraft found for {text}.")
+        return {"success": True, "icao24": code, "registration": (registry or {}).get("registration") or text, "registry": registry}
+
+    def handle_emergencies(self):
+        payload = api_client.get_emergency_states()
+        states = self._parse_states(payload.get("states", []))
+        self._enrich_live_states(states)
+        return {"success": True, "states": states, "count": len(states), "time": payload["time"], "provider": payload["provider"],
+                "status": payload.get("status", "fresh"), "observed_at": payload.get("observed_at", payload["time"]),
+                "last_success_at": payload.get("last_success_at", payload["time"]),
+                "retry_after_seconds": payload.get("retry_after_seconds", 60)}
+
+    def handle_callsign_lookup(self, callsign):
+        """Find the aircraft flying a callsign right now, so a scheduled flight can be followed live."""
+        ident = "".join(ch for ch in str(callsign or "").upper() if ch.isalnum())
+        if not 2 <= len(ident) <= 8:
+            raise ValueError("Enter a flight callsign.")
+        states = api_client.get_live_callsign_states(ident)
+        parsed = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
+        parsed = [item for item in parsed if item.get("latitude") is not None and item.get("longitude") is not None
+                  and "".join(str(item.get("callsign") or "").upper().split()) == ident
+                  and isinstance(item.get("last_contact"), (int, float)) and 0 <= time.time() - item["last_contact"] <= 90]
+        if parsed:
+            self._enrich_live_states(parsed)
+        return {"success": True, "found": bool(parsed), "aircraft": parsed[0] if parsed else None}
+
+    def handle_airport_schedule(self, airport_icao, direction):
+        """FlightAware's next airline departures or arrivals, with airline names filled in."""
+        airport = _validate_airport_icao(airport_icao)
+        direction = (direction or "departure").strip().lower()
+        if direction not in ("departure", "arrival"):
+            raise ValueError("direction must be either 'departure' or 'arrival'.")
+        schedule = api_client.get_flightaware_airport_schedule(airport, direction)
+        flights = []
+        for flight in schedule.get("flights", []):
+            code = flight.get("airline_code") or (flight.get("ident_icao") or "")[:3]
+            flights.append({**flight, "airline_name": flight.get("airline_name") or (get_airline_name(code) if code else None)})
+        return {
+            "success": True,
+            "airport": airport,
+            "direction": direction,
+            "provider": "FlightAware AeroAPI",
+            **schedule,
+            "flights": flights,
+        }
+
+    def handle_airport_board(self, airport_icao):
+        """Departures and arrivals observed live by ADS-B around one airport."""
+        airport = _validate_airport_icao(airport_icao)
+        meta = self._airport_payload(airport)
+        if meta.get("latitude") is None or meta.get("longitude") is None:
+            raise ValueError(f"Airport {airport} has no coordinates.")
+        details = airport_live.airport_details(airport)
+        latitude, longitude = meta["latitude"], meta["longitude"]
+        radius_deg = airport_live.BOARD_RADIUS_NM / 60
+        bbox = (
+            max(-90.0, latitude - radius_deg),
+            max(-180.0, longitude - radius_deg / max(0.2, math.cos(math.radians(latitude)))),
+            min(90.0, latitude + radius_deg),
+            min(180.0, longitude + radius_deg / max(0.2, math.cos(math.radians(latitude)))),
+        )
+        payload, degraded = None, False
+        try:
+            payload = api_client.get_live_point_states(latitude, longitude, airport_live.BOARD_RADIUS_NM)
+        except OpenSkyAPIError as exc:
+            # The public provider shares its rate limit with the map tiles.
+            # Fall back to the authenticated feed, then to the map's own
+            # recent snapshot, then to the last board, each labelled degraded.
+            degraded = True
+            try:
+                payload = api_client.get_states(bbox=bbox, extended=True)
+            except OpenSkyAPIError:
+                payload = self._cached_live_states_for_bbox(bbox)
+                if payload and payload.get("states"):
+                    payload = {"time": payload.get("time"), "states": payload["states"], "provider": "recent map snapshot", "parsed": True}
+                else:
+                    stale = BOARD_RESPONSE_CACHE.get(airport)
+                    if stale and time.time() - stale[0] <= BOARD_STALE_SECONDS:
+                        return {**stale[1], "degraded": True}
+                    raise exc
+        now = _safe_int((payload or {}).get("time"), default=int(time.time()))
+        raw_states = (payload or {}).get("states", [])
+        states = raw_states if (payload or {}).get("parsed") else self._parse_states(raw_states)
+        board = airport_live.build_board({**meta, "elevation_ft": details["elevation_ft"]}, states, now)
+        response = {
+            "success": True,
+            "airport": airport,
+            "time": now,
+            "provider": (payload or {}).get("provider") or "opensky",
+            "degraded": degraded or bool((payload or {}).get("degraded")),
+            **board,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if len(BOARD_RESPONSE_CACHE) >= 64:
+            BOARD_RESPONSE_CACHE.pop(min(BOARD_RESPONSE_CACHE, key=lambda key: BOARD_RESPONSE_CACHE[key][0]), None)
+        BOARD_RESPONSE_CACHE[airport] = (time.time(), response)
+        return response
+
+    def handle_live_flights(self, lamin, lomin, lamax, lomax, time_param=None, fallback_only=False):
+        bbox = (
+            _safe_float(lamin),
+            _safe_float(lomin),
+            _safe_float(lamax),
+            _safe_float(lomax),
+        )
+
+        if None in bbox:
+            raise ValueError("Bounding box values must be valid numbers.")
+
+        lat_min, lon_min, lat_max, lon_max = bbox
+        if lat_min < -90 or lat_max > 90 or lon_min < -180 or lon_max > 180:
+            raise ValueError("Bounding box is outside valid latitude/longitude ranges.")
+        if lat_min >= lat_max or lon_min >= lon_max:
+            raise ValueError("Invalid bounding box ordering.")
+
+        time_sec = _safe_int(time_param) if time_param else None
+        try:
+            states = (
+                api_client.get_live_fallback_states(bbox=bbox)
+                if fallback_only and time_sec is None
+                else api_client.get_states(bbox=bbox, extended=True, time_sec=time_sec)
+            )
+        except OpenSkyAPIError as exc:
+            if not (os.getenv("VERCEL") and time_sec is None and (exc.status_code is None or exc.status_code >= 500 or exc.status_code == 429)):
+                raise
+            cached = self._cached_live_states_for_bbox(bbox)
+            if cached is not None:
+                cached_states = cached.get("states", [])
+                cached_time = cached.get("time")
+                return {
+                    "success": True,
+                    "time": cached_time,
+                    "time_iso": _iso_from_timestamp(cached_time),
+                    "count": len(cached_states),
+                    "states": cached_states,
+                    "degraded": True,
+                    "notice": "Live refresh delayed. Showing the last snapshot for this viewport.",
+                }
+            return {
+                "success": True,
+                "time": None,
+                "time_iso": None,
+                "count": 0,
+                "states": [],
+                "degraded": True,
+                "notice": "Live traffic is temporarily unavailable. Keeping the last snapshot when available.",
+            }
+        parsed_states = self._parse_states(states.get("states", []) if isinstance(states, dict) else [])
+        degraded = bool(states.get("degraded")) if isinstance(states, dict) else False
+        if not degraded:
+            self._cache_live_snapshot(parsed_states, states.get("time") if isinstance(states, dict) else None)
+
+        payload = {
+            "success": True,
+            "time": states.get("time") if isinstance(states, dict) else None,
+            "time_iso": _iso_from_timestamp(states.get("time") if isinstance(states, dict) else None),
+            "count": len(parsed_states),
+            "states": parsed_states,
+        }
+        if isinstance(states, dict):
+            for key in ("provider", "credit_cost", "refresh_after_seconds", "coverage_tiles", "coverage_complete"):
+                if states.get(key) is not None:
+                    payload[key] = states[key]
+        if degraded:
+            payload["degraded"] = True
+            payload["notice"] = states.get("notice") or "Live refresh delayed. Showing the last snapshot for this viewport."
+        return payload
+
+    def handle_flight_route(self, callsign):
+        ident = str(callsign or "").strip().upper()
+        if not re.fullmatch(r"[A-Z0-9]{2,8}", ident):
+            raise ValueError("Invalid callsign.")
+        route = api_client.get_callsign_route(ident)
+        return {"success": True, "callsign": ident, **(route or {})}
+
+    def handle_flight_info(self, icao24, callsign_param=""):
+        code = _validate_icao24(icao24)
+        provided_callsign = (callsign_param or "").strip()
+
+        current_state = None
+        callsign_route = None
+        flightaware = None
+        route_queried = False
+        flightaware_queried = False
+
+        # A map click already gives us the callsign. Profile, route and
+        # operational details are independent network lookups, so resolve them
+        # together instead of making the drawer wait for their combined time.
+        if provided_callsign:
+            route_queried = True
+            flightaware_queried = True
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                profile_future = executor.submit(api_client.get_aircraft_profile, code)
+                route_future = executor.submit(api_client.get_callsign_route, provided_callsign)
+                operations_future = executor.submit(api_client.get_flightaware_details, provided_callsign, None)
+                try:
+                    profile_response = profile_future.result()
+                    profile_row = profile_response.get("state") if isinstance(profile_response, dict) else None
+                    if isinstance(profile_row, list):
+                        current_state = self._state_row_to_object(profile_row)
+                except Exception:
+                    current_state = None
+                try:
+                    candidate_route = route_future.result()
+                    callsign_route = candidate_route if isinstance(candidate_route, dict) else None
+                except Exception:
+                    callsign_route = None
+                try:
+                    candidate_operations = operations_future.result()
+                    flightaware = candidate_operations if isinstance(candidate_operations, dict) else None
+                except Exception:
+                    flightaware = None
+        else:
+            try:
+                profile_response = api_client.get_aircraft_profile(code)
+                profile_row = profile_response.get("state") if isinstance(profile_response, dict) else None
+                if isinstance(profile_row, list):
+                    current_state = self._state_row_to_object(profile_row)
+            except Exception:
+                current_state = None
+
+        # For an on-demand live lookup, the selected state already contains the
+        # telemetry shown by the UI. Only ask OpenSky when the profile lookup
+        # could not return a current state and the browser did not provide a
+        # callsign (the latter is the fast path for map clicks).
+        flights = []
+        if not provided_callsign and current_state is None:
+            try:
+                states = api_client.get_states(icao24_list=[code], extended=True)
+                if states and states.get("states"):
+                    current_state = self._state_row_to_object(states["states"][0])
+            except OpenSkyAPIError:
+                # Route enrichment should still be useful when the live provider
+                # is unavailable. Historical flight data and the callsign resolver are
+                # independent sources and can fill the details panel separately.
+                pass
+
+            end_time = int(time.time())
+            # Keep the interval to 24h to avoid spilling over >2 day partitions.
+            begin_time = end_time - 24 * 3600
+            try:
+                flights = api_client.get_flights_by_aircraft(code, begin_time, end_time)
+            except OpenSkyAPIError:
+                flights = []
+
+        most_recent = None
+        if flights:
+            flights_sorted = sorted(flights, key=lambda f: _safe_int(f.get("lastSeen"), 0))
+            most_recent = flights_sorted[-1]
+
+        historical_callsign = ((most_recent or {}).get("callsign") or "").strip()
+        current_callsign = (current_state or {}).get("callsign", "").strip()
+        callsign = provided_callsign or current_callsign or historical_callsign
+
+        if callsign and not callsign_route and not route_queried:
+            try:
+                callsign_route = api_client.get_callsign_route(callsign)
+            except Exception:
+                # A third-party route resolver is an enrichment only; it must
+                # never turn a valid aircraft selection into an API error.
+                callsign_route = None
+        if not isinstance(callsign_route, dict):
+            callsign_route = None
+
+        # FlightAware is the operational enrichment source connected to the
+        # user's Hermes flight-tracker skill. Keep it strictly on this
+        # selection endpoint: map polling never calls it, and the client/server
+        # caches keep repeat opens inside a conservative free-plan cadence.
+        if callsign and not flightaware_queried:
+            try:
+                candidate = api_client.get_flightaware_details(
+                    callsign,
+                    (current_state or {}).get("registration"),
+                )
+                if isinstance(candidate, dict):
+                    flightaware = candidate
+            except Exception:
+                # Operational enrichment is optional. A FlightAware timeout or
+                # quota response must never hide the live ADS-B details.
+                flightaware = None
+
+        # A route for the current operational episode outranks a usual
+        # callsign route. Reject yesterday's flight or a different airframe.
+        operations_match = _operations_match_current_flight(flightaware, callsign, current_state)
+        if flightaware:
+            flightaware = {**flightaware, "matches_current_flight": operations_match}
+        if not operations_match:
+            flightaware = None
+
+        historical_departure = (most_recent.get("estDepartureAirport") if most_recent else None) or None
+        historical_arrival = (most_recent.get("estArrivalAirport") if most_recent else None) or None
+        route_departure = (callsign_route or {}).get("departure_airport")
+        route_arrival = (callsign_route or {}).get("arrival_airport")
+        flightaware_origin = (flightaware or {}).get("origin") if isinstance((flightaware or {}).get("origin"), dict) else {}
+        flightaware_destination = (flightaware or {}).get("destination") if isinstance((flightaware or {}).get("destination"), dict) else {}
+        flightaware_departure = flightaware_origin.get("code_icao") or flightaware_origin.get("code") or flightaware_origin.get("code_iata")
+        flightaware_arrival = flightaware_destination.get("code_icao") or flightaware_destination.get("code") or flightaware_destination.get("code_iata")
+        departure_airport = flightaware_departure or historical_departure or route_departure
+        arrival_airport = flightaware_arrival or historical_arrival or route_arrival
+
+        if flightaware_departure or flightaware_arrival:
+            complete = bool(flightaware_departure and flightaware_arrival)
+            route_source = "flightaware" if complete else "mixed"
+            route_provider = "FlightAware" if complete else "FlightAware + route fallback"
+        elif historical_departure or historical_arrival:
+            missing_from_history = not historical_departure or not historical_arrival
+            if missing_from_history and callsign_route:
+                route_source = "mixed"
+                route_provider = "OpenSky + ADSBDB"
+            elif missing_from_history and flightaware:
+                route_source = "mixed"
+                route_provider = "OpenSky + FlightAware"
+            else:
+                route_source = "opensky"
+                route_provider = "OpenSky"
+        elif callsign_route:
+            route_source = "callsign"
+            route_provider = callsign_route.get("route_provider")
+        elif flightaware:
+            route_source = "flightaware"
+            route_provider = "FlightAware"
+        else:
+            route_source = "unknown"
+            route_provider = None
+
+        def route_name(airport_code, key):
+            if not airport_code:
+                callsign_name = (callsign_route or {}).get(key)
+                if callsign_name:
+                    return callsign_name
+                airport = flightaware_origin if key == "departure_airport_name" else flightaware_destination
+                return airport.get("name") or airport.get("city")
+            local_name = self._airport_name(airport_code)
+            route_key = "departure_airport" if key == "departure_airport_name" else "arrival_airport"
+            external_name = (callsign_route or {}).get(key) if (callsign_route or {}).get(route_key) == airport_code else None
+            if external_name and local_name == str(airport_code).upper():
+                return external_name
+            airport = flightaware_origin if key == "departure_airport_name" else flightaware_destination
+            flightaware_name = airport.get("name") or airport.get("city")
+            if flightaware_name and local_name == str(airport_code).upper():
+                return flightaware_name
+            return local_name
+
+        resolved_aircraft_type = (current_state or {}).get("aircraft_type") or (flightaware or {}).get("aircraft_type")
+        resolved_registration = (current_state or {}).get("registration") or (flightaware or {}).get("registration")
+        # The transponder's registration identifies the physical airframe.
+        # FlightAware's tail is the aircraft *scheduled* for this flight number,
+        # which differs after an aircraft swap, so the client must not treat it
+        # as the airframe's identity (label a photo with it, or look one up).
+        registration_source = (
+            "adsb" if (current_state or {}).get("registration")
+            else "schedule" if resolved_registration
+            else None
+        )
+        resolved_aircraft_description = (current_state or {}).get("aircraft_description") or _describe_aircraft_type(resolved_aircraft_type)
+
+        payload = {
+            "success": True,
+            "icao24": code,
+            "callsign": callsign,
+            "airline_code": (callsign_route or {}).get("airline_code") or ("".join(ch for ch in callsign[:3] if ch.isalpha()).upper() if callsign else ""),
+            "airline_name": (callsign_route or {}).get("airline_name") or "",
+            "departure_airport": departure_airport,
+            "departure_airport_name": route_name(departure_airport, "departure_airport_name"),
+            "arrival_airport": arrival_airport,
+            "arrival_airport_name": route_name(arrival_airport, "arrival_airport_name"),
+            "first_seen": _safe_int((most_recent or {}).get("firstSeen")),
+            "last_seen": _safe_int((most_recent or {}).get("lastSeen")),
+            "first_seen_iso": _iso_from_timestamp((most_recent or {}).get("firstSeen")),
+            "last_seen_iso": _iso_from_timestamp((most_recent or {}).get("lastSeen")),
+            "route_source": route_source,
+            "route_provider": route_provider,
+            "departure_latitude": (callsign_route or {}).get("departure_latitude") if departure_airport == (callsign_route or {}).get("departure_airport") else None,
+            "departure_longitude": (callsign_route or {}).get("departure_longitude") if departure_airport == (callsign_route or {}).get("departure_airport") else None,
+            "arrival_latitude": (callsign_route or {}).get("arrival_latitude") if arrival_airport == (callsign_route or {}).get("arrival_airport") else None,
+            "arrival_longitude": (callsign_route or {}).get("arrival_longitude") if arrival_airport == (callsign_route or {}).get("arrival_airport") else None,
+            "live_state": current_state,
+            "flightaware": flightaware,
+            "registration": resolved_registration,
+            "registration_source": registration_source,
+            "aircraft_type": resolved_aircraft_type,
+            "aircraft_description": resolved_aircraft_description,
+        }
+
+        if current_state:
+            payload.update(
+                {
+                    "latitude": current_state.get("latitude"),
+                    "longitude": current_state.get("longitude"),
+                    "baro_altitude": current_state.get("baro_altitude"),
+                    "geo_altitude": current_state.get("geo_altitude"),
+                    "velocity": current_state.get("velocity"),
+                    "true_track": current_state.get("true_track"),
+                    "vertical_rate": current_state.get("vertical_rate"),
+                    "on_ground": current_state.get("on_ground"),
+                    "status": "on_ground" if current_state.get("on_ground") is True else "airborne" if current_state.get("on_ground") is False else "unknown",
+                }
+            )
+            for key in (
+                "registration", "aircraft_type", "aircraft_description", "aircraft_owner",
+                "aircraft_year", "aircraft_category", "emergency", "nav_qnh",
+                "nav_altitude_mcp", "nav_heading", "nav_modes", "messages", "rssi",
+                "seen_seconds", "seen_position_seconds", "nic", "rc", "nac_p", "nac_v",
+                "sil", "sil_type", "source", "squawk", "category", "last_contact", "time_position",
+            ):
+                if current_state.get(key) is not None:
+                    payload[key] = current_state[key]
+
+        return payload
+
+    def _track_for_candidate_times(self, icao24, candidate_times, callsign=""):
+        seen = set()
+        attempted = []
+        best_empty = {}
+        last_error = None
+
+        for raw_time in candidate_times:
+            t = _safe_int(raw_time, default=None)
+            if t is None or t < 0:
+                continue
+            if t in seen:
+                continue
+            seen.add(t)
+            attempted.append(t)
+
+            try:
+                track = (api_client.get_track(icao24, t, callsign=callsign) if callsign else api_client.get_track(icao24, t)) or {}
+            except OpenSkyAPIError as exc:
+                # Try remaining timestamps, but preserve a provider outage as
+                # an error so the browser can retry rather than hide the chart.
+                last_error = exc
+                continue
+            except Exception:
+                # Unexpected error (e.g. non-dict response) — skip this timestamp
+                continue
+
+            # Guard against non-dict responses (e.g. plain-text error pages)
+            if not isinstance(track, dict):
+                continue
+
+            if track.get("path"):
+                return track, attempted, t
+            if not best_empty:
+                best_empty = track
+
+        if last_error is not None:
+            raise last_error
+        return best_empty, attempted, None
+
+    def handle_track(self, icao24, time_param, callsign=""):
+        code = _validate_icao24(icao24)
+        track_time = _safe_int(time_param, default=0)
+        if track_time is None:
+            raise ValueError("time must be an integer Unix timestamp")
+
+        # A serverless ADS-B trace is the latest airframe trace, not an
+        # archive for the requested flight. Never use it for historical dates.
+        if os.getenv("VERCEL") and track_time != 0:
+            return {"success": True, "track": {}, "path_count": 0,
+                    "message": "Historical tracks are unavailable from the serverless deployment.",
+                    "attempted_times": []}
+
+        # Do not borrow another flight's timestamp when this trace is missing.
+        track_data, attempted_times, resolved_time = self._track_for_candidate_times(code, [track_time], callsign)
+        path = (track_data or {}).get("path") or []
+        expected_callsign = "".join(str(callsign or "").upper().split())
+        actual_callsign = "".join(str((track_data or {}).get("callsign") or "").upper().split())
+        actual_code = str((track_data or {}).get("icao24") or code).lower()
+        valid_times = [p[0] for p in path if isinstance(p, (list, tuple)) and p and isinstance(p[0], (int, float))]
+        wrong_identity = actual_code != code or (expected_callsign and actual_callsign and expected_callsign != actual_callsign)
+        wrong_time = bool(path) and (not valid_times or (
+            time.time() - max(valid_times) > 15 * 60 or max(valid_times) > time.time() + 60
+            if track_time == 0 else not min(valid_times) - 15 * 60 <= track_time <= max(valid_times) + 60
+        ))
+        if wrong_identity or wrong_time:
+            return {"success": True, "track": {}, "path_count": 0,
+                    "message": "No matching track for this flight. An earlier flight's trace was excluded.",
+                    "attempted_times": attempted_times}
+
+        if not track_data or not track_data.get("path"):
+            return {
+                "success": True,
+                "track": track_data or {},
+                "path_count": 0,
+                "message": "No track data available for this request.",
+                "attempted_times": attempted_times,
+            }
+
+        full_path = track_data.get("path", [])
+        leg_start = track_data.get("leg_start")
+        if track_time == 0 and isinstance(leg_start, (int, float)):
+            full_path = [p for p in full_path if p[0] >= leg_start]
+        path = _extract_current_flight_leg(full_path)
+        current_leg_track = dict(track_data)
+        current_leg_track["path"] = path
+        current_leg_track["emergency_events"] = [event for event in track_data.get("emergency_events", [])
+            if path and event.get("last_seen", 0) >= path[0][0]
+            and (not expected_callsign or "".join(str(event.get("callsign") or "").upper().split()) == expected_callsign)]
+        if path:
+            current_leg_track["startTime"] = path[0][0]
+            current_leg_track["endTime"] = path[-1][0]
+        altitudes = [p[3] for p in path if len(p) > 3 and p[3] is not None]
+
+        summary = {
+            "path_count": len(path),
+            "start_time": current_leg_track.get("startTime"),
+            "end_time": current_leg_track.get("endTime"),
+            "start_time_iso": _iso_from_timestamp(current_leg_track.get("startTime")),
+            "end_time_iso": _iso_from_timestamp(current_leg_track.get("endTime")),
+            "duration_seconds": (
+                _safe_int(current_leg_track.get("endTime"), 0) - _safe_int(current_leg_track.get("startTime"), 0)
+                if current_leg_track.get("startTime") is not None and current_leg_track.get("endTime") is not None
+                else None
+            ),
+            "max_altitude_m": max(altitudes) if altitudes else None,
+            "min_altitude_m": min(altitudes) if altitudes else None,
+        }
+
+        return {
+            "success": True,
+            "track": current_leg_track,
+            "summary": summary,
+            "path_count": len(path),
+            "resolved_time": resolved_time,
+            "attempted_times": attempted_times,
+        }
+
+
+
+def run_server():
+    with ThreadingTCPServer(("", PORT), FlightServerHandler) as httpd:
+        print("\n" + "=" * 64)
+        print("OpenSky Flight Intelligence Server")
+        print("=" * 64)
+        print(f"Server URL: http://localhost:{PORT}")
+        print(f"Credentials configured: {'yes' if api_client.credentials_available() else 'no'}")
+        print("Press Ctrl+C to stop")
+        print("=" * 64 + "\n")
+
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nServer stopped.")
+
+
+if __name__ == "__main__":
+    run_server()
