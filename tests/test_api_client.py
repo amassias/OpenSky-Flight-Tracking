@@ -821,6 +821,7 @@ def test_off_vercel_the_world_is_fetched_from_opensky_directly(monkeypatch):
 
 
 def test_global_states_never_fall_back_to_a_radius_provider(monkeypatch):
+    monkeypatch.setenv("SKYTRACE_GLOBAL_SNAPSHOT_URL", "off")  # the proxy path, never the network
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
     monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
