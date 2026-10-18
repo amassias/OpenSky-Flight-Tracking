@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { listEmptyMessage } from "../../map/liveStatus";
 import { ArrowDownUp, Filter, Plane, Search, TrendDown, TrendUp, TriangleAlert } from "../../../shared/components/icons";
 import { usePersistentState } from "../../../shared/hooks/usePersistentState";
 import type { Flight } from "../../../shared/types";
@@ -28,6 +29,8 @@ interface FlightListProps {
   onRetry: () => void;
   /** Map centre for the "Nearest" sort; live positions are measured from it. */
   referencePoint?: [number, number] | null;
+  /** Live variant: what to say when no aircraft are listed, when the cause is known. */
+  emptyMessage?: string;
 }
 
 interface FlightCardProps {
@@ -109,6 +112,7 @@ export function FlightList({
   onPreview,
   onRetry,
   referencePoint = null,
+  emptyMessage,
 }: FlightListProps) {
   const [query, setQuery] = useState("");
   const live = variant === "live";
@@ -257,9 +261,9 @@ export function FlightList({
         {!loading && !errorMessage && hasSearched && flights.length === 0 && (
           <div className="message-state">
             <Plane size={26} aria-hidden="true" />
-            <h3>{live ? "No aircraft in view" : notice ? "Historical data unavailable" : "No movements found"}</h3>
+            <h3>{live ? (emptyMessage ? "Live traffic unavailable" : "No aircraft in view") : notice ? "Historical data unavailable" : "No movements found"}</h3>
             {/* The notice itself is already shown above the list; say what to do instead of repeating it. */}
-            <p>{live ? "Zoom out or move the map to a busier area. The list follows what the map shows." : notice ? "Try again in a moment, or switch to Live for the aircraft around this airport now." : "No recorded flights for this airport and date. Try the previous day."}</p>
+            <p>{live ? emptyMessage ?? listEmptyMessage(null) : notice ? "Try again in a moment, or switch to Live for the aircraft around this airport now." : "No recorded flights for this airport and date. Try the previous day."}</p>
             {notice && <button type="button" className="secondary-button" onClick={onRetry}>Try again</button>}
           </div>
         )}

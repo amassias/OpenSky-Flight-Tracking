@@ -193,3 +193,50 @@ def test_anonymous_opensky_slows_the_cadence_to_its_small_bucket():
     snapshot = GlobalSnapshot(FakeUpstream(upstream([], provider="opensky-anonymous")), clock=Clock())
     snapshot.get()
     assert 86_400 / snapshot.refresh_seconds * 4 <= 400
+
+
+def test_degraded_answer_names_the_real_cause(client_with):
+    clock = Clock()
+    fake = FakeUpstream(upstream([opensky_row()]), OpenSkyAPIError("boom", status_code=503))
+    client = client_with(fake, clock)
+    client.get("/api/global-snapshot")
+    clock.now += 130
+
+    provider_down = client.get("/api/global-snapshot").json()
+
+    assert provider_down["degraded_reason"] == "provider"
+    assert provider_down["age_seconds"] == 130
+
+
+def test_over_quota_answer_names_the_quota_not_the_provider(client_with):
+    clock = Clock()
+    clock.now = (NOW // 86_400) * 86_400 + 100
+    client = client_with(FakeUpstream(upstream([opensky_row()])), clock, daily_budget=4, refresh_seconds=10)
+    client.get("/api/global-snapshot")
+    clock.now += 11
+
+    payload = client.get("/api/global-snapshot").json()
+
+    assert payload["degraded_reason"] == "quota"
+    assert payload["count"] == 1
+
+
+def test_upstream_rate_limit_is_a_quota_cause(client_with):
+    clock = Clock()
+    client = client_with(FakeUpstream(upstream([opensky_row()]), OpenSkyAPIError("limit", status_code=429)), clock)
+    client.get("/api/global-snapshot")
+    clock.now += 130
+
+    assert client.get("/api/global-snapshot").json()["degraded_reason"] == "quota"
+
+
+def test_healthy_answer_has_no_degraded_reason(client_with):
+    payload = client_with(FakeUpstream(upstream([opensky_row()]))).get("/api/global-snapshot").json()
+
+    assert "degraded_reason" not in payload
+
+
+def test_quota_failure_without_snapshot_is_429(client_with):
+    response = client_with(FakeUpstream(OpenSkyAPIError("limit", status_code=429))).get("/api/global-snapshot")
+
+    assert response.status_code == 429
