@@ -5,7 +5,7 @@ import { MAP_COLORS } from "../aircraftLayer";
 import { AircraftGlLayer } from "./AircraftGlLayer";
 import { MapCanvas } from "./MapCanvas";
 import { useMapHandle, type MapHandle } from "../mapHandle";
-import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
+import { focusLabels, labelLevelForZoom, placeLabels, type FocusReason, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
 import { destinationGuide } from "../futurePath";
 import { positionAge, positionAgeLabel, sameLiveFlight } from "../../flights/flightTelemetry";
@@ -306,8 +306,8 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   return null;
 }, areMarkersEqual);
 
-function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense, theme, onSelect, hoverStore }: {
-  aircraft: readonly LiveAircraft[]; selectedId: string | null; previewId?: string; labelsEnabled: boolean;
+function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEnabled, dense, theme, onSelect, hoverStore }: {
+  aircraft: readonly LiveAircraft[]; selectedId: string | null; followedId: string | null; previewId?: string; labelsEnabled: boolean;
   dense: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; hoverStore: AircraftHoverStore;
 }) {
   const { map } = useMapHandle();
@@ -327,32 +327,40 @@ function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense
     map.on("zoomstart", clear);
     return () => { map.getContainer().removeEventListener("pointermove", resume); map.off("movestart", clear); map.off("zoomstart", clear); hoverStore.clear(); };
   }, [hoverStore, map]);
-  const [view, setView] = useState(() => ({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds() }));
+  const [view, setView] = useState(() => ({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds(), center: map.getCenter() }));
   useEffect(() => {
-    const update = () => setView({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds() });
+    const update = () => setView({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds(), center: map.getCenter() });
     map.on("zoomend", update);
     map.on("moveend", update);
     map.on("resize", update);
     return () => { map.off("zoomend", update); map.off("moveend", update); map.off("resize", update); };
   }, [map]);
-  const level = labelsEnabled && !dense ? labelLevelForZoom(view.zoom) : 0;
-  const shown = useMemo(() => {
-    if (!level) return new Set<string>();
-    return placeLabels(aircraft.flatMap(item => {
-      if (item.latitude == null || item.longitude == null || !containsPoint(view.bounds, item.latitude, item.longitude)) return [];
+  // Focus labels: only the selected and followed aircraft, emergencies and the few aircraft
+  // nearest the centre carry a label; every other aircraft stays a plain silhouette.
+  const level = labelLevelForZoom(view.zoom);
+  const labelled = useMemo(() => {
+    if (!labelsEnabled) return new Map<string, LabelLevel>();
+    const focus = focusLabels({ aircraft, selectedId, followedId, center: view.center, zoom: view.zoom,
+      inView: item => containsPoint(view.bounds, item.latitude!, item.longitude!) });
+    const byId = new Map(aircraft.map(item => [item.icao24, item]));
+    const priority: Record<FocusReason, number> = { selected: 4, followed: 3, emergency: 2, nearest: 1 };
+    const kept = placeLabels(focus.flatMap(({ id, reason }) => {
+      const item = byId.get(id)!;
+      if (item.latitude == null || item.longitude == null) return [];
       const point = map.project([item.longitude, item.latitude]);
-      const selected = item.icao24 === selectedId;
-      const detail = selected || level >= 3;
-      return [{ id: item.icao24, x: point.x + 18, y: point.y - (detail ? 21 : 14),
+      const detail = id === selectedId || level >= 3;
+      return [{ id, priority: priority[reason], x: point.x + 18, y: point.y - (detail ? 21 : 14),
         width: detail ? 172 : Math.max(85, (item.callsign || item.registration || item.icao24).length * 8 + (level >= 2 ? 38 : 16)), height: detail ? 44 : 30 }];
     }), selectedId);
-  }, [aircraft, level, map, selectedId, view]);
-  // Dense views draw silhouettes in the WebGL layer; the selected aircraft keeps its detailed marker.
-  const detailed = dense ? aircraft.filter(item => item.icao24 === selectedId) : aircraft;
-  return <>{dense && <AircraftGlLayer aircraft={aircraft} theme={theme} previewId={previewId ?? null} excludeId={selectedId}
+    return new Map([...kept].map(id => [id, id === selectedId ? 3 : Math.max(1, level) as LabelLevel]));
+  }, [aircraft, followedId, labelsEnabled, level, map, selectedId, view]);
+  // Aircraft with a label or the selection keep a detailed marker; the rest are silhouettes.
+  const detailedIds = useMemo(() => new Set([...labelled.keys(), ...(selectedId ? [selectedId] : [])]), [labelled, selectedId]);
+  const detailed = dense ? aircraft.filter(item => detailedIds.has(item.icao24)) : aircraft;
+  return <>{dense && <AircraftGlLayer aircraft={aircraft} theme={theme} previewId={previewId ?? null} excludeId={selectedId} excludeIds={detailedIds}
     onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />}
     {detailed.map(item => <AircraftMarker key={item.icao24} aircraft={item} active={item.icao24 === selectedId || item.icao24 === previewId}
-      selected={item.icao24 === selectedId} labelLevel={shown.has(item.icao24) ? level : 0} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}</>;
+      selected={item.icao24 === selectedId} labelLevel={labelled.get(item.icao24) ?? 0} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}</>;
 }
 
 /** Whether a position is inside the camera's bounds, which may reach past +-180 with world copies. */
@@ -1599,7 +1607,7 @@ export function FlightMap({
         {onSelectAirport && <AirportPins airports={airports} activeIcao={airport?.icao ?? null} onSelect={onSelectAirport} />}
         {selectedFlight && selectedFlight.data_source !== "scheduled" && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
         {trailsEnabled && !denseTraffic && <Trails trails={trails.filter((trail) => trail.icao24 !== selectedIcao24)} />}
-        <TrafficAircraft aircraft={visibleStates} selectedId={selectedIcao24} previewId={previewFlight?.icao24}
+        <TrafficAircraft aircraft={visibleStates} selectedId={selectedIcao24} followedId={following ? followingIcao24 : null} previewId={previewFlight?.icao24}
           labelsEnabled={labelsEnabled} dense={denseTraffic} theme={theme} onSelect={selectFlightAndCloseHover} hoverStore={hoverStore} />
         {userLocation && <UserLocationMarker location={userLocation} theme={theme} />}
       </MapCanvas>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { labelLevelForZoom, placeLabels } from "./mapLabels";
+import { focusLabels, labelLevelForZoom, placeLabels } from "./mapLabels";
 import { aircraftIconKind } from "../../shared/utils";
 import { airlineBadge, airlineLogo, operatorCode } from "../../shared/aircraftIdentity";
 
@@ -45,5 +45,40 @@ describe("map detail levels", () => {
     expect(airlineBadge({ callsign: "GEC123" })).toEqual(airlineBadge({ callsign: "GEC999" }));
     expect(airlineBadge({ callsign: "GEC123" })?.color).not.toBe(airlineBadge({ callsign: "WZZ123" })?.color);
     expect(airlineBadge({ callsign: "N12345" })).toBeNull();
+  });
+});
+
+describe("focus labels", () => {
+  const at = (id: string, latitude: number, longitude: number, squawk: string | null = null) => ({ icao24: id, latitude, longitude, squawk });
+  const base = { center: { lat: 48, lng: 5 }, zoom: 10, selectedId: null as string | null, followedId: null as string | null, inView: () => true };
+  const crowd = Array.from({ length: 100 }, (_, i) => at(`c${String(i).padStart(3, "0")}`, 48 + i * 0.01, 5));
+
+  it("labels only the 15 aircraft nearest the centre once zoomed in enough", () => {
+    const ids = focusLabels({ ...base, aircraft: crowd }).map(item => item.id);
+    expect(ids).toEqual(crowd.slice(0, 15).map(item => item.icao24));
+  });
+  it("labels no nearby aircraft below the zoom threshold", () => {
+    expect(focusLabels({ ...base, aircraft: crowd, zoom: 5 })).toEqual([]);
+  });
+  it("always labels the selected aircraft, the followed one and emergency squawks, at any zoom", () => {
+    const aircraft = [...crowd, at("sel", 60, 20), at("fol", -30, 100), at("sos", 10, 10, "7700"), at("hij", 11, 11, "7500"), at("com", 12, 12, "7600"), at("ok", 13, 13, "1200")];
+    const result = focusLabels({ ...base, aircraft, zoom: 3, selectedId: "sel", followedId: "fol" });
+    expect(result.map(item => [item.id, item.reason])).toEqual([["sel", "selected"], ["fol", "followed"], ["com", "emergency"], ["hij", "emergency"], ["sos", "emergency"]]);
+  });
+  it("does not count the selected or emergency aircraft against the 15 nearest", () => {
+    const aircraft = [...crowd, at("sos", 48, 5.001, "7700")];
+    const ids = focusLabels({ ...base, aircraft, selectedId: "c000" }).map(item => item.id);
+    expect(ids).toHaveLength(15 + 2);
+    expect(ids.slice(0, 2)).toEqual(["c000", "sos"]);
+  });
+  it("skips nearby aircraft that are outside the view", () => {
+    const ids = focusLabels({ ...base, aircraft: crowd, inView: item => item.icao24 !== "c000" }).map(item => item.id);
+    expect(ids).not.toContain("c000");
+    expect(ids).toHaveLength(15);
+  });
+  it("lets the selected label win a collision, then the higher priority", () => {
+    const box = { x: 100, y: 100, width: 100, height: 30 };
+    expect([...placeLabels([{ id: "aaa", ...box, priority: 1 }, { id: "sel", ...box, priority: 0 }, { id: "bbb", ...box, priority: 2 }], "sel")]).toEqual(["sel"]);
+    expect([...placeLabels([{ id: "aaa", ...box, priority: 1 }, { id: "bbb", ...box, priority: 2 }], null)]).toEqual(["bbb"]);
   });
 });
