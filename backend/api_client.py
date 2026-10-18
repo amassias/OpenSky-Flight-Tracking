@@ -18,6 +18,13 @@ from backend.local_env import load_local_env
 load_local_env()
 
 
+# Local feed (ADR 0008): one or two 250 NM cells, refreshed every 5 to 10 s.
+LOCAL_FEED_MAX_CELLS = 2
+LOCAL_FEED_CACHE_SECONDS = 5.0
+LOCAL_FEED_REFRESH_SECONDS = 8
+LOCAL_CELL_DEGREES = 0.05
+
+
 class OpenSkyAPIError(Exception):
     """API-level error with optional status code and metadata."""
 
@@ -383,7 +390,13 @@ class OpenSkyClient:
         return result
 
     @staticmethod
-    def _public_adsb_row(aircraft: Dict[str, Any], now_sec: int):
+    def _fix_age(aircraft: Dict[str, Any]) -> float:
+        """Seconds since the position was observed; unknown ages sort as oldest."""
+        age = aircraft.get("seen_pos", aircraft.get("seen"))
+        return float(age) if isinstance(age, (int, float)) and not isinstance(age, bool) else float("inf")
+
+    @staticmethod
+    def _public_adsb_row(aircraft: Dict[str, Any], now_sec: int, feed: Optional[str] = None):
         """Convert a public readsb aircraft object to an OpenSky state vector."""
         altitude_ft = aircraft.get("alt_baro")
         on_ground = altitude_ft == "ground"
@@ -420,6 +433,7 @@ class OpenSkyClient:
             "sil": aircraft.get("sil"),
             "sil_type": aircraft.get("sil_type"),
             "source": aircraft.get("type"),
+            "feed": feed,
         }
         details = {key: value for key, value in details.items() if value not in (None, "", [])}
 
@@ -474,7 +488,14 @@ class OpenSkyClient:
         # setting is larger.
         provider_radius = min(250.0, radius_limit)
         if corner_distance <= provider_radius:
-            endpoint = f"point/{center_lat:.5f}/{center_lon:.5f}/{max(1.0, corner_distance):.1f}"
+            # Quantise the circle so visitors looking at nearly the same area
+            # share one upstream request and one server cache entry. The
+            # radius grows by the largest centre shift, so no corner is lost.
+            quantised_lat = round(center_lat / LOCAL_CELL_DEGREES) * LOCAL_CELL_DEGREES
+            quantised_lon = round(center_lon / LOCAL_CELL_DEGREES) * LOCAL_CELL_DEGREES
+            shift_nm = cls._distance_nm(center_lat, center_lon, quantised_lat, quantised_lon)
+            radius = min(provider_radius, ceil((corner_distance + shift_nm) / 5.0) * 5.0)
+            endpoint = f"point/{quantised_lat:.2f}/{quantised_lon:.2f}/{max(5.0, radius):.1f}"
             return [endpoint], False
 
         # Keep each cell's diagonal below the provider radius. A 1.3 overlap
@@ -508,12 +529,13 @@ class OpenSkyClient:
 
     @staticmethod
     def _live_provider_url(provider: str, endpoint: str) -> str:
-        """Public ReAPI hosts share one URL shape; adsb.fi spells it differently."""
+        """Public ReAPI hosts share one URL shape; adsb.fi spells it differently (v3, v2 is deprecated)."""
         if provider == "adsb.fi":
             kind, _, rest = endpoint.partition("/")
             if kind == "point":
                 lat, lon, radius = rest.split("/")
-                return f"https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{radius}"
+                return f"https://opendata.adsb.fi/api/v3/lat/{lat}/lon/{lon}/dist/{radius}"
+            # v3 only serves areas (callsign and hex answer 400, measured 2026-10-18).
             return f"https://opendata.adsb.fi/api/v2/{endpoint}"
         return f"https://api.{provider}/v2/{endpoint}"
 
@@ -543,10 +565,14 @@ class OpenSkyClient:
         # gives each viewport a deterministic cache key and request sequence.
         cache_key = "|".join(endpoints)
         now = time.time()
+        # The Local feed (one or two cells) is short-lived so it can refresh
+        # every 5 to 10 s; wider fallback grids keep the longer cache.
+        local_feed = bool(bbox) and not callsign and not point and len(endpoints) <= LOCAL_FEED_MAX_CELLS
+        default_cache_seconds = LOCAL_FEED_CACHE_SECONDS if local_feed else 15.0
         try:
-            cache_seconds = max(5.0, float(os.getenv("SKYTRACE_LIVE_CACHE_SECONDS", "15")))
+            cache_seconds = max(5.0, float(os.getenv("SKYTRACE_LIVE_CACHE_SECONDS", str(default_cache_seconds))))
         except (TypeError, ValueError):
-            cache_seconds = 15.0
+            cache_seconds = default_cache_seconds
         try:
             stale_seconds = max(cache_seconds, float(os.getenv("SKYTRACE_LIVE_STALE_SECONDS", "90")))
         except (TypeError, ValueError):
@@ -703,7 +729,11 @@ class OpenSkyClient:
         for payload in payloads:
             for item in payload.get("ac") or []:
                 if isinstance(item, dict) and item.get("hex"):
-                    aircraft_by_hex[str(item["hex"]).lower()] = item
+                    key = str(item["hex"]).lower()
+                    known = aircraft_by_hex.get(key)
+                    # Overlapping cells can report the same aircraft: keep the freshest fix.
+                    if known is None or self._fix_age(item) <= self._fix_age(known):
+                        aircraft_by_hex[key] = item
         aircraft = list(aircraft_by_hex.values())
         if bbox:
             lat_min, lon_min, lat_max, lon_max = (float(value) for value in bbox)
@@ -718,10 +748,10 @@ class OpenSkyClient:
         # Wider grids make more provider calls, so slow their polling cadence
         # proportionally. This keeps the public fallback polite and avoids a
         # burst on every 20-second live tick after a zoom-out.
-        refresh_after_seconds = max(20, min(180, 20 * len(endpoints)))
+        refresh_after_seconds = LOCAL_FEED_REFRESH_SECONDS if local_feed else max(20, min(180, 20 * len(endpoints)))
         result = {
             "time": now_sec,
-            "states": [self._public_adsb_row(item, now_sec) for item in aircraft if item.get("hex")],
+            "states": [self._public_adsb_row(item, now_sec, provider) for item in aircraft if item.get("hex")],
             "provider": provider,
             "refresh_after_seconds": refresh_after_seconds,
             "credit_cost": 0,

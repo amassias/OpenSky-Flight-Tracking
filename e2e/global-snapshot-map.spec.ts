@@ -44,6 +44,28 @@ test('the snapshot is not fetched at close zoom', async ({ page }) => {
   expect(calls).not.toContain('/api/global-snapshot');
 });
 
+test('close zoom refreshes the Local feed every 5 to 10 seconds', async ({ page }) => {
+  test.setTimeout(45_000);
+  const stamps: number[] = [];
+  await mockApi(page, []);
+  await page.route('**/api/live-flights**', async route => {
+    stamps.push(Date.now());
+    const now = Math.floor(Date.now() / 1000);
+    const states = [{ icao24: 'abc123', callsign: 'LOCAL1', latitude: 49, longitude: 2.5, baro_altitude: 3000, velocity: 100, true_track: 90, on_ground: false, time_position: now, data_source: 'live-nearby' }];
+    await route.fulfill({ json: { count: 1, states, time: now, provider: 'adsb.fi', refresh_after_seconds: 8 } });
+  });
+  await page.goto('/?at=49,2.5,11');
+  // Tiles of one round are requested together: count rounds, not requests.
+  const rounds = () => stamps.filter((time, index) => index === 0 || time - stamps[index - 1] > 2_000);
+  await expect.poll(() => rounds().length, { timeout: 35_000 }).toBeGreaterThanOrEqual(3);
+  const starts = rounds();
+  for (const [index, time] of starts.slice(1, 3).entries()) {
+    const gap = (time - starts[index]) / 1000;
+    expect(gap).toBeGreaterThanOrEqual(5);
+    expect(gap).toBeLessThanOrEqual(10.5);
+  }
+});
+
 test('the map credits OpenSky, adsb.fi and adsb.lol', async ({ page }) => {
   await mockApi(page, []);
   await page.goto('/');

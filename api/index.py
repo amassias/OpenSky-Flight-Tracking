@@ -179,6 +179,9 @@ def live_flights(
     # The viewport boxes are snapped to a grid by the client, so neighbouring
     # visitors share a key: let the CDN answer them for a few seconds and keep
     # serving the last snapshot while the slow upstream call refreshes.
+    if fallback:
+        # Local feed: refreshed every 5 to 10 s, so the CDN may only share it briefly.
+        return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=2, s-maxage=5, stale-while-revalidate=10"})
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=5, s-maxage=10, stale-while-revalidate=40"})
 
 

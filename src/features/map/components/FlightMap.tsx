@@ -17,10 +17,11 @@ import { Minus, Plus, Route } from "../../../shared/components/customIcons";
 import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../../../shared/api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../../../shared/types";
-import { preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
+import { newestFix, preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, sampleByDensity, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
+import { causeFromError, causeFromReason, describeLiveStatus, type LiveCause } from "../liveStatus";
 import { distanceText, flightLevelText, speedText, useUnits } from "../../../shared/units";
 import { AltitudeLegend } from "./AltitudeLegend";
 import { AircraftHoverPreview } from "./AircraftHoverPreview";
@@ -29,6 +30,10 @@ import { AircraftHoverPreview } from "./AircraftHoverPreview";
 const TRAIL_POINTS = 8;
 /** Only the Leaflet canvas fallback (no WebGL) draws at most about this many aircraft; more are thinned by density. */
 const MAX_DRAWN_AIRCRAFT = 3_000;
+/** Local feed cells asked for around the centre when the Global snapshot is unavailable. */
+const REDUCED_COVERAGE_CELLS = 4;
+/** The Local feed (close zoom) refreshes every 5 to 10 s (ADR 0008). */
+const LOCAL_FEED_REFRESH_SECONDS = 8;
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
@@ -963,6 +968,8 @@ interface FlightMapProps {
   onSelectFlight: (flight: Flight) => void;
   onSelectAirport?: (airport: Airport) => void;
   onLiveSnapshot?: (data: LiveFlightsResponse, airportIcao: string | null) => void;
+  /** Why the live feed is degraded, so the list can name the real cause. */
+  onLiveCause?: (cause: LiveCause | null) => void;
   onViewportCenter?: (center: [number, number]) => void;
   /** A shared map position to open on instead of the home airport. */
   initialView?: MapView | null;
@@ -979,6 +986,21 @@ interface ProgressiveLiveState {
   totalTiles: number;
   failedTiles: number;
   error: string | null;
+  /** Why the live feed is degraded, or null while it is healthy. */
+  cause?: LiveCause | null;
+  /** Only Local feed cells answered because the Global snapshot was unavailable. */
+  reducedCoverage?: boolean;
+}
+
+/** The last Global snapshot: never erased, replaced only by a newer one. */
+interface KeptSnapshot {
+  states: LiveAircraft[];
+}
+
+/** How old the positions on the map were when the last answer reached the browser. */
+interface LastAnswer {
+  ageSeconds: number;
+  receivedAt: number;
 }
 
 export function FlightMap({
@@ -1006,6 +1028,7 @@ export function FlightMap({
   onSelectFlight,
   onSelectAirport,
   onLiveSnapshot,
+  onLiveCause,
   onViewportCenter,
   initialView = null,
   onViewChange,
@@ -1108,6 +1131,9 @@ export function FlightMap({
   // needs no network at all.
   const coverageRef = useRef<{ bounds: Bounds; until: number } | null>(null);
   const handledRefreshRef = useRef(0);
+  const keptSnapshotRef = useRef<KeptSnapshot | null>(null);
+  const lastAnswerRef = useRef<LastAnswer | null>(null);
+  const degradationRef = useRef<{ cause: LiveCause | null; reducedCoverage: boolean }>({ cause: null, reducedCoverage: false });
   useEffect(() => {
     airportIcaoRef.current = airport?.icao ?? null;
   }, [airport?.icao]);
@@ -1152,11 +1178,18 @@ export function FlightMap({
     for (const aircraft of aircraftCacheRef.current.values()) {
       if (isAircraftInBounds(aircraft, bounds)) retained.set(aircraft.icao24, aircraft);
     }
+    // The last Global snapshot is never erased: it outlives the short aircraft
+    // cache so a long outage still leaves every known aircraft on the map.
+    if (wideView) {
+      for (const aircraft of keptSnapshotRef.current?.states ?? []) {
+        if (!retained.has(aircraft.icao24) && isAircraftInBounds(aircraft, bounds)) retained.set(aircraft.icao24, aircraft);
+      }
+    }
     // A refresh timer or retry always goes to the network; a pan inside an
     // area that was loaded moments ago just shows what is already known.
     const visible = visibleBoundsRef.current;
     const coverage = coverageRef.current;
-    if (!forcedRefresh && visible && coverage && Date.now() < coverage.until
+    if (!forcedRefresh && !degradationRef.current.cause && visible && coverage && Date.now() < coverage.until
       && visible.lamin >= coverage.bounds.lamin && visible.lamax <= coverage.bounds.lamax
       && visible.lomin >= coverage.bounds.lomin && visible.lomax <= coverage.bounds.lomax) {
       const covered: LiveFlightsResponse = {
@@ -1169,7 +1202,7 @@ export function FlightMap({
         coverage_tiles: 1,
         coverage_complete: true,
       };
-      setLiveState({ data: covered, fetching: false, loadedTiles: 1, totalTiles: 1, failedTiles: 0, error: null });
+      setLiveState({ data: covered, fetching: false, loadedTiles: 1, totalTiles: 1, failedTiles: 0, error: null, cause: null, reducedCoverage: false });
 
       const wait = Math.max(1_000, coverage.until - Date.now());
       const timer = setTimeout(requestLiveRefresh, wait);
@@ -1183,8 +1216,12 @@ export function FlightMap({
     let provider: string | undefined = cachedViewport?.provider;
     let cacheTimestamp: number | null = cachedViewport?.cachedAt ?? null;
     // The Global snapshot says how soon it can be refreshed; the Local feed
-    // answers every 20 s at most.
-    let refreshAfterSeconds = 20;
+    // refreshes every 5 to 10 s.
+    const minRefreshSeconds = wideView ? 20 : 5;
+    let refreshAfterSeconds = wideView ? 20 : LOCAL_FEED_REFRESH_SECONDS;
+    // Carried over until this round says otherwise, so the status does not flicker.
+    let cause: LiveCause | null = degradationRef.current.cause;
+    let reducedCoverage = degradationRef.current.reducedCoverage;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
     const snapshot = (): LiveFlightsResponse => ({
@@ -1204,7 +1241,9 @@ export function FlightMap({
     const rememberAircraft = (states: LiveAircraft[]) => {
       const seenAt = Date.now();
       for (let index = 0; index < states.length; index++) {
-        const aircraft = preserveAirframeAppearance(states[index], aircraftCacheRef.current.get(states[index].icao24));
+        const known = aircraftCacheRef.current.get(states[index].icao24);
+        // Snapshot and Local feed meet here: the newest fix per aircraft wins.
+        const aircraft = newestFix(known, preserveAirframeAppearance(states[index], known));
         states[index] = aircraft;
         if (!aircraft.icao24) continue;
         aircraftCacheRef.current.set(aircraft.icao24, aircraft);
@@ -1228,44 +1267,66 @@ export function FlightMap({
       totalTiles: totalViewportTiles,
       failedTiles: 0,
       error: null,
+      cause,
+      reducedCoverage,
     });
 
     const loadTile = async (tile: Bounds) => {
       try {
         // If the quick public feed is unavailable, the authenticated call still answers.
-        const response = wideView
-          // If the snapshot is unavailable, ask for the viewport as one box.
-          ? await api.globalSnapshot(controller.signal).catch((error) => {
+        const localCell = (cell: Bounds) => api.liveFlights(cell, controller.signal, true).then((quick) => {
+          // The public feed answers "degraded and empty" while it is rate limited.
+          if (quick.degraded && quick.states.length === 0) throw new Error("Public feed unavailable");
+          return quick;
+        }).catch((error) => {
+          if (controller.signal.aborted || !liveAvailable || liveProbePending) throw error;
+          return api.liveFlights(cell, controller.signal, false);
+        });
+        let response: LiveFlightsResponse;
+        let covered: Bounds[] = [tile];
+        if (wideView) {
+          try {
+            response = await api.globalSnapshot(controller.signal);
+            // A degraded answer is the last snapshot, labelled with its real age.
+            cause = response.degraded ? causeFromReason(response.degraded_reason) : null;
+            reducedCoverage = false;
+            keptSnapshotRef.current = { states: response.states };
+          } catch (error) {
             if (controller.signal.aborted) throw error;
-            return api.liveFlights(tile, controller.signal, false);
-          })
-          : await api.liveFlights(tile, controller.signal, true).then((quick) => {
-            // The public feed answers "degraded and empty" while it is rate limited.
-            if (quick.degraded && quick.states.length === 0) throw new Error("Public feed unavailable");
-            return quick;
-          }).catch((error) => {
-            if (controller.signal.aborted || !liveAvailable || liveProbePending) throw error;
-            return api.liveFlights(tile, controller.signal, false);
-          });
+            // No snapshot: fall back to a few Local feed cells around the centre.
+            cause = causeFromError(error);
+            const cells = splitBoundsIntoTiles(tile, REDUCED_COVERAGE_CELLS);
+            const answers = await Promise.allSettled(cells.map(localCell));
+            const answered = answers.flatMap((answer, index) => answer.status === "fulfilled" ? [{ cell: cells[index], response: answer.value }] : []);
+            if (!answered.length) throw error;
+            reducedCoverage = true;
+            covered = answered.map((item) => item.cell);
+            response = { ...answered[0].response, states: answered.flatMap((item) => item.response.states) };
+          }
+        } else {
+          response = await localCell(tile);
+        }
         if (controller.signal.aborted) return;
+        lastAnswerRef.current = { ageSeconds: wideView && response.degraded ? response.age_seconds ?? 0 : 0, receivedAt: Date.now() };
         rememberAircraft(response.states);
         for (const aircraft of response.states) {
           retained.set(aircraft.icao24, aircraft);
           freshAircraft.add(aircraft.icao24);
         }
         loadedTiles += 1;
-        coveredTiles.push(tile);
+        coveredTiles.push(...covered);
         latestTime = Math.max(latestTime ?? 0, response.time ?? 0) || latestTime;
         provider = response.provider || provider;
-        refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
+        refreshAfterSeconds = Math.max(minRefreshSeconds, wideView ? refreshAfterSeconds : 0, response.refresh_after_seconds ?? refreshAfterSeconds);
         cacheTimestamp = Date.now();
         const data = snapshot();
         saveViewportCache();
-        setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
+        setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null, cause, reducedCoverage });
 
       } catch (error) {
         if (controller.signal.aborted) return;
         failedTiles += 1;
+        cause = wideView ? cause ?? causeFromError(error) : causeFromError(error);
         setLiveState({
           data: retained.size ? snapshot() : null,
           fetching: true,
@@ -1273,6 +1334,8 @@ export function FlightMap({
           totalTiles: totalViewportTiles,
           failedTiles,
           error: error instanceof Error ? error.message : "Live sector unavailable",
+          cause,
+          reducedCoverage,
         });
       }
     };
@@ -1297,8 +1360,10 @@ export function FlightMap({
         }
       }
       saveViewportCache();
-      if (failedTiles === 0 && loadedTiles > 0) {
-        coverageRef.current = { bounds, until: Date.now() + Math.max(20, refreshAfterSeconds) * 1_000 };
+      if (!wideView && failedTiles === 0) cause = null;
+      degradationRef.current = { cause, reducedCoverage };
+      if (failedTiles === 0 && loadedTiles > 0 && !cause) {
+        coverageRef.current = { bounds, until: Date.now() + Math.max(minRefreshSeconds, refreshAfterSeconds) * 1_000 };
       }
       const data = retained.size ? snapshot() : null;
       setLiveState({
@@ -1308,11 +1373,14 @@ export function FlightMap({
         totalTiles: totalViewportTiles,
         failedTiles,
         error: failedTiles && !retained.size ? "Live traffic is temporarily unavailable." : null,
+        cause,
+        reducedCoverage,
       });
       // A failed or empty round is retried quickly instead of waiting a full
       // refresh interval with a blank or stale map.
       const retrySoon = failedTiles > 0 || retained.size === 0;
-      refreshTimer = setTimeout(requestLiveRefresh, retrySoon ? 5_000 : Math.max(20, refreshAfterSeconds) * 1_000);
+      // While degraded, retry gently: the server already holds the last snapshot.
+      refreshTimer = setTimeout(requestLiveRefresh, retrySoon ? (cause ? 30_000 : 5_000) : Math.max(cause ? 30 : minRefreshSeconds, refreshAfterSeconds) * 1_000);
     });
 
     return () => {
@@ -1382,7 +1450,18 @@ export function FlightMap({
   }, [displayedLiveStates, trailsEnabled]);
   const filteredCount = filterAircraft(displayedLiveStates, filters).length;
   const hiddenByFilters = displayedLiveStates.length - filteredCount;
-  const liveStatus = liveState.error || liveState.failedTiles > 0
+  const [statusNow, setStatusNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!liveState.cause) return;
+    setStatusNow(Date.now());
+    const timer = setInterval(() => setStatusNow(Date.now()), 5_000);
+    return () => clearInterval(timer);
+  }, [liveState.cause]);
+  const lastAnswer = lastAnswerRef.current;
+  const snapshotAge = lastAnswer ? lastAnswer.ageSeconds + Math.max(0, statusNow - lastAnswer.receivedAt) / 1000 : null;
+  const liveStatus = liveState.cause && !(liveState.fetching && liveState.loadedTiles === 0 && !hasLiveSnapshot)
+    ? describeLiveStatus({ count: filteredCount, cause: liveState.cause, ageSeconds: snapshotAge, reducedCoverage: Boolean(liveState.reducedCoverage) })
+    : liveState.error || liveState.failedTiles > 0
     ? hasLiveSnapshot ? `${filteredCount} aircraft · Refresh delayed · last snapshot kept · ${liveState.loadedTiles}/${liveState.totalTiles} sectors` : "Live traffic temporarily unavailable"
     : liveState.fetching && liveState.loadedTiles === 0
       ? hasLiveSnapshot ? `${filteredCount} aircraft · scanning…` : "Scanning visible airspace…"
@@ -1391,6 +1470,11 @@ export function FlightMap({
         : liveState.loadedTiles < liveState.totalTiles
           ? `${filteredCount} aircraft · ${liveState.loadedTiles}/${liveState.totalTiles} sectors shown`
           : `${filteredCount} aircraft`;
+
+  const reportedCause = liveState.cause ?? null;
+  useEffect(() => {
+    onLiveCause?.(reportedCause);
+  }, [onLiveCause, reportedCause]);
 
   const locationIcon = useMemo(() => userLocationIcon(), []);
   const handleLocationFound = useCallback((location: UserLocation) => {

@@ -101,7 +101,7 @@ test('keeps the last live snapshot when a zoom refresh fails', async ({page, isM
   const target = (await page.locator('.aircraft-marker').first().boundingBox())!;
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
   await page.mouse.wheel(0, 280);
-  await expect(page.locator('.map-status')).toContainText('Refresh delayed · last snapshot kept');
+  await expect(page.locator('.map-status')).toContainText(/snapshot from \d+ s ago/);
   await expect(page.locator('.map-status')).not.toContainText('Your search is preserved');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
 });

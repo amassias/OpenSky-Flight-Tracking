@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LiveAircraft } from "../../shared/types";
-import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, MAX_VIEWPORT_CACHE_ENTRIES, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "./liveCache";
+import { isAircraftInBounds, newestFix, LIVE_AIRCRAFT_CACHE_TTL_MS, MAX_VIEWPORT_CACHE_ENTRIES, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "./liveCache";
 
 const bounds = { lamin: 48, lamax: 50, lomin: 1, lomax: 4 };
 const aircraft = (icao24: string, latitude = 49, longitude = 2): LiveAircraft => ({
@@ -57,5 +57,33 @@ describe("stable aircraft appearance", () => {
     expect(preserveAirframeAppearance(incoming, known).airline_code).toBeUndefined();
     expect(preserveAirframeAppearance({ ...incoming, aircraft_type: "B738" }, known).aircraft_type).toBe("B738");
     expect(preserveAirframeAppearance(incoming, { ...known, icao24: "def456" }).aircraft_type).toBeUndefined();
+  });
+});
+
+describe("newestFix", () => {
+  const fix = (time_position: number | null, data_source: LiveAircraft["data_source"], latitude = 49): LiveAircraft => ({
+    ...aircraft("abc123", latitude),
+    time_position,
+    data_source,
+  });
+
+  it("keeps the local fix, with its source, when it is newer than the snapshot", () => {
+    const snapshot = fix(1_000, "opensky", 49);
+    const local = fix(1_060, "live-nearby", 49.2);
+    expect(newestFix(snapshot, local)).toBe(local);
+  });
+
+  it("keeps the local fix when a later snapshot carries an older position", () => {
+    const local = fix(1_060, "live-nearby", 49.2);
+    const snapshot = fix(1_000, "opensky", 49);
+    expect(newestFix(local, snapshot)).toBe(local);
+  });
+
+  it("takes the incoming fix when it is newer, equal, or either age is unknown", () => {
+    const known = fix(1_000, "live-nearby");
+    expect(newestFix(known, fix(1_010, "opensky"))).toMatchObject({ time_position: 1_010, data_source: "opensky" });
+    expect(newestFix(known, fix(1_000, "opensky"))).toMatchObject({ data_source: "opensky" });
+    expect(newestFix(known, fix(null, "opensky"))).toMatchObject({ time_position: null });
+    expect(newestFix(undefined, known)).toBe(known);
   });
 });

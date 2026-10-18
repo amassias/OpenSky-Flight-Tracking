@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { listEmptyMessage, type LiveCause } from "../features/map/liveStatus";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
@@ -58,6 +59,8 @@ function liveSnapshotSummary(flights: readonly Flight[]) {
 }
 
 const FAVORITE_LIMIT = 8;
+/** Above this many aircraft in view the map cannot be explored by keyboard: offer the list directly. */
+const DENSE_MAP_AIRCRAFT = 50;
 const THEME_COLORS: Record<MapTheme, string> = { dark: "#0b0b0c", light: "#f5f5f7" };
 
 /** First visit follows the operating system; a choice made in the app wins afterwards. */
@@ -135,6 +138,7 @@ export function App() {
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
 
+  const [liveCause, setLiveCause] = useState<LiveCause | null>(null);
   const handleLiveSnapshot = useCallback((data: LiveFlightsResponse, airportIcao: string | null) => {
     setLiveFallbackSnapshot({ data, airportIcao });
   }, []);
@@ -606,6 +610,26 @@ export function App() {
       >
         Skip to flight results
       </a>
+      {liveSummary.total > DENSE_MAP_AIRCRAFT && (
+        <a
+          className="skip-link"
+          href="#flight-results"
+          onClick={event => {
+            // Land on the first aircraft of the In view list, ready for the arrow keys.
+            event.preventDefault();
+            setTrafficOpen(true);
+            setTab("live");
+            const focusFirst = (attempt: number) => {
+              const first = document.querySelector<HTMLElement>(".flight-list .flight-card");
+              if (first) first.focus();
+              else if (attempt < 10) requestAnimationFrame(() => focusFirst(attempt + 1));
+            };
+            requestAnimationFrame(() => focusFirst(0));
+          }}
+        >
+          Skip to the list of {liveSummary.total} aircraft in view
+        </a>
+      )}
       <Topbar
         health={health.data}
         healthPending={health.isPending}
@@ -660,6 +684,7 @@ export function App() {
           onSelectFlight={selectFlight}
           onSelectAirport={openAirport}
           onLiveSnapshot={handleLiveSnapshot}
+          onLiveCause={setLiveCause}
           onViewportCenter={setMapCenter}
         />
 
@@ -768,6 +793,7 @@ export function App() {
                     )}
                     <FlightList
                       variant="live"
+                      emptyMessage={liveCause ? listEmptyMessage(liveCause) : undefined}
                       flights={filteredLive}
                       selectedFlight={selectedFlight}
                       loading={false}
