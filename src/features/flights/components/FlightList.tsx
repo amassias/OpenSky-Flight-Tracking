@@ -6,6 +6,7 @@ import { callsignsForFlightNumber, distanceKm, flightNumberForCallsign, emergenc
 import { useNowSeconds } from "../../map/aircraftMotion";
 import { positionAge, positionAgeLabel } from "../flightTelemetry";
 import { useUnits } from "../../../shared/units";
+import { aircraftModel } from "../../../shared/aircraftIdentity";
 
 /** Cards rendered per step: a zoomed-out map can hold thousands of aircraft. */
 const PAGE_SIZE = 100;
@@ -48,6 +49,7 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
   const airframe = [flight.registration_source === "schedule" ? null : flight.registration, flight.data_source === "live-nearby" ? null : flight.aircraft_type].filter(Boolean).join(" · ");
   const operator = flight.airline_name || airframe || "Unidentified operator";
   const flightNumber = flightNumberForCallsign(flight.callsign);
+  const model = flight.data_source === "live-nearby" ? aircraftModel(flight.aircraft_type) : null;
   const statusKey = flight.status || (flight.on_ground === true ? "on_ground" : flight.on_ground === false ? "airborne" : "unknown");
   return (
     <button
@@ -69,7 +71,11 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
           </span>
           <span className="airline">{operator}{flight.airline_name && airframe ? <span className="airframe"> · {airframe}</span> : null}</span>
         </span>
-        <span className="route mono">{flight.data_source === "live-nearby" ? flight.aircraft_type || "" : routeLabel(flight)}</span>
+        <span className="route mono">
+          {flight.data_source === "live-nearby" ? flight.aircraft_type || "" : routeLabel(flight)}
+          {/* The hover preview names the model; the list gives it to keyboard and screen-reader users. */}
+          {model && <span className="sr-only"> {model}</span>}
+        </span>
         <span className="flight-meta">
           {emergency
             ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
