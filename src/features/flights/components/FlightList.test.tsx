@@ -127,6 +127,20 @@ it("shows fix age only when the fix is older than 60 s", () => {
   expect(screen.getByText("Position age unknown")).toHaveClass("freshness-unknown");
 });
 
+describe("FlightList live card carries the hover-preview facts", () => {
+  it("names the callsign, registration, full aircraft model, altitude and speed without hovering", () => {
+    render(<FlightList variant="live" flights={[
+      { icao24: "a1", callsign: "AFR12", registration: "F-GKXA", aircraft_type: "A320", baro_altitude: 10668, velocity: 230, on_ground: false, data_source: "live-nearby" },
+    ] as Flight[]} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
+    const card = screen.getByRole("button", { name: /AFR12/ });
+    expect(card).toHaveTextContent("F-GKXA");
+    expect(card).toHaveTextContent("A320");
+    expect(card).toHaveTextContent(/Airbus A320/);
+    expect(card).toHaveTextContent(/FL350|35,?000/);
+    expect(card).toHaveTextContent(/kt|km\/h/);
+  });
+});
+
 describe("FlightList row layout", () => {
   it("puts altitude, trend and speed in fixed tabular columns, even when a value is missing", () => {
     render(<FlightList flights={[
