@@ -4,9 +4,12 @@ Shared vocabulary for code, docs, issues and agents. Use these words exactly; if
 
 | Term | Meaning |
 | --- | --- |
-| **Live feed** | Aircraft states from OpenSky (authenticated proxy) or the public ADS-B fallback, cropped to the visible map bounds. |
+| **Live feed** | Aircraft states reaching the map, made of the Global snapshot and, when zoomed in, the Local feed. Each aircraft keeps the source and age of its latest fix. |
+| **Global snapshot** | Every aircraft in the world in one shared state list, refreshed about once a minute. Covers any zoom level. |
+| **Local feed** | Aircraft within the visible area at close zoom, refreshed every few seconds. Overrides the Global snapshot for the aircraft it covers. |
 | **Fix** | One reported coordinate pair with its own timestamp. Its age is shown separately from the aircraft's airborne/ground state. |
-| **Projection** | Dead-reckoning between fixes along track and ground speed, capped at 90 s. Unknown-age fixes are never projected. |
+| **Projection** | Dead-reckoning between fixes along track and ground speed, capped at 150 s. Unknown-age fixes are never projected. |
+| **Focus label** | The on-map label shown only for the selected aircraft, followed aircraft, emergency squawks and the few aircraft nearest the map centre at close zoom. |
 | **Trace** | The recorded path of one aircraft, always validated against its aircraft, callsign and requested time. |
 | **Trail** | The browser-built path since the page opened, from successive live snapshots. Not a trace. |
 | **Callsign** | The ADS-B flight identifier (`AFR1234`). |

@@ -1,6 +1,6 @@
 # 0002. Estimates are never presented as observations
 
-Status: accepted (2026-10-14, from the Reddit feedback audit)
+Status: accepted (2026-10-14, from the Reddit feedback audit). The 90 s projection cap is superseded by [0007](0007-projection-cap-150-seconds.md).
 
 ## Decision
 Every position carries its fix age. Projected markers are outlined, projection is capped at 90 s, unknown-age fixes are never projected, and a trace is never substituted from another flight.
