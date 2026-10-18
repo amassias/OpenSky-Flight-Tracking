@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Issue #24: MapLibre GL is the only map engine (ADR 0010).
 describe("map dependencies", () => {
-  const manifest = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
+  const manifest = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
     dependencies: Record<string, string>; devDependencies: Record<string, string>;
   };
 
