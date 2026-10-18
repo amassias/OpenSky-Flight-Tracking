@@ -15,7 +15,7 @@ import { Minus, Plus, Route } from "../../../shared/components/customIcons";
 import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../../../shared/api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../../../shared/types";
-import { preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
+import { newestFix, preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, sampleByDensity, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
@@ -27,6 +27,8 @@ import { AircraftHoverPreview } from "./AircraftHoverPreview";
 const TRAIL_POINTS = 8;
 /** The Leaflet renderer draws at most about this many aircraft; more are thinned by density. */
 const MAX_DRAWN_AIRCRAFT = 3_000;
+/** The Local feed (close zoom) refreshes every 5 to 10 s (ADR 0008). */
+const LOCAL_FEED_REFRESH_SECONDS = 8;
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
@@ -1229,8 +1231,9 @@ export function FlightMap({
     let provider: string | undefined = cachedViewport?.provider;
     let cacheTimestamp: number | null = cachedViewport?.cachedAt ?? null;
     // The Global snapshot says how soon it can be refreshed; the Local feed
-    // answers every 20 s at most.
-    let refreshAfterSeconds = 20;
+    // refreshes every 5 to 10 s.
+    const minRefreshSeconds = wideView ? 20 : 5;
+    let refreshAfterSeconds = wideView ? 20 : LOCAL_FEED_REFRESH_SECONDS;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
     const snapshot = (): LiveFlightsResponse => ({
@@ -1250,7 +1253,9 @@ export function FlightMap({
     const rememberAircraft = (states: LiveAircraft[]) => {
       const seenAt = Date.now();
       for (let index = 0; index < states.length; index++) {
-        const aircraft = preserveAirframeAppearance(states[index], aircraftCacheRef.current.get(states[index].icao24));
+        const known = aircraftCacheRef.current.get(states[index].icao24);
+        // Snapshot and Local feed meet here: the newest fix per aircraft wins.
+        const aircraft = newestFix(known, preserveAirframeAppearance(states[index], known));
         states[index] = aircraft;
         if (!aircraft.icao24) continue;
         aircraftCacheRef.current.set(aircraft.icao24, aircraft);
@@ -1303,7 +1308,7 @@ export function FlightMap({
         coveredTiles.push(tile);
         latestTime = Math.max(latestTime ?? 0, response.time ?? 0) || latestTime;
         provider = response.provider || provider;
-        refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
+        refreshAfterSeconds = Math.max(minRefreshSeconds, wideView ? refreshAfterSeconds : 0, response.refresh_after_seconds ?? refreshAfterSeconds);
         cacheTimestamp = Date.now();
         const data = snapshot();
         saveViewportCache();
@@ -1344,7 +1349,7 @@ export function FlightMap({
       }
       saveViewportCache();
       if (failedTiles === 0 && loadedTiles > 0) {
-        coverageRef.current = { bounds, until: Date.now() + Math.max(20, refreshAfterSeconds) * 1_000 };
+        coverageRef.current = { bounds, until: Date.now() + Math.max(minRefreshSeconds, refreshAfterSeconds) * 1_000 };
       }
       const data = retained.size ? snapshot() : null;
       setLiveState({
@@ -1358,7 +1363,7 @@ export function FlightMap({
       // A failed or empty round is retried quickly instead of waiting a full
       // refresh interval with a blank or stale map.
       const retrySoon = failedTiles > 0 || retained.size === 0;
-      refreshTimer = setTimeout(requestLiveRefresh, retrySoon ? 5_000 : Math.max(20, refreshAfterSeconds) * 1_000);
+      refreshTimer = setTimeout(requestLiveRefresh, retrySoon ? 5_000 : Math.max(minRefreshSeconds, refreshAfterSeconds) * 1_000);
     });
 
     return () => {
