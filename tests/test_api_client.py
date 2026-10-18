@@ -700,3 +700,34 @@ def test_live_failover_never_calls_restricted_airplanes_api(monkeypatch):
     urls = [call.args[0] for call in client.session.get.call_args_list]
     assert len(urls) == 2
     assert all("airplanes.live" not in url for url in urls)
+
+
+def test_global_states_use_the_private_proxy_without_a_bounding_box(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
+    monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
+    client = OpenSkyClient()
+    client.session.request = Mock(return_value=_json_response({"time": 1_750_000_000, "states": []}))
+    client.session.get = Mock()
+
+    result = client.get_global_states()
+
+    assert result["provider"] == "opensky" and result["credit_cost"] == 4
+    call = client.session.request.call_args
+    assert call.args[1] == "https://deployment.example/api/opensky-proxy"
+    assert call.kwargs["headers"] == {"X-SkyTrace-Proxy-Secret": "internal-secret"}
+    assert call.kwargs["params"] == {"endpoint": "/states/all", "extended": 1}
+    client.session.get.assert_not_called()
+
+
+def test_global_states_never_fall_back_to_a_radius_provider(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
+    monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
+    client = OpenSkyClient()
+    client._make_request = Mock(side_effect=OpenSkyAPIError("down", status_code=503))
+    client._get_public_live_states = Mock()
+
+    with pytest.raises(OpenSkyAPIError):
+        client.get_global_states()
+    client._get_public_live_states.assert_not_called()

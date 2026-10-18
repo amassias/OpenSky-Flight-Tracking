@@ -101,6 +101,18 @@ def _validate_icao24(icao24: str) -> str:
     return code
 
 
+_local_snapshot = None
+
+
+def _local_global_snapshot():
+    """Process-wide Global snapshot for the local dev server."""
+    global _local_snapshot
+    if _local_snapshot is None:
+        from backend.global_snapshot import GlobalSnapshot
+        _local_snapshot = GlobalSnapshot(lambda: api_client.get_global_states())
+    return _local_snapshot
+
+
 class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
@@ -207,6 +219,10 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
 
             if path == "/api/airport-board":
                 self.send_json_response(200, self.handle_airport_board(query_params.get("airport", [""])[0]))
+                return
+
+            if path == "/api/global-snapshot":
+                self.send_json_response(200, _local_global_snapshot().get())
                 return
 
             if path == "/api/live-flights":
