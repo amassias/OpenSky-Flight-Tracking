@@ -38,8 +38,9 @@ async function mockApi(page: Page, mode: Mode, calls: string[] = []) {
   });
 }
 
+// The age shown comes from the snapshot's absolute time, never from the relative age_seconds a CDN may have kept.
 test('a delayed OpenSky keeps the snapshot on the map labelled with its age', async ({ page }) => {
-  await mockApi(page, { snapshot: () => ({ status: 200, json: snapshot({ degraded: true, degraded_reason: 'provider', age_seconds: 40, notice: 'Live refresh delayed. Snapshot from 40 s ago.' }) }), cells: 'fail' });
+  await mockApi(page, { snapshot: () => ({ status: 200, json: snapshot({ degraded: true, degraded_reason: 'provider', age_seconds: 0, time: Math.floor(Date.now() / 1000) - 40, notice: 'Live refresh delayed.' }) }), cells: 'fail' });
   await page.goto('/?at=48,5,5');
   const status = page.locator('.map-status');
   await expect(status).toContainText('300 aircraft', { timeout: 10_000 });
@@ -49,7 +50,7 @@ test('a delayed OpenSky keeps the snapshot on the map labelled with its age', as
 });
 
 test('an exhausted credit budget is named as the quota', async ({ page }) => {
-  await mockApi(page, { snapshot: () => ({ status: 200, json: snapshot({ degraded: true, degraded_reason: 'quota', age_seconds: 600 }) }), cells: 'fail' });
+  await mockApi(page, { snapshot: () => ({ status: 200, json: snapshot({ degraded: true, degraded_reason: 'quota', age_seconds: 0, time: Math.floor(Date.now() / 1000) - 600 }) }), cells: 'fail' });
   await page.goto('/?at=48,5,5');
   const status = page.locator('.map-status');
   await expect(status).toContainText('300 aircraft', { timeout: 10_000 });

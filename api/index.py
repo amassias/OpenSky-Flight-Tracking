@@ -8,7 +8,6 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.api_client import OpenSkyAPIError
-from backend.global_snapshot import GlobalSnapshot
 from backend import server
 from backend.server import FlightServerHandler
 from backend.aircraft_enrichment import aircraft_enrichment
@@ -21,8 +20,24 @@ app = FastAPI(
     openapi_url=None,
 )
 
-# Large JSON (the Global snapshot) is compressed; small answers are left alone.
-app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
+class SnapshotGzip:
+    """Compress the Global snapshot (about 1 MB of JSON) and nothing else.
+
+    Other answers are small, or the platform compresses them already.
+    """
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.compressed = GZipMiddleware(inner, minimum_size=1024)
+
+    async def __call__(self, scope, receive, send):
+        route = self.compressed if scope["type"] == "http" and scope["path"].endswith("/global-snapshot") else self.inner
+        await route(scope, receive, send)
+
+
+app.add_middleware(SnapshotGzip)
 
 service = object.__new__(FlightServerHandler)
 T = TypeVar("T")
@@ -186,12 +201,9 @@ def live_flights(
 
 
 # One OpenSky call for the whole world, shared by every visitor (ADR 0008).
-global_snapshot = GlobalSnapshot(lambda: server.api_client.get_global_states())
-
-
 @app.get("/api/global-snapshot")
 def global_snapshot_route():
-    result = execute(lambda: global_snapshot.get())
+    result = execute(lambda: server.shared_global_snapshot().get())
     if isinstance(result, JSONResponse):
         return result
     # The CDN answers all visitors for a minute and keeps serving the last

@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import index
+from backend import server
 from backend.api_client import OpenSkyAPIError
 from backend.global_snapshot import GlobalSnapshot
 
@@ -48,7 +49,7 @@ class FakeUpstream:
 @pytest.fixture
 def client_with(monkeypatch):
     def build(fake, clock=None, **kwargs):
-        monkeypatch.setattr(index, "global_snapshot", GlobalSnapshot(fake, clock=clock or Clock(), **kwargs))
+        monkeypatch.setattr(server, "_global_snapshot", GlobalSnapshot(fake, clock=clock or Clock(), **kwargs))
         return TestClient(index.app)
     return build
 
@@ -91,6 +92,17 @@ def test_response_is_gzip_compressed_when_large(client_with):
 
     assert response.headers["content-encoding"] == "gzip"
     assert response.json()["count"] == 2000
+
+
+def test_only_the_snapshot_route_is_compressed(client_with):
+    client = client_with(FakeUpstream(upstream([opensky_row()])))
+
+    # /api/map-airports is a large static catalogue; the platform compresses it, this app must not.
+    response = client.get("/api/map-airports", headers={"Accept-Encoding": "gzip"})
+
+    assert response.status_code == 200
+    assert len(response.content) > 1024
+    assert "content-encoding" not in response.headers
 
 
 def test_cdn_shares_one_answer_between_visitors(client_with):
@@ -167,7 +179,9 @@ def test_last_snapshot_is_kept_with_its_age_when_opensky_fails(client_with):
     assert payload["count"] == 1
     assert payload["degraded"] is True
     assert payload["age_seconds"] == 130
-    assert "130 s ago" in payload["notice"]
+    # A CDN may serve this answer later: the notice carries no relative age, the snapshot `time` is absolute.
+    assert " s ago" not in payload["notice"]
+    assert payload["time"] == NOW
     assert "s-maxage=60" not in response.headers["cache-control"]
 
 

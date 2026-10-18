@@ -21,7 +21,7 @@ import { newestFix, preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAF
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
-import { causeFromError, causeFromReason, describeLiveStatus, type LiveCause } from "../liveStatus";
+import { causeFromError, causeFromReason, describeLiveStatus, snapshotAgeSeconds, type LiveCause } from "../liveStatus";
 import { distanceText, flightLevelText, speedText, useUnits } from "../../../shared/units";
 import { boundsAround, circlePolygon, fromGlZoom, mercatorPixel, placementCenter, toGlZoom, visibleBoundsFromEdges, type Insets } from "../mapCamera";
 import { useGeoJsonLayers, useOverlayToken } from "../mapLayers";
@@ -1079,9 +1079,9 @@ interface KeptSnapshot {
   states: LiveAircraft[];
 }
 
-/** How old the positions on the map were when the last answer reached the browser. */
+/** When the positions on the map were taken (unix seconds, null when unknown) and when the last answer reached the browser. */
 interface LastAnswer {
-  ageSeconds: number;
+  time: number | null;
   receivedAt: number;
 }
 
@@ -1393,7 +1393,7 @@ export function FlightMap({
           response = await localCell(tile);
         }
         if (controller.signal.aborted) return;
-        lastAnswerRef.current = { ageSeconds: wideView && response.degraded ? response.age_seconds ?? 0 : 0, receivedAt: Date.now() };
+        lastAnswerRef.current = { time: response.time, receivedAt: Date.now() };
         rememberAircraft(response.states);
         for (const aircraft of response.states) {
           retained.set(aircraft.icao24, aircraft);
@@ -1541,7 +1541,7 @@ export function FlightMap({
     return () => clearInterval(timer);
   }, [liveState.cause]);
   const lastAnswer = lastAnswerRef.current;
-  const snapshotAge = lastAnswer ? lastAnswer.ageSeconds + Math.max(0, statusNow - lastAnswer.receivedAt) / 1000 : null;
+  const snapshotAge = lastAnswer ? snapshotAgeSeconds(lastAnswer, statusNow) : null;
   const liveStatus = liveState.cause && !(liveState.fetching && liveState.loadedTiles === 0 && !hasLiveSnapshot)
     ? describeLiveStatus({ count: filteredCount, cause: liveState.cause, ageSeconds: snapshotAge, reducedCoverage: Boolean(liveState.reducedCoverage) })
     : liveState.error || liveState.failedTiles > 0

@@ -101,16 +101,16 @@ def _validate_icao24(icao24: str) -> str:
     return code
 
 
-_local_snapshot = None
+_global_snapshot = None
 
 
-def _local_global_snapshot():
-    """Process-wide Global snapshot for the local dev server."""
-    global _local_snapshot
-    if _local_snapshot is None:
+def shared_global_snapshot():
+    """The process-wide Global snapshot, shared by the local dev server and the Vercel function."""
+    global _global_snapshot
+    if _global_snapshot is None:
         from backend.global_snapshot import GlobalSnapshot
-        _local_snapshot = GlobalSnapshot(lambda: api_client.get_global_states())
-    return _local_snapshot
+        _global_snapshot = GlobalSnapshot(lambda: api_client.get_global_states())
+    return _global_snapshot
 
 
 class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -222,7 +222,7 @@ class FlightServerHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             if path == "/api/global-snapshot":
-                self.send_json_response(200, _local_global_snapshot().get())
+                self.send_json_response(200, shared_global_snapshot().get())
                 return
 
             if path == "/api/live-flights":

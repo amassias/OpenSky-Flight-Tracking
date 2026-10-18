@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../../shared/api";
-import { causeFromError, describeLiveStatus, listEmptyMessage } from "./liveStatus";
+import { causeFromError, describeLiveStatus, listEmptyMessage, snapshotAgeSeconds } from "./liveStatus";
 
 describe("causeFromError", () => {
   it("reads a rate limit as the quota", () => {
@@ -44,5 +44,18 @@ describe("listEmptyMessage", () => {
     expect(listEmptyMessage("provider")).not.toContain("Zoom out");
     expect(listEmptyMessage("provider")).toContain("OpenSky is not answering");
     expect(listEmptyMessage("backend")).toContain("SkyTrace cannot be reached");
+  });
+});
+
+describe("snapshotAgeSeconds", () => {
+  it("counts from the absolute time of the snapshot, not from when this browser received it", () => {
+    // A CDN served this answer 50 s after the snapshot was taken; the age shown now is 50 s + 10 s later.
+    expect(snapshotAgeSeconds({ time: 1_000, receivedAt: 1_050_000 }, 1_060_000)).toBe(60);
+  });
+  it("falls back to the receipt time when the answer carries no snapshot time", () => {
+    expect(snapshotAgeSeconds({ time: null, receivedAt: 1_000_000 }, 1_012_000)).toBe(12);
+  });
+  it("never goes negative when the clocks disagree", () => {
+    expect(snapshotAgeSeconds({ time: 2_000, receivedAt: 1_000_000 }, 1_000_000)).toBe(0);
   });
 });

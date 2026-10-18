@@ -15,9 +15,13 @@ import math
 import os
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional
 
 from backend.api_client import OpenSkyAPIError
+
+# Why a Global snapshot is stale: the credit budget or an upstream rate limit ("quota"),
+# or OpenSky failing ("provider"). The browser reads the same two words.
+DegradedReason = Literal["quota", "provider"]
 
 GLOBAL_CALL_CREDITS = 4
 ANONYMOUS_DAILY_BUDGET = 400
@@ -113,15 +117,16 @@ class GlobalSnapshot:
             self._spend_day, self._spent = day, 0
         return self._spent
 
-    def _payload(self, now: float, *, degraded_notice: Optional[str] = None, reason: Optional[str] = None) -> Dict[str, Any]:
+    def _payload(self, now: float, *, degraded_notice: Optional[str] = None, reason: Optional[DegradedReason] = None) -> Dict[str, Any]:
         assert self._snapshot is not None
+        # `age_seconds` is true when the answer is built only; `time` is the absolute snapshot time.
         age = max(0, int(now - self._fetched_at))
         payload = {**self._snapshot, "age_seconds": age, "refresh_after_seconds": self.refresh_seconds}
         if degraded_notice:
             payload["degraded"] = True
-            # "quota" (credit budget or upstream rate limit) or "provider" (OpenSky failing).
             payload["degraded_reason"] = reason
-            payload["notice"] = degraded_notice.format(age=age)
+            # No relative age in the text: a CDN may serve this answer later. Clients age the snapshot from `time`.
+            payload["notice"] = degraded_notice
         return payload
 
     def get(self) -> Dict[str, Any]:
@@ -134,7 +139,7 @@ class GlobalSnapshot:
             if self._spent_today(now) + GLOBAL_CALL_CREDITS > self._daily_budget:
                 if self._snapshot is None:
                     raise OpenSkyAPIError("OpenSky daily credit budget used up.", status_code=429)
-                return self._payload(now, degraded_notice="Daily OpenSky credit budget reached. Snapshot from {age} s ago.", reason="quota")
+                return self._payload(now, degraded_notice="Daily OpenSky credit budget reached. Showing the last snapshot.", reason="quota")
 
             try:
                 result = self._fetch()
@@ -142,8 +147,8 @@ class GlobalSnapshot:
                 if self._snapshot is None:
                     raise
                 if exc.status_code == 429:
-                    return self._payload(now, degraded_notice="OpenSky rate limit reached. Snapshot from {age} s ago.", reason="quota")
-                return self._payload(now, degraded_notice="Live refresh delayed. Snapshot from {age} s ago.", reason="provider")
+                    return self._payload(now, degraded_notice="OpenSky rate limit reached. Showing the last snapshot.", reason="quota")
+                return self._payload(now, degraded_notice="Live refresh delayed. Showing the last snapshot.", reason="provider")
 
             self._spent += GLOBAL_CALL_CREDITS
             self._anonymous = result.get("provider") == "opensky-anonymous"
