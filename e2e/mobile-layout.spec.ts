@@ -38,3 +38,43 @@ test("map controls clear the top bar and the attribution with a flight open", as
     expect(group.bottom).toBeLessThanOrEqual(attribution.y);
   }
 });
+
+// One minimum-hit-area token: every control below reaches 44 px on a touch screen.
+async function expectTouchTarget(locator: ReturnType<Page["locator"]>, label: string) {
+  const rect = (await locator.first().boundingBox())!;
+  expect(rect, label).not.toBeNull();
+  expect(rect.width, `${label} width`).toBeGreaterThanOrEqual(43.5);
+  expect(rect.height, `${label} height`).toBeGreaterThanOrEqual(43.5);
+}
+
+test("clear, guide-close and segmented controls reach 44 px on touch screens", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Phone layout only.");
+  await page.goto("/");
+  await expectTouchTarget(page.getByRole("button", { name: "Dismiss map hints" }), "map data guide close");
+
+  await page.getByRole("button", { name: /^Display/ }).click();
+  const units = page.getByRole("group", { name: "Units" }).getByRole("button");
+  await expectTouchTarget(units.first(), "segmented button");
+  await expectTouchTarget(units.last(), "segmented button");
+  await page.getByRole("combobox", { name: /search flights and airports/i }).fill("AFR");
+  await expectTouchTarget(page.getByRole("button", { name: "Clear search" }), "clear search");
+
+});
+
+test("secondary buttons reach 44 px on touch screens", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Phone layout only.");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open traffic panel" }).click();
+  await page.getByPlaceholder("Filter this list").fill("zzzz");
+  await expectTouchTarget(page.getByRole("button", { name: "Clear filters" }), "secondary button");
+});
+
+test("map icons name themselves on keyboard focus", async ({ page }) => {
+  await page.goto("/");
+  for (const name of ["Locate me", "Pause live traffic", "Hide panels"]) {
+    const button = page.getByRole("button", { name }).first();
+    await button.focus();
+    const tip = await button.evaluate((element) => getComputedStyle(element, "::after").content);
+    expect(tip, name).toContain(name);
+  }
+});
