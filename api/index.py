@@ -4,9 +4,12 @@ import logging
 from typing import Callable, TypeVar
 
 from fastapi import FastAPI, Query
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.api_client import OpenSkyAPIError
+from backend.global_snapshot import GlobalSnapshot
+from backend import server
 from backend.server import FlightServerHandler
 from backend.aircraft_enrichment import aircraft_enrichment
 
@@ -17,6 +20,9 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+# Large JSON (the Global snapshot) is compressed; small answers are left alone.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 service = object.__new__(FlightServerHandler)
 T = TypeVar("T")
@@ -174,6 +180,22 @@ def live_flights(
     # visitors share a key: let the CDN answer them for a few seconds and keep
     # serving the last snapshot while the slow upstream call refreshes.
     return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=5, s-maxage=10, stale-while-revalidate=40"})
+
+
+# One OpenSky call for the whole world, shared by every visitor (ADR 0008).
+global_snapshot = GlobalSnapshot(lambda: server.api_client.get_global_states())
+
+
+@app.get("/api/global-snapshot")
+def global_snapshot_route():
+    result = execute(lambda: global_snapshot.get())
+    if isinstance(result, JSONResponse):
+        return result
+    # The CDN answers all visitors for a minute and keeps serving the last
+    # snapshot while one request refreshes it. A degraded answer is cached
+    # only briefly so recovery is noticed quickly.
+    cache = "public, max-age=10, s-maxage=10" if result.get("degraded") else "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
+    return JSONResponse(content=result, headers={"Cache-Control": cache})
 
 
 @app.get("/flight-route")

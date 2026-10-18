@@ -233,7 +233,9 @@ input { caret-color: var(--accent); }
 .status-text-airborne { color: var(--ok); }
 .status-text-on_ground { color: var(--muted); }
 .status-text-completed { color: var(--muted); }
-.flight-meta-divider { width: 1px; height: 10px; flex: 0 0 auto; margin: 0 2px; background: var(--line-strong); }
+.flight-meta > * + *:not(.flight-measures)::before { content: "·"; margin-right: 5px; }
+.flight-measures { display: grid; flex: 0 0 auto; grid-template-columns: 6.5ch 12px 6ch; align-items: center; gap: 4px; margin-left: auto; text-align: right; }
+.flight-speed { text-align: right; }
 .flight-plane { margin-left: 8px; color: var(--quiet); transform: rotate(-45deg); transition: color .2s var(--ease-out), transform .3s var(--ease-out); }
 .flight-card:hover .flight-plane { transform: rotate(-45deg) translate(2px, 0); }
 .flight-card.selected .flight-plane { color: var(--accent); }
@@ -314,7 +316,8 @@ input { caret-color: var(--accent); }
 .flight-card.is-emergency { background: color-mix(in srgb, var(--danger) 9%, transparent); }
 .flight-emergency { display: inline-flex; align-items: center; gap: 4px; color: var(--danger); font-weight: 600; }
 .airline .airframe { color: var(--quiet); }
-.flight-altitude { display: inline-flex; align-items: center; gap: 3px; }
+.flight-altitude { text-align: right; }
+.flight-trend { display: inline-flex; align-items: center; justify-content: center; }
 .trend { flex: 0 0 auto; }
 .trend-up { color: var(--ok); }
 .trend-down { color: var(--accent); }
@@ -371,6 +374,7 @@ input { caret-color: var(--accent); }
 /* Bottom-left overlays stop short of the map-control column on the right. */
 .workspace { --controls-room: 56px; }
 .map-status { position: absolute; z-index: 500; left: var(--inset-left); bottom: var(--edge); display: flex; align-items: center; gap: 8px; min-height: 32px; max-width: min(520px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); padding: 6px 12px; color: var(--muted); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); box-shadow: var(--shadow-float); font-size: .8125rem; font-variant-numeric: tabular-nums; transition: left .3s var(--ease-out); }
+.map-hint { position: fixed; z-index: 520; left: var(--edge); bottom: 96px; display: flex; align-items: center; gap: 8px; max-width: min(360px, calc(100% - 2 * var(--edge))); padding: 4px 4px 4px 14px; color: var(--text); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-solid); box-shadow: var(--shadow-float); font-size: .875rem; }
 .map-status strong { flex: 0 0 auto; color: var(--text); font-weight: 600; }
 .map-status.paused strong, .map-status.offline strong { color: var(--warn); }
 .map-status-copy { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -454,7 +458,6 @@ input { caret-color: var(--accent); }
 
 /* Aircraft markers: one neutral ink; the selection is the only blue. */
 .leaflet-marker-icon.aircraft-marker-wrap { transition: none; }
-.leaflet-container:not(.map-camera-moving) .leaflet-marker-icon.aircraft-marker-wrap.aircraft-gliding { transition: transform 1s linear; }
 .aircraft-marker.active { color: #fff; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); filter: none; animation: marker-pop .38s var(--ease-out); }
 @keyframes marker-pop { from { transform: rotate(calc(var(--heading) - 90deg)) scale(.55); box-shadow: 0 0 0 0 var(--accent-soft); } }
 .aircraft-label { position: absolute; left: 31px; top: 50%; display: none; gap: 0; transform: translateY(-50%); color: var(--text); font: 600 11px/1.2 var(--body); white-space: nowrap; letter-spacing: 0; text-shadow: 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 4px var(--halo); pointer-events: none; }
@@ -623,6 +626,8 @@ input { caret-color: var(--accent); }
   .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .leaflet-bottom { bottom: 50%; }
   .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .location-status { bottom: calc(50% + 160px); }
   .map-altitude-legend { display: none; }
+  /* Bottom-left, clear of the controls and the Traffic button on the right. */
+  .map-hint { bottom: 40px; max-width: calc(100% - 150px); }
   .map-status { left: var(--edge); top: 48px; bottom: auto; max-width: calc(100% - var(--edge) * 2); }
   .emergency-banner { top: 128px; left: var(--edge); right: var(--edge); }
   .traffic-reopen { top: auto; bottom: 12px; right: 12px; }
