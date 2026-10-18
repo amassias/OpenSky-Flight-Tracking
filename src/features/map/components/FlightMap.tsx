@@ -16,7 +16,7 @@ import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../../../shared/api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../../../shared/types";
 import { preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
-import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
+import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, sampleByDensity, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
 import { distanceText, flightLevelText, speedText, useUnits } from "../../../shared/units";
@@ -25,6 +25,8 @@ import { AircraftHoverPreview } from "./AircraftHoverPreview";
 
 /** Recent positions kept per aircraft for its trail. */
 const TRAIL_POINTS = 8;
+/** The Leaflet renderer draws at most about this many aircraft; more are thinned by density. */
+const MAX_DRAWN_AIRCRAFT = 3_000;
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
@@ -1158,21 +1160,13 @@ export function FlightMap({
   useEffect(() => {
     if (!bounds || !liveAvailable || !liveEnabled) return;
     const controller = new AbortController();
-    // The authenticated OpenSky proxy answers the whole viewport in a single
-    // call, so only split into a paced grid of small requests when we're
-    // limited to the public ADS-B fallback (which caps a single call to a
-    // 250 NM radius).
     // A close-up view fits one or two cells of the public ADS-B feed, which
-    // answers in a fraction of a second; the authenticated whole-box call
-    // takes several seconds upstream, so it is kept for wide views.
-    const compactView = viewportTileCount(bounds) <= 2;
-    const usePrivateViewport = liveAvailable && !liveProbePending && !compactView;
-    const tiles = usePrivateViewport ? [bounds] : splitBoundsIntoTiles(bounds);
-    const totalViewportTiles = usePrivateViewport ? 1 : viewportTileCount(bounds);
-    // A private whole-box request can still be cold (OAuth + upstream) and
-    // take several seconds. Prime the map once with one provider-safe centre
-    // tile, then let the complete request replace it. This keeps first paint
-    // fast without turning every refresh into an extra public-provider call.
+    // answers in a fraction of a second (the Local feed). Anything wider is
+    // covered by the shared Global snapshot, one request for the whole world
+    // (ADR 0008): no tiling, no per-cell cadence.
+    const wideView = viewportTileCount(bounds) > 2;
+    const tiles = wideView ? [bounds] : splitBoundsIntoTiles(bounds);
+    const totalViewportTiles = tiles.length;
     const forcedRefresh = handledRefreshRef.current !== liveRefresh;
     handledRefreshRef.current = liveRefresh;
     const viewportKey = viewportCacheKey(bounds);
@@ -1227,10 +1221,6 @@ export function FlightMap({
       const timer = setTimeout(requestLiveRefresh, wait);
       return () => clearTimeout(timer);
     }
-    // The full-viewport call can take several seconds upstream, so a quick
-    // centre tile from the public feed runs beside it unless the cache
-    // already has this area on screen.
-    const seedTile = usePrivateViewport && retained.size < 12 ? splitBoundsIntoTiles(bounds, 1)[0] ?? bounds : null;
     const freshAircraft = new Set<string>();
     const coveredTiles: Bounds[] = [];
     let loadedTiles = 0;
@@ -1238,10 +1228,9 @@ export function FlightMap({
     let latestTime: number | null = cachedViewport?.time ?? null;
     let provider: string | undefined = cachedViewport?.provider;
     let cacheTimestamp: number | null = cachedViewport?.cachedAt ?? null;
-    // Refresh a complete grid at a cadence proportional to its request cost.
-    // A 12-sector Europe view therefore refreshes every three minutes instead
-    // of repeating 12 public-provider calls every 20 seconds.
-    let refreshAfterSeconds = Math.max(20, Math.min(180, 20 * tiles.length));
+    // The Global snapshot says how soon it can be refreshed; the Local feed
+    // answers every 20 s at most.
+    let refreshAfterSeconds = 20;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
     const snapshot = (): LiveFlightsResponse => ({
@@ -1290,8 +1279,12 @@ export function FlightMap({
     const loadTile = async (tile: Bounds) => {
       try {
         // If the quick public feed is unavailable, the authenticated call still answers.
-        const response = usePrivateViewport
-          ? await api.liveFlights(tile, controller.signal, false)
+        const response = wideView
+          // If the snapshot is unavailable, ask for the viewport as one box.
+          ? await api.globalSnapshot(controller.signal).catch((error) => {
+            if (controller.signal.aborted) throw error;
+            return api.liveFlights(tile, controller.signal, false);
+          })
           : await api.liveFlights(tile, controller.signal, true).then((quick) => {
             // The public feed answers "degraded and empty" while it is rate limited.
             if (quick.degraded && quick.states.length === 0) throw new Error("Public feed unavailable");
@@ -1330,30 +1323,6 @@ export function FlightMap({
       }
     };
 
-    const loadSeed = async () => {
-      if (!seedTile) return;
-      try {
-        const response = await api.liveFlights(seedTile, controller.signal, true);
-        // The complete answer may already be here; it is the better data.
-        if (controller.signal.aborted || loadedTiles > 0) return;
-        rememberAircraft(response.states);
-        for (const aircraft of response.states) retained.set(aircraft.icao24, aircraft);
-        latestTime = response.time ?? latestTime;
-        provider = response.provider || provider;
-        refreshAfterSeconds = Math.max(refreshAfterSeconds, response.refresh_after_seconds ?? 20);
-        cacheTimestamp = Date.now();
-        const data = snapshot();
-        saveViewportCache();
-        setLiveState({ data, fetching: true, loadedTiles, totalTiles: totalViewportTiles, failedTiles, error: null });
-
-      } catch {
-        // The complete request below remains authoritative. A seed failure is
-        // intentionally silent so a transient public provider issue cannot
-        // make the main live request look failed.
-      }
-    };
-
-    void loadSeed();
     void Promise.all(tiles.map(loadTile)).then(() => {
       if (controller.signal.aborted) return;
       // Prune aircraft inside any tile we actually refreshed this round, even
@@ -1418,8 +1387,11 @@ export function FlightMap({
   // The filters narrow the map, never the aircraft the user is looking at.
   const visibleStates = useMemo(() => {
     const kept = filterAircraft(displayedLiveStates, filters);
-    return selectedLive && !kept.includes(selectedLive) ? [...kept, selectedLive] : kept;
-  }, [displayedLiveStates, filters, selectedLive]);
+    const withSelected = selectedLive && !kept.includes(selectedLive) ? [...kept, selectedLive] : kept;
+    // Until the renderer migration, Leaflet draws a density sample above
+    // MAX_DRAWN_AIRCRAFT. The selected, followed and emergency aircraft stay.
+    return sampleByDensity(withSelected, MAX_DRAWN_AIRCRAFT, (item) => item === selectedLive || item.icao24 === followingIcao24 || Boolean(emergencyInfo(item)));
+  }, [displayedLiveStates, filters, followingIcao24, selectedLive]);
   // A broad viewport can contain thousands of aircraft. Keep the detailed
   // plane icons for normal views, then switch to a lightweight canvas layer so
   // zooming out does not turn every aircraft into a DOM subtree.
@@ -1497,7 +1469,7 @@ export function FlightMap({
     <section className="map-surface" aria-label="Live flight map" inert={readingDetails && isMobile}>
       <MapContainer ref={setMap} center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Aircraft data: <a href="https://opensky-network.org">OpenSky Network</a>, <a href="https://adsb.fi">adsb.fi</a>, <a href="https://adsb.lol">adsb.lol</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           className={theme === "dark" ? "map-tiles-dark" : "map-tiles-light"}
           key={theme}

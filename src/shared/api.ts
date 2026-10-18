@@ -15,9 +15,20 @@ import type {
   FlightInfoResponse,
   FlightsResponse,
   HealthResponse,
+  LiveAircraft,
   LiveFlightsResponse,
   TrackResponse,
 } from "./types";
+
+interface GlobalSnapshotBody {
+  time?: number | null;
+  provider?: string;
+  degraded?: boolean;
+  notice?: string;
+  refresh_after_seconds?: number;
+  fields?: string[];
+  aircraft?: Array<Array<string | number | null>>;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -156,6 +167,33 @@ export const api = {
     const response = await request<LiveFlightsResponse>("/api/live-flights", { ...bounds, fallback: fallbackOnly ? 1 : undefined }, signal);
     // The map iterates `states` outside any error boundary.
     return { ...response, states: listOf(response.states) };
+  },
+  /** Every aircraft in the world from the shared Global snapshot (ADR 0008). */
+  globalSnapshot: async (signal?: AbortSignal): Promise<LiveFlightsResponse> => {
+    const body = await request<GlobalSnapshotBody>("/api/global-snapshot", undefined, signal);
+    if (!Array.isArray(body.fields) || !Array.isArray(body.aircraft)) throw new Error("Global snapshot unavailable");
+    const column = new Map(body.fields.map((name, index) => [name, index]));
+    const time = typeof body.time === "number" ? body.time : null;
+    const states = body.aircraft.flatMap((row): LiveAircraft[] => {
+      const at = (name: string) => row[column.get(name) ?? -1] ?? null;
+      const icao24 = at("icao24");
+      if (typeof icao24 !== "string" || !icao24) return [];
+      const fixAge = at("fix_age");
+      return [{
+        icao24, callsign: (at("callsign") as string | null) ?? "",
+        latitude: at("latitude") as number | null, longitude: at("longitude") as number | null,
+        baro_altitude: at("baro_altitude") as number | null, geo_altitude: at("geo_altitude") as number | null,
+        velocity: at("velocity") as number | null, true_track: at("true_track") as number | null,
+        vertical_rate: at("vertical_rate") as number | null, on_ground: Boolean(at("on_ground")),
+        squawk: at("squawk") as string | null, category: at("category") as number | null,
+        time_position: time != null && typeof fixAge === "number" ? time - fixAge : null,
+        data_source: "opensky",
+      } as LiveAircraft];
+    });
+    return {
+      success: true, time, time_iso: time ? new Date(time * 1000).toISOString() : null, count: states.length, states,
+      provider: body.provider, degraded: body.degraded, notice: body.notice, refresh_after_seconds: body.refresh_after_seconds,
+    };
   },
   callsignLookup: (callsign: string, signal?: AbortSignal) => request<CallsignLookupResponse>("/api/callsign-lookup", { callsign }, signal),
   flightRoute: (callsign: string, signal?: AbortSignal) => request<FlightRouteResponse>("/api/flight-route", { callsign }, signal),
