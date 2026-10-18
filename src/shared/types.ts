@@ -473,7 +473,7 @@ export interface CallsignLookupResponse {
   aircraft: LiveAircraft | null;
 }
 
-/** A map position: centre and Leaflet zoom level. */
+/** A map position: centre and zoom level (256 px tiles, as in shared links). */
 export interface MapView {
   latitude: number;
   longitude: number;

@@ -116,8 +116,8 @@ const VISIBLE_STEP_PIXELS = 0.6;
  * well under a pixel a second, so waiting changes nothing the visitor can see.
  * Between 100 ms (10 Hz, ADR 0007) and 2 s.
  */
-export function updateIntervalMs(leafletZoom: number, latitude: number): number {
-  const metresPerPixel = 156_543 * Math.cos((latitude * Math.PI) / 180) / 2 ** leafletZoom;
+export function updateIntervalMs(viewZoom: number, latitude: number): number {
+  const metresPerPixel = 156_543 * Math.cos((latitude * Math.PI) / 180) / 2 ** viewZoom;
   const wait = (VISIBLE_STEP_PIXELS * metresPerPixel / FASTEST_AIRCRAFT_MS) * 1000;
   return Math.min(2000, Math.max(100, Math.round(wait)));
 }

@@ -62,7 +62,7 @@ These are **browser screenshots of the running site**, captured on 5 October 202
 
 ## Architecture
 
-- **Frontend:** React, TypeScript, Vite, TanStack Query, React Leaflet
+- **Frontend:** React, TypeScript, Vite, TanStack Query, MapLibre GL
 - **Backend:** Python `http.server`, Requests, python-dotenv
 - **Data:** OpenSky REST API plus the bundled airport and airline datasets. On Vercel, the authenticated proxy serves complete viewport boxes; public ADS-B sources are used only as a resilient fallback. A selected live aircraft can request short-lived callsign, aircraft-profile, and FlightAware operational enrichment; the interface labels the source of each route.
 - **Tests:** Vitest, Testing Library, pytest, and Playwright

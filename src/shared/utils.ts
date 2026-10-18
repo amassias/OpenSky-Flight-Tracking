@@ -183,22 +183,6 @@ export function splitBoundsIntoTiles(bounds: Bounds, maxTiles = 24): Bounds[] {
     .map(({ lamin, lamax, lomin, lomax }) => quantizeBounds({ lamin, lamax, lomin, lomax }, 0.05));
 }
 
-/**
- * Thins a very large set to about `limit` aircraft for drawing on the Leaflet
- * renderer. Which aircraft stay depends only on the icao24, so the picture does
- * not flicker between refreshes. Aircraft for which `mustKeep` is true stay.
- */
-export function sampleByDensity<T extends { icao24: string }>(aircraft: readonly T[], limit: number, mustKeep: (item: T) => boolean): readonly T[] {
-  if (aircraft.length <= limit) return aircraft;
-  const share = limit / aircraft.length;
-  return aircraft.filter((item) => {
-    if (mustKeep(item)) return true;
-    let hash = 2166136261;
-    for (let i = 0; i < item.icao24.length; i += 1) hash = Math.imul(hash ^ item.icao24.charCodeAt(i), 16777619);
-    return ((hash >>> 0) % 10_000) / 10_000 < share;
-  });
-}
-
 export function viewportTileCount(bounds: Bounds): number {
   const centerLat = (bounds.lamin + bounds.lamax) / 2;
   const latitudeNm = Math.max(1, (bounds.lamax - bounds.lamin) * 60);

@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 // choice afterwards, and the browser chrome colour that follows the map.
 test.use({
   colorScheme: "light",
-  storageState: { cookies: [], origins: [{ origin: "http://127.0.0.1:4173", localStorage: [{ name: "skytrace-onboarded", value: "true" }] }] },
+  storageState: { cookies: [], origins: [{ origin: process.env.SKYTRACE_E2E_ORIGIN ?? "http://127.0.0.1:4173", localStorage: [{ name: "skytrace-onboarded", value: "true" }] }] },
 });
 
 test.beforeEach(async ({ page }) => {
@@ -26,7 +26,7 @@ test("a first visit follows a light system theme and T switches it", async ({ pa
   await expect(page.locator(".aircraft-marker")).toHaveCount(3);
   await page.screenshot({ path: testInfo.outputPath("light-theme.png") });
 
-  await page.locator(".leaflet-container").click({ position: { x: 20, y: 200 } });
+  await page.locator(".flight-map").click({ position: { x: 20, y: 200 } });
   await page.keyboard.press("t");
   await expect(page.locator(".app")).toHaveClass(/theme-dark/);
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#0b0b0c");

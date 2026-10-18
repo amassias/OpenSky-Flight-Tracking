@@ -53,7 +53,7 @@ test('renders model sprites, headings, fallback and map states in both themes', 
   await page.getByRole('button', { name: 'Hide panels', exact: true }).click();
   for (const theme of ['dark', 'light']) {
     if (!await page.locator('.app').evaluate((el, theme) => el.classList.contains(`theme-${theme}`), theme)) {
-      await page.locator('.leaflet-container').click({ position: { x: 10, y: 100 } });
+      await page.locator('.flight-map').click({ position: { x: 10, y: 100 } });
       await page.keyboard.press('t');
     }
     await expect(page.locator('.app')).toHaveClass(new RegExp(`theme-${theme}`));
@@ -102,7 +102,7 @@ test('preserves silhouettes through dense zoom and a less detailed feed', async 
     await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe(String(zoom));
   }
   await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
-  await expect.poll(async () => Number(await page.locator('.aircraft-gl').getAttribute('data-aircraft-drawn'))).toBeGreaterThan(500);
+  await expect.poll(async () => Number(await page.locator('.flight-map').getAttribute('data-aircraft-drawn'))).toBeGreaterThan(500);
   for (const zoom of [8, 9, 10]) {
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe(String(zoom));

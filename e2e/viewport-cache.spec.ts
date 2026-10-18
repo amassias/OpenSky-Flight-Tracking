@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const airport = { icao: 'LFPG', iata: 'CDG', name: 'Paris Charles de Gaulle', latitude: 49, longitude: 2.5 };
 
 test('restores a visited viewport while its refresh is in flight', async ({ page, isMobile }) => {
-  test.skip(isMobile, 'Wheel zoom is not available in mobile WebKit.');
+  test.skip(isMobile, 'A phone shows too narrow a view for the second aircraft to come into view after one zoom step.');
   let phase: 'initial' | 'wide' | 'return' = 'initial';
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
@@ -13,7 +13,7 @@ test('restores a visited viewport while its refresh is in flight', async ({ page
       const states = phase === 'initial'
         ? Array.from({ length: 50 }, (_, i) => ({ icao24: i.toString(16).padStart(6, '0'), callsign: `TEST${i}`, latitude: 48.8 + i / 1000, longitude: 2.3 + i / 1000, true_track: 90 }))
         : phase === 'wide'
-          ? [{ icao24: 'ffffff', callsign: 'WIDE', latitude: 52, longitude: 7, true_track: 90 }]
+          ? [{ icao24: 'ffffff', callsign: 'WIDE', latitude: 51, longitude: 5, true_track: 90 }]
           : [];
       return route.fulfill({ json: { count: states.length, states, time: 1, provider: 'fixture' } });
     }
@@ -23,10 +23,10 @@ test('restores a visited viewport while its refresh is in flight', async ({ page
   await page.goto('/');
   await expect(page.locator('.aircraft-marker')).toHaveCount(50, { timeout: 5_000 });
   phase = 'wide';
-  await page.locator('.leaflet-map').hover();
-  await page.mouse.wheel(0, 480);
+  // The buttons zoom by exactly one level, so going back lands on the visited view.
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   await expect(page.locator('.aircraft-marker')).toHaveCount(1, { timeout: 5_000 });
   phase = 'return';
-  await page.mouse.wheel(0, -480);
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
   await expect(page.locator('.aircraft-marker')).toHaveCount(50, { timeout: 1_000 });
 });

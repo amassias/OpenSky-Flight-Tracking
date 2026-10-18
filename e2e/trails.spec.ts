@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // Trails are drawn from successive live snapshots, so a second answer with
 // moved aircraft must leave a line behind each one.
 test.use({
-  storageState: { cookies: [], origins: [{ origin: "http://127.0.0.1:4173", localStorage: [{ name: "skytrace-onboarded", value: "true" }, { name: "skytrace-trails", value: "true" }] }] },
+  storageState: { cookies: [], origins: [{ origin: process.env.SKYTRACE_E2E_ORIGIN ?? "http://127.0.0.1:4173", localStorage: [{ name: "skytrace-onboarded", value: "true" }, { name: "skytrace-trails", value: "true" }] }] },
 });
 
 test("draws a trail behind aircraft that moved between live refreshes", async ({ page, isMobile }) => {
@@ -21,10 +21,10 @@ test("draws a trail behind aircraft that moved between live refreshes", async ({
   });
   await page.goto("/");
   await expect(page.locator(".aircraft-marker")).toHaveCount(2);
-  await expect(page.locator(".leaflet-overlay-pane path")).toHaveCount(0);
-  await page.locator(".leaflet-map").hover();
+  await expect(page.locator(".flight-map")).not.toHaveAttribute("data-map-overlays", /trails/);
+  await page.locator(".flight-map").hover();
   await page.mouse.wheel(0, 480);
   const before = round;
   await expect.poll(() => round).toBeGreaterThan(before);
-  await expect(page.locator(".leaflet-overlay-pane path, .leaflet-overlay-pane canvas")).not.toHaveCount(0);
+  await expect(page.locator(".flight-map")).toHaveAttribute("data-map-overlays", /trails/);
 });

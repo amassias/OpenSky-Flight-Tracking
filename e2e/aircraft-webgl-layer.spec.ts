@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // The aircraft layer (issue #23, ADR 0009): every aircraft of a dense view is drawn by one
-// WebGL canvas that follows the Leaflet camera, survives theme switches and stays selectable.
+// WebGL layer of the map itself, which follows pan and zoom, survives theme switches and stays selectable.
 
 const FIELDS = ['icao24', 'callsign', 'latitude', 'longitude', 'baro_altitude', 'geo_altitude', 'velocity', 'true_track', 'vertical_rate', 'on_ground', 'squawk', 'category', 'source', 'fix_age'];
 const now = Math.floor(Date.now() / 1000);
@@ -35,7 +35,12 @@ async function mockApi(page: Page) {
   await page.route('https://api.planespotters.net/**', route => route.fulfill({ json: { photos: [] } }));
 }
 
-const layer = (page: Page) => page.locator('.aircraft-gl');
+const layer = (page: Page) => page.locator('.flight-map');
+/** The map exposes itself in development builds so a test can switch the aircraft layer off to measure it. */
+const setAircraftLayerVisible = (page: Page, visible: boolean) => page.evaluate(show => {
+  (window as unknown as { __skytraceMap: { setLayoutProperty(layer: string, name: string, value: string): void } }).__skytraceMap
+    .setLayoutProperty('aircraft', 'visibility', show ? 'visible' : 'none');
+}, visible);
 const drawn = async (page: Page) => Number(await layer(page).getAttribute('data-aircraft-drawn') ?? 0);
 
 /**
@@ -45,10 +50,10 @@ const drawn = async (page: Page) => Number(await layer(page).getAttribute('data-
 async function paintedCentroid(page: Page, window: { x: number; y: number; size: number }) {
   await page.waitForTimeout(350); // two source updates
   const withLayer = await page.screenshot();
-  await layer(page).evaluate(el => { (el as HTMLElement).style.visibility = 'hidden'; });
+  await setAircraftLayerVisible(page, false);
   await page.waitForTimeout(100);
   const without = await page.screenshot();
-  await layer(page).evaluate(el => { (el as HTMLElement).style.visibility = ''; });
+  await setAircraftLayerVisible(page, true);
   return page.evaluate(async ({ a, b, window }) => {
     const decode = async (base64: string) => {
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
@@ -73,7 +78,7 @@ async function paintedCentroid(page: Page, window: { x: number; y: number; size:
 }
 
 async function mapCenter(page: Page) {
-  const box = (await page.locator('.leaflet-container').boundingBox())!;
+  const box = (await page.locator('.flight-map').boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height / 2, box };
 }
 
@@ -87,7 +92,15 @@ test('draws all 10,000 aircraft of the snapshot with no density sampling', async
   await expect(page.locator('.aircraft-marker')).toHaveCount(0);
 });
 
-test('the WebGL canvas follows panning and zooming', async ({ page, isMobile }) => {
+/** Where, in page coordinates, the map puts the stacked aircraft (48 N, 5 E) once the camera has stopped. */
+async function stackPoint(page: Page) {
+  await expect(page.locator('.flight-map.map-camera-moving')).toHaveCount(0);
+  const box = (await page.locator('.flight-map').boundingBox())!;
+  const point = await page.evaluate(() => (window as unknown as { __skytraceMap: { project(lngLat: [number, number]): { x: number; y: number } } }).__skytraceMap.project([5, 48]));
+  return { x: box.x + point.x, y: box.y + point.y };
+}
+
+test('the aircraft stay on their geographic position while the map pans and zooms', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Mouse dragging is not available in mobile WebKit.');
   await mockApi(page);
   await page.goto('/?at=48,5,9');
@@ -98,19 +111,25 @@ test('the WebGL canvas follows panning and zooming', async ({ page, isMobile }) 
   expect(start.count).toBeGreaterThan(20);
   expect(Math.hypot(start.x - x, start.y - y)).toBeLessThan(8);
 
-  await page.mouse.move(x - 250, y + 200);
+  await page.mouse.move(x - 150, y + 100);
   await page.mouse.down();
-  await page.mouse.move(x - 150, y + 250, { steps: 8 });
+  await page.mouse.move(x - 100, y + 125, { steps: 8 });
   await page.mouse.up();
-  const panned = await paintedCentroid(page, { x: x + 100, y: y + 50, size: 40 });
+  // The drag glides on after release; wait for the camera to stop, then ask the map where the stack is.
+  const afterPan = await stackPoint(page);
+  expect(Math.hypot(afterPan.x - x, afterPan.y - y)).toBeGreaterThan(20);
+  const panned = await paintedCentroid(page, { ...afterPan, size: 40 });
   expect(panned.count).toBeGreaterThan(20);
-  expect(Math.hypot(panned.x - (x + 100), panned.y - (y + 50))).toBeLessThan(8);
+  expect(Math.hypot(panned.x - afterPan.x, panned.y - afterPan.y)).toBeLessThan(8);
 
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
   await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe('10');
-  const zoomed = await paintedCentroid(page, { x: x + 200, y: y + 100, size: 40 });
+  const afterZoom = await stackPoint(page);
+  // One zoom level doubles the distance from the centre.
+  expect(Math.hypot(afterZoom.x - (x + 2 * (afterPan.x - x)), afterZoom.y - (y + 2 * (afterPan.y - y)))).toBeLessThan(3);
+  const zoomed = await paintedCentroid(page, { ...afterZoom, size: 40 });
   expect(zoomed.count).toBeGreaterThan(20);
-  expect(Math.hypot(zoomed.x - (x + 200), zoomed.y - (y + 100))).toBeLessThan(8);
+  expect(Math.hypot(zoomed.x - afterZoom.x, zoomed.y - afterZoom.y)).toBeLessThan(8);
 });
 
 test('selecting an aircraft on the WebGL layer opens its details', async ({ page }) => {
@@ -124,6 +143,20 @@ test('selecting an aircraft on the WebGL layer opens its details', async ({ page
   await expect(page.locator('.aircraft-marker.active')).toHaveCount(1);
   // The selected aircraft leaves the WebGL layer for its detailed marker.
   await expect.poll(() => drawn(page)).toBe(799);
+});
+
+test('hovering an aircraft on the WebGL layer previews it, and leaving hides the preview', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Hover needs a mouse.');
+  await mockApi(page);
+  await page.goto('/?at=48,5,9');
+  await expect.poll(() => drawn(page), { timeout: 15_000 }).toBe(800);
+  const { x, y } = await mapCenter(page);
+  await page.mouse.move(x - 300, y - 200);
+  await expect(page.locator('.aircraft-hover-preview')).toHaveCount(0);
+  await page.mouse.move(x, y, { steps: 6 });
+  await expect(page.locator('.aircraft-hover-preview')).toBeVisible();
+  await page.mouse.move(x - 300, y - 200, { steps: 6 });
+  await expect(page.locator('.aircraft-hover-preview')).toHaveCount(0);
 });
 
 test('the layer survives a theme switch', async ({ page }) => {

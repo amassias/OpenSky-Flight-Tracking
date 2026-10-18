@@ -16,6 +16,9 @@ test('local ICAO logo survives selection and zoom on desktop and mobile', async 
     return route.fulfill({ json: body });
   });
   await page.route('https://api.planespotters.net/**', route => route.fulfill({ json: { photos: [] } }));
+  // The basemap asks for tiles at the zoom it shows; OpenStreetMap itself is not needed.
+  const tileZooms = new Set<number>();
+  await page.route('https://tile.openstreetmap.org/**', route => { tileZooms.add(Number(new URL(route.request().url()).pathname.split('/')[1])); return route.abort(); });
   await page.goto('/?at=48.46,2.2,10');
   await expect(page.locator('[data-icao24="aa0011"]')).toHaveCount(1);
   await page.getByRole('button', { name: 'Dismiss map hints' }).click();
@@ -31,8 +34,8 @@ test('local ICAO logo survives selection and zoom on desktop and mobile', async 
   await page.getByRole('button', { name: 'Hide panels', exact: true }).click();
   for (const [button, zoom] of [['Zoom out', 9], ['Zoom out', 8], ['Zoom in', 9], ['Zoom in', 10]] as const) {
     await page.getByRole('button', { name: button, exact: true }).click();
-    await expect(page.locator(`.leaflet-tile-pane img[src*="openstreetmap.org/${zoom}/"]`).first()).toBeAttached();
-    await expect(page.locator('.leaflet-zoom-anim')).toHaveCount(0);
+    await expect.poll(() => tileZooms.has(zoom)).toBe(true);
+    await expect(page.locator('.flight-map.map-camera-moving')).toHaveCount(0);
     await expect(logo).toHaveAttribute('src', '/airline-logos/operators/ADB.png');
     await expect.poll(() => logo.evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   }

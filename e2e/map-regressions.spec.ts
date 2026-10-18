@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
         // fresh query instead of keeping the first viewport's snapshot.
         const wideViewport = returnWideViewport || returnDenseViewport;
         const count = returnDenseViewport ? 900 : wideViewport ? 301 : 300;
-        return { count, states: Array.from({length: count}, (_, i) => ({ icao24: i.toString(16).padStart(6, '0'), callsign: `TEST${i}`, latitude: returnWideViewport && i === 300 ? 52 : 48.8 + i / 1000, longitude: returnWideViewport && i === 300 ? 7 : 2.3 + i / 1000, true_track: 90 })) };
+        return { count, states: Array.from({length: count}, (_, i) => ({ icao24: i.toString(16).padStart(6, '0'), callsign: `TEST${i}`, latitude: returnWideViewport && i === 300 ? 51 : 48.8 + i / 1000, longitude: returnWideViewport && i === 300 ? 5 : 2.3 + i / 1000, true_track: 90 })) };
       })()
       : [airport];
     await route.fulfill({ json: body });
@@ -57,7 +57,7 @@ test('clock does not rewrite aircraft DOM', async ({page}) => {
   const mutations = await page.evaluate(async () => {
     let count = 0;
     const observer = new MutationObserver(items => { count += items.length; });
-    observer.observe(document.querySelector('.leaflet-marker-pane')!, {subtree:true, childList:true, attributes:true});
+    observer.observe(document.querySelector('.aircraft-marker-wrap')!.parentElement!, {subtree:true, childList:true, attributes:true});
     await new Promise(resolve => setTimeout(resolve, 2200));
     observer.disconnect();
     return count;
@@ -69,9 +69,9 @@ test('clock does not rewrite aircraft DOM', async ({page}) => {
 test('refreshes the live viewport after zooming out', async ({page, isMobile}) => {
   test.skip(isMobile, 'Wheel zoom is not available in mobile WebKit.');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
-  await page.locator('.leaflet-map').hover();
+  await page.locator('.flight-map').hover();
   returnWideViewport = true;
-  await page.mouse.wheel(0, 480);
+  await page.mouse.wheel(0, 1900);
   await expect(page.locator('.aircraft-marker')).toHaveCount(301);
   await expect(page.locator('.map-status')).toContainText('301 aircraft');
 });
@@ -80,8 +80,8 @@ test('uses the canvas layer for a dense live viewport', async ({page, isMobile})
   test.skip(isMobile, 'Wheel zoom is not available in mobile WebKit.');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);
   returnDenseViewport = true;
-  await page.locator('.leaflet-map').hover();
-  await page.mouse.wheel(0, 280);
+  await page.locator('.flight-map').hover();
+  await page.mouse.wheel(0, 1100);
   await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
   await expect(page.locator('.map-status')).toContainText('900 aircraft');
   await expect(page.locator('.aircraft-marker')).toHaveCount(0);
@@ -97,10 +97,10 @@ test('keeps the last live snapshot when a zoom refresh fails', async ({page, isM
     body: JSON.stringify({ success: false, error: 'upstream timeout' }),
   }));
 
-  // Zoom in on the aircraft themselves: with a panel open the map centre is not where they are.
+  // Zoom out around the aircraft themselves: the wider view asks for traffic again, and that request fails.
   const target = (await page.locator('.aircraft-marker').first().boundingBox())!;
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
-  await page.mouse.wheel(0, 280);
+  await page.mouse.wheel(0, 1100);
   await expect(page.locator('.map-status')).toContainText(/snapshot from \d+ s ago/);
   await expect(page.locator('.map-status')).not.toContainText('Your search is preserved');
   await expect(page.locator('.aircraft-marker')).toHaveCount(300);

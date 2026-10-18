@@ -69,7 +69,7 @@ test('close zoom refreshes the Local feed every 5 to 10 seconds', async ({ page 
 test('the map credits OpenSky, adsb.fi and adsb.lol', async ({ page }) => {
   await mockApi(page, []);
   await page.goto('/');
-  const credits = page.locator('.leaflet-control-attribution');
+  const credits = page.locator('.maplibregl-ctrl-attrib');
   await expect(credits).toContainText('OpenSky');
   await expect(credits).toContainText('adsb.fi');
   await expect(credits).toContainText('adsb.lol');

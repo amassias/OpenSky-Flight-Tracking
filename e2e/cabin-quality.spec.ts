@@ -30,7 +30,7 @@ async function fixture(page: import('@playwright/test').Page, mode: 'ready' | 'e
 }
 async function audit(page: import('@playwright/test').Page) {
   await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
-  const results = await new AxeBuilder({ page }).exclude('.leaflet-pane').exclude('.leaflet-control-container').withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   expect(results.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
 }
 for (const theme of ['light', 'dark'] as const) {

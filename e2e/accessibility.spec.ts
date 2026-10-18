@@ -34,11 +34,10 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-// Map tiles and markers are drawn by Leaflet; the audit covers the app chrome.
 async function audit(page: import("@playwright/test").Page) {
   await page.waitForFunction(() => document.getAnimations().every((animation) =>
     animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity));
-  const results = await new AxeBuilder({ page }).exclude(".leaflet-pane").exclude(".leaflet-control-container").withTags(["wcag2a", "wcag2aa"]).analyze();
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   return results.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
 }
 

@@ -1,6 +1,6 @@
 # 0009. Draw dense aircraft with MapLibre GL, loaded on demand
 
-Status: accepted (2026-10-18, issue #23 of spec #11; prototype in `docs/audits/2026-10-18-webgl-renderer-prototype.md`, measurements in `docs/audits/2026-10-18-aircraft-layer-measurement.md`)
+Status: accepted (2026-10-18, issue #23 of spec #11; the map itself moved to MapLibre GL in issue #24, see [0010](0010-maplibre-gl-map.md), which supersedes the Leaflet-specific parts below; prototype in `docs/audits/2026-10-18-webgl-renderer-prototype.md`, measurements in `docs/audits/2026-10-18-aircraft-layer-measurement.md`)
 
 ## Decision
 Once a view holds more than 750 aircraft, they are drawn by **one MapLibre GL symbol layer** on a transparent canvas, not by Leaflet markers. Below 750 the detailed Leaflet markers (labels, focus, keyboard) are unchanged.

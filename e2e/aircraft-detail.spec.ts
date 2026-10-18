@@ -54,8 +54,8 @@ test('opens immediately, estimates the route, shows sourced variants and survive
   await expect(page.locator('.route-source-note')).toContainText('Usual route');
   await expect(page.locator('.route-progress')).toBeVisible();
   await expect(page.getByText('Progress unavailable')).toHaveCount(0);
-  await expect(page.locator('.estimated-future-path')).toHaveCount(1);
-  await expect(page.locator('.heading-projection')).toHaveCount(0);
+  await expect(page.locator('.flight-map')).toHaveAttribute('data-map-overlays', /future-path/);
+  await expect(page.locator('.flight-map')).not.toHaveAttribute('data-map-overlays', /heading-projection/);
   await expect(page.getByRole('region', { name: 'Cabin configurations' })).toContainText('324 seats');
   await page.getByText('292 seats', { exact: false }).click();
   await expect(page.getByText('USB-A and USB-C in all cabins')).toBeVisible();
@@ -85,7 +85,8 @@ test('reveals labels with zoom, hides failed logos, and animates only flying rot
   await expect(page.locator('.aircraft-label')).toHaveCount(0);
   for (let zoom = 8; zoom <= 12; zoom++) {
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click({ force: true });
-    await page.waitForTimeout(300);
+    // Each press zooms one level from where the camera is, so let it arrive first.
+    await expect(page.locator('.flight-map.map-camera-moving')).toHaveCount(0);
     await expect(page.locator('.aircraft-label').first()).toBeVisible();
     if (zoom < 10) await expect(page.locator('.airline-logo')).toHaveCount(0);
   }
