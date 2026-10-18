@@ -154,13 +154,16 @@ def test_refreshes_after_the_cadence_and_never_exceeds_the_daily_budget():
 def test_budget_resets_with_the_utc_day():
     clock = Clock()
     clock.now = (NOW // 86_400) * 86_400 + 100
-    fake = FakeUpstream(upstream([opensky_row()]))
+    fresh = lambda: {**upstream([opensky_row()]), "time": int(clock.now)}
+    fake = FakeUpstream()
+    fake.responses = [fresh()]
     snapshot = GlobalSnapshot(fake, clock=clock, daily_budget=4, refresh_seconds=10)
 
     snapshot.get()
     clock.now += 11
     assert snapshot.get()["degraded"] is True
     clock.now += 86_400
+    fake.responses = [fresh()]
     assert snapshot.get().get("degraded") is not True
     assert fake.calls == 2
 
@@ -299,3 +302,10 @@ def test_the_payload_reports_what_the_call_really_cost(client_with):
     client = client_with(FakeUpstream(published))
 
     assert client.get("/api/global-snapshot").json()["credit_cost"] == 0
+
+
+def test_age_counts_from_observation_not_download_time(client_with):
+    old = {**upstream([opensky_row()]), "time": NOW - 44 * 60, "provider": "opensky-published", "credit_cost": 0}
+    payload = client_with(FakeUpstream(old)).get("/api/global-snapshot").json()
+    assert payload["age_seconds"] == 44 * 60
+    assert payload["degraded"] is True

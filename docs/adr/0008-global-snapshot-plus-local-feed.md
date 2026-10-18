@@ -45,3 +45,14 @@ the private proxy again, or to another URL to read a different publication.
 Cost: wide views show aircraft that are 5 to 20 minutes old, more than the
 150 s projection cap, so they do not move between publications. Close zoom is
 unaffected: the Local feed still refreshes every 8 s.
+
+## Freshness correction (2026-10-18)
+
+A successful download does not make a published observation current. Snapshot
+age is measured from its observation timestamp. Beyond three minutes the server
+marks the snapshot degraded and wide views also request the existing bounded
+Local feed fallback around the centre. The last global observations remain as
+dated context outside refreshed cells; coverage is explicitly reduced. Both
+status badges say Delayed while the feed is degraded, even if health succeeds.
+This favours fresh local positions over claiming current worldwide coverage
+from a publication that GitHub Actions may delay by tens of minutes.

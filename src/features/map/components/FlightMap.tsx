@@ -15,7 +15,7 @@ import type { LngLatBounds, LayerSpecification, Map as GlMap } from "maplibre-gl
 import { LocateFixed, Maximize2, Minimize2, Navigation, Pause, Play } from "../../../shared/components/icons";
 import { Minus, Plus, Route } from "../../../shared/components/customIcons";
 import { groupAirports, nearestAirports } from "../airportMap";
-import { api } from "../../../shared/api";
+import { api, ApiError } from "../../../shared/api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../../../shared/types";
 import { newestFix, preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
@@ -1378,6 +1378,16 @@ export function FlightMap({
             cause = response.degraded ? causeFromReason(response.degraded_reason) : null;
             reducedCoverage = false;
             keptSnapshotRef.current = { states: response.states };
+            // A successful download may contain an old published snapshot.
+            // Keep it as context, but fetch recent positions around the centre.
+            if (response.time != null && Date.now() / 1000 - response.time > 180) {
+              for (const aircraft of response.states) {
+                if (isAircraftInBounds(aircraft, bounds)) retained.set(aircraft.icao24, newestFix(retained.get(aircraft.icao24), aircraft));
+              }
+              latestTime = response.time;
+              lastAnswerRef.current = { time: response.time, receivedAt: Date.now() };
+              throw new ApiError("Global snapshot is delayed", response.degraded_reason === "quota" ? 429 : 503);
+            }
           } catch (error) {
             if (controller.signal.aborted) throw error;
             // No snapshot: fall back to a few Local feed cells around the centre.
@@ -1647,9 +1657,9 @@ export function FlightMap({
         <span className="map-data-guide-timer" aria-hidden="true" />
       </div>}
       {hasTrace && <AltitudeLegend compact className="map-altitude-legend" />}
-      <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled ? "paused" : "active"}`} aria-live="polite">
-        <span className={`pulse-dot ${liveEnabled && liveAvailable ? "active" : ""}`} />
-        <strong>{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : "Live"}</strong>
+      <div className={`map-status ${!liveAvailable ? "offline" : !liveEnabled || liveState.cause ? "paused" : "active"}`} aria-live="polite">
+        <span className={`pulse-dot ${liveEnabled && liveAvailable && !liveState.cause ? "active" : ""}`} />
+        <strong>{!liveAvailable ? "Offline" : !liveEnabled ? "Paused" : liveState.cause ? "Delayed" : "Live"}</strong>
         <span className="map-status-copy">{!liveAvailable ? "Live traffic unavailable" : !liveEnabled ? "Live traffic paused" : liveStatus}</span>
         {hiddenByFilters > 0 && <span className="map-status-filter">{hiddenByFilters} hidden by filters</span>}
         {liveEnabled && liveState.fetching && liveState.totalTiles > 1 && <span className="live-coverage-progress" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(0.04, liveState.loadedTiles / liveState.totalTiles)})` }} /></span>}

@@ -3,10 +3,12 @@ import { useNow } from "../../shared/hooks/useNow";
 import { Moon, Plane, Sun } from "../../shared/components/icons";
 import { CircleHelp, KeyboardIcon } from "../../shared/components/customIcons";
 import type { HealthResponse, MapTheme } from "../../shared/types";
+import type { LiveCause } from "../../features/map/liveStatus";
 
 interface TopbarProps {
   health?: HealthResponse;
   healthPending: boolean;
+  liveCause?: LiveCause | null;
   theme: MapTheme;
   /** Global search, rendered in the centre of the bar. */
   search?: ReactNode;
@@ -35,10 +37,10 @@ function useOnline() {
   return online;
 }
 
-export function Topbar({ health, healthPending, theme, search, onToggleTheme, onShowTour, onShowShortcuts }: TopbarProps) {
+export function Topbar({ health, healthPending, liveCause, theme, search, onToggleTheme, onShowTour, onShowShortcuts }: TopbarProps) {
   const online = useOnline();
   const liveAvailable = online && (health?.live_available ?? health?.credentials_configured);
-  const channel = !online ? "Offline" : healthPending ? "Connecting" : liveAvailable ? "Live" : "History only";
+  const channel = !online ? "Offline" : healthPending ? "Connecting" : liveCause ? "Delayed" : liveAvailable ? "Live" : "History only";
   return (
     <header className="topbar">
       <div className="brand">
@@ -50,7 +52,7 @@ export function Topbar({ health, healthPending, theme, search, onToggleTheme, on
 
       <div className="topbar-actions">
         <div className="topbar-status" aria-label="Connection status">
-          <span className={`system-dot ${liveAvailable ? "online" : "warning"}`} />
+          <span className={`system-dot ${liveAvailable && !liveCause ? "online" : "warning"}`} />
           <span className="topbar-channel">{channel}</span>
           <span className="separator" />
           <UtcClock />

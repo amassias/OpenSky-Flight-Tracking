@@ -129,7 +129,10 @@ class GlobalSnapshot:
     def _payload(self, now: float, *, degraded_notice: Optional[str] = None, reason: Optional[DegradedReason] = None) -> Dict[str, Any]:
         assert self._snapshot is not None
         # `age_seconds` is true when the answer is built only; `time` is the absolute snapshot time.
-        age = max(0, int(now - self._fetched_at))
+        age = max(0, int(now - self._snapshot["time"]))
+        if age > 180 and not degraded_notice:
+            degraded_notice = "Global snapshot delayed. Showing the last observation."
+            reason = "provider"
         payload = {**self._snapshot, "age_seconds": age, "refresh_after_seconds": self.refresh_seconds}
         if degraded_notice:
             payload["degraded"] = True

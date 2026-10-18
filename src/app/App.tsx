@@ -631,6 +631,7 @@ export function App() {
         </a>
       )}
       <Topbar
+        liveCause={liveCause}
         health={health.data}
         healthPending={health.isPending}
         theme={theme}

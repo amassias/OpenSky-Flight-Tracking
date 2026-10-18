@@ -93,3 +93,14 @@ test('the empty list names the real cause instead of telling the visitor to zoom
   await expect(panel).toContainText('OpenSky credit budget reached', { timeout: 10_000 });
   await expect(panel).not.toContainText('Zoom out or move the map');
 });
+
+test('a successful but 44-minute-old snapshot switches to fresh local positions and reports degradation', async ({ page }, info) => {
+  const calls: string[] = [];
+  await mockApi(page, { snapshot: () => ({ status: 200, json: snapshot({ time: Math.floor(Date.now() / 1000) - 44 * 60 }) }), cells: 'ok' }, calls);
+  await page.goto('/?at=48,5,5');
+  await expect(page.locator('.map-status')).toContainText('reduced coverage', { timeout: 10_000 });
+  expect(calls).toContain('/api/live-flights');
+  await expect(page.getByLabel('Connection status')).toContainText('Delayed');
+  await expect(page.locator('[data-icao24^="c"]')).not.toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('freshness-recovery.png') });
+});

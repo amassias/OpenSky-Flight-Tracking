@@ -32,3 +32,8 @@ describe("Topbar connection", () => {
     expect(await screen.findByText("Offline")).toBeInTheDocument();
   });
 });
+
+it("does not label a degraded feed as Live just because health is available", () => {
+  renderTopbar({ liveCause: "provider" });
+  expect(screen.getByLabelText("Connection status")).toHaveTextContent("Delayed");
+});
