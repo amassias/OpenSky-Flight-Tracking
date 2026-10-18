@@ -20,6 +20,8 @@ export interface AircraftFrameOptions {
   previewId: string | null;
   /** Aircraft drawn elsewhere (the selected one keeps its detailed marker). */
   excludeId: string | null;
+  /** More aircraft drawn elsewhere (the Focus labels keep detailed markers). */
+  excludeIds?: ReadonlySet<string>;
 }
 
 /** One aircraft as the WebGL layer draws it at one instant. */
@@ -77,11 +79,11 @@ export class AircraftFrames {
     return { shape: glyph.model?.id ?? glyph.kind, glyph: glyph.glyph, size };
   }
 
-  frame(now: number, { theme, previewId, excludeId }: AircraftFrameOptions): DrawnAircraft[] {
+  frame(now: number, { theme, previewId, excludeId, excludeIds }: AircraftFrameOptions): DrawnAircraft[] {
     const colors = MAP_COLORS[theme];
     const drawn: DrawnAircraft[] = [];
     for (const item of this.aircraft) {
-      if (item.latitude == null || item.longitude == null || item.icao24 === excludeId) continue;
+      if (item.latitude == null || item.longitude == null || item.icao24 === excludeId || excludeIds?.has(item.icao24)) continue;
       const projected = projectPosition(item, now) ?? [item.latitude, item.longitude];
       if (this.changed.has(item.icao24)) {
         const from = this.shown.get(item.icao24);
