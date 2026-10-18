@@ -19,6 +19,7 @@
     { "source": "/api/aircraft-history", "destination": "/api/index" },
     { "source": "/api/aircraft-flights", "destination": "/api/index" },
     { "source": "/api/aircraft-lookup", "destination": "/api/index" },
+    { "source": "/api/global-snapshot", "destination": "/api/index" },
     { "source": "/api/live-flights", "destination": "/api/index" },
     { "source": "/api/flight-route", "destination": "/api/index" },
     { "source": "/api/aircraft-enrichment", "destination": "/api/index" },
