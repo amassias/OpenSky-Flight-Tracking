@@ -1276,6 +1276,22 @@ class OpenSkyClient:
                 return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)
             raise
 
+    def get_global_states(self) -> Dict[str, Any]:
+        """Fetch every aircraft in the world with one unbounded OpenSky call.
+
+        Goes through the private proxy on Vercel (OAuth2 stays server-side).
+        There is deliberately no public ADS-B fallback: those providers are
+        capped at a 250 NM radius, so the caller keeps its last snapshot instead.
+        """
+        result = self._make_request("GET", "/states/all", params={"extended": 1})
+        if not isinstance(result, dict):
+            raise OpenSkyAPIError("OpenSky returned an invalid global state response.", status_code=502)
+        result = dict(result)
+        anonymous = result.pop("_skytrace_auth_mode", None) == "anonymous"
+        result["provider"] = "opensky-anonymous" if anonymous else "opensky"
+        result["credit_cost"] = self._states_credit_cost(None)
+        return result
+
     def get_live_fallback_states(self, bbox: tuple):
         """Fetch one provider-safe live tile without waiting on OpenSky."""
         return self._get_public_live_states(bbox=bbox)

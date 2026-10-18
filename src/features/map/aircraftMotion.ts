@@ -4,7 +4,7 @@ import type { Flight } from "../../shared/types";
 
 const EARTH_RADIUS_M = 6_371_000;
 /** Beyond this age a fix is too stale to project without inventing a position. */
-export const MAX_PROJECTION_SECONDS = 90;
+export const MAX_PROJECTION_SECONDS = 150;
 
 type Projectable = Pick<Flight, "latitude" | "longitude" | "velocity" | "true_track" | "on_ground" | "time_position" | "last_contact">;
 
@@ -57,6 +57,51 @@ export function subscribeToTick(listener: TickListener): () => void {
     if (tickListeners.size === 0 && tickTimer !== undefined) {
       window.clearInterval(tickTimer);
       tickTimer = undefined;
+    }
+  };
+}
+
+/** Seconds over which a marker eases from its shown position to a new fix. */
+export const CATCH_UP_SECONDS = 1.5;
+const FRAME_INTERVAL_MS = 50; // 20 frames per second, inside the 10 to 30 budget
+
+/**
+ * Where a marker is drawn `elapsedSeconds` after a new fix arrived: it eases
+ * (smoothstep) from the position it was showing to the new estimate instead of
+ * jumping.
+ */
+export function catchUpPosition(from: [number, number], to: [number, number], elapsedSeconds: number): [number, number] {
+  const t = Math.min(Math.max(elapsedSeconds / CATCH_UP_SECONDS, 0), 1);
+  if (t >= 1) return to;
+  const eased = t * t * (3 - 2 * t);
+  const dLon = ((((to[1] - from[1]) % 360) + 540) % 360) - 180;
+  return [from[0] + (to[0] - from[0]) * eased, from[1] + dLon * eased];
+}
+
+const frameListeners = new Set<TickListener>();
+let frameHandle: number | undefined;
+let lastFrameAt = -Infinity;
+
+function runFrame(timestamp: number) {
+  frameHandle = undefined;
+  if (frameListeners.size === 0) return;
+  frameHandle = window.requestAnimationFrame(runFrame);
+  // Nothing is visible to animate while the tab is hidden.
+  if (document.hidden || timestamp - lastFrameAt < FRAME_INTERVAL_MS) return;
+  lastFrameAt = timestamp;
+  const now = Date.now() / 1000;
+  frameListeners.forEach((callback) => callback(now));
+}
+
+/** Shared 10 to 30 fps animation clock for marker movement; paused while the page is hidden. */
+export function subscribeToFrame(listener: TickListener): () => void {
+  frameListeners.add(listener);
+  if (frameHandle === undefined) frameHandle = window.requestAnimationFrame(runFrame);
+  return () => {
+    frameListeners.delete(listener);
+    if (frameListeners.size === 0 && frameHandle !== undefined) {
+      window.cancelAnimationFrame(frameHandle);
+      frameHandle = undefined;
     }
   };
 }

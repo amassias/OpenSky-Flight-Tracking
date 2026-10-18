@@ -44,7 +44,7 @@ export function AircraftHoverPreview({ store }: { store: AircraftHoverStore }) {
     {model && <div className="aircraft-hover-model">{model}</div>}
     {availablePhoto && <figure className="aircraft-hover-photo">
       <a href={availablePhoto.link} target="_blank" rel="noopener noreferrer" aria-label={`Open photo of ${callsign} on ${availablePhoto.source ?? "Planespotters.net"}`}>
-        <img src={availablePhoto.src} width={availablePhoto.width} height={availablePhoto.height}
+        <img src={availablePhoto.src} loading="lazy" decoding="async" width={availablePhoto.width} height={availablePhoto.height}
           alt={`${availablePhoto.source === "Wikimedia Commons" ? `Aircraft matching ${aircraft.registration ?? callsign}` : `${callsign} aircraft`}, photo by ${availablePhoto.photographer}`}
           onError={() => setFailedImage(availablePhoto.src)} />
       </a>
