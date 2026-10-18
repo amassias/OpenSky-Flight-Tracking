@@ -120,16 +120,18 @@ test('keeps labels sparse and gives the selected aircraft priority in busy traff
   await expect(selected).toHaveCount(0);
 });
 
-test('keeps dense traffic on canvas and a single selected label on every device', async ({ page }) => {
+test('keeps dense traffic on canvas with only focus labels on every device', async ({ page }) => {
   returnDenseViewport = true;
   await page.reload();
   await expect(page.locator('.map-status')).toContainText('900 aircraft');
   await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
-  await expect(page.locator('.aircraft-label')).toHaveCount(0);
+  expect(await page.locator('.aircraft-label').count()).toBeLessThanOrEqual(15);
   await page.getByRole('combobox', { name: 'Search flights and airports' }).fill('TEST32');
   await page.getByRole('option', { name: /TEST32/ }).first().click();
-  await expect(page.locator('.aircraft-label')).toHaveCount(1);
-  await expect(page.locator('.aircraft-label')).toBeVisible();
-  await expect(page.locator('.aircraft-marker')).toHaveCount(1);
+  const selected = page.locator('.aircraft-marker-selected .aircraft-label');
+  await expect(selected).toHaveCount(1);
+  await expect(selected).toBeVisible();
+  expect(await page.locator('.aircraft-label').count()).toBeLessThanOrEqual(16);
+  await expect(page.locator('.aircraft-marker.active')).toHaveCount(1);
   await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
 });

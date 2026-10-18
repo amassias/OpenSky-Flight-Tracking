@@ -37,6 +37,8 @@ async function mockApi(page: Page) {
 
 const layer = (page: Page) => page.locator('.aircraft-gl');
 const drawn = async (page: Page) => Number(await layer(page).getAttribute('data-aircraft-drawn') ?? 0);
+/** Aircraft on the map: silhouettes in the WebGL layer plus the detailed (labelled or selected) markers. */
+const accounted = async (page: Page) => await drawn(page) + await page.locator('.aircraft-marker').count();
 
 /**
  * Where, in page coordinates, the WebGL layer paints within `window`: the centroid of the
@@ -91,7 +93,7 @@ test('the WebGL canvas follows panning and zooming', async ({ page, isMobile }) 
   test.skip(isMobile, 'Mouse dragging is not available in mobile WebKit.');
   await mockApi(page);
   await page.goto('/?at=48,5,9');
-  await expect.poll(() => drawn(page), { timeout: 15_000 }).toBe(800);
+  await expect.poll(() => accounted(page), { timeout: 15_000 }).toBe(800);
   const { x, y } = await mapCenter(page);
 
   const start = await paintedCentroid(page, { x, y, size: 40 });
@@ -116,27 +118,27 @@ test('the WebGL canvas follows panning and zooming', async ({ page, isMobile }) 
 test('selecting an aircraft on the WebGL layer opens its details', async ({ page }) => {
   await mockApi(page);
   await page.goto('/?at=48,5,9');
-  await expect.poll(() => drawn(page), { timeout: 15_000 }).toBe(800);
+  await expect.poll(() => accounted(page), { timeout: 15_000 }).toBe(800);
   const { x, y } = await mapCenter(page);
   await page.waitForTimeout(300);
   await page.mouse.click(x, y);
   await expect(page.getByRole('button', { name: 'Close flight details', exact: true })).toBeVisible();
   await expect(page.locator('.aircraft-marker.active')).toHaveCount(1);
   // The selected aircraft leaves the WebGL layer for its detailed marker.
-  await expect.poll(() => drawn(page)).toBe(799);
+  await expect.poll(() => accounted(page)).toBe(800);
 });
 
 test('the layer survives a theme switch', async ({ page }) => {
   await mockApi(page);
   await page.goto('/?at=48,5,9');
-  await expect.poll(() => drawn(page), { timeout: 15_000 }).toBe(800);
+  await expect.poll(() => accounted(page), { timeout: 15_000 }).toBe(800);
   const { x, y, box } = await mapCenter(page);
   await page.mouse.click(box.x + 60, box.y + box.height - 160);
   const before = await page.locator('.app').getAttribute('class');
   await page.keyboard.press('t');
   await expect(page.locator('.app')).not.toHaveAttribute('class', before ?? '');
   await expect(layer(page)).toHaveCount(1);
-  await expect.poll(() => drawn(page)).toBe(800);
+  await expect.poll(() => accounted(page)).toBe(800);
   const after = await paintedCentroid(page, { x, y, size: 40 });
   expect(after.count).toBeGreaterThan(20);
 });

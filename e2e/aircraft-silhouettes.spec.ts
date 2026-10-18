@@ -77,12 +77,13 @@ test('retains one detailed selected model among 900 canvas aircraft', async ({ p
   await mockFeed(page, true);
   await page.goto('/?at=48.46,2.2,10');
   await expect(page.locator('.map-status')).toContainText('900 aircraft');
-  await expect(page.locator('.aircraft-model')).toHaveCount(0);
+  // Only the focus-labelled aircraft (at most 15 nearest the centre) get a detailed model.
+  expect(await page.locator('.aircraft-model').count()).toBeLessThanOrEqual(15);
   await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
   await page.getByRole('combobox', { name: 'Search flights and airports' }).fill('DENSE32');
   await page.getByRole('option', { name: /DENSE32/ }).first().click();
-  await expect(page.locator('.aircraft-marker')).toHaveCount(1);
-  await expect(page.locator('.aircraft-marker[data-aircraft-model="a320"]')).toHaveCount(1);
+  await expect(page.locator('.aircraft-marker.active')).toHaveCount(1);
+  await expect(page.locator('.aircraft-marker.active[data-aircraft-model="a320"]')).toHaveCount(1);
 });
 
 test('preserves silhouettes through dense zoom and a less detailed feed', async ({ page }) => {
