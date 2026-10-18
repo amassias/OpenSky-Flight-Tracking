@@ -27,6 +27,8 @@ GLOBAL_CALL_CREDITS = 4
 ANONYMOUS_DAILY_BUDGET = 400
 DEFAULT_DAILY_BUDGET = 3000
 SECONDS_PER_DAY = 86_400
+# After a failed OpenSky call, wait this long before the next visitor triggers another.
+FAILURE_COOLDOWN_SECONDS = 60
 
 # Compact row layout; `fields` is sent with every payload so clients never
 # depend on positions.
@@ -100,6 +102,8 @@ class GlobalSnapshot:
         self._fetched_at = 0.0
         self._spend_day = -1
         self._spent = 0
+        self._retry_after = 0.0
+        self._last_error: Optional[OpenSkyAPIError] = None
         self._lock = threading.Lock()
 
     @property
@@ -141,15 +145,27 @@ class GlobalSnapshot:
                     raise OpenSkyAPIError("OpenSky daily credit budget used up.", status_code=429)
                 return self._payload(now, degraded_notice="Daily OpenSky credit budget reached. Showing the last snapshot.", reason="quota")
 
+            if now < self._retry_after and self._last_error is not None:
+                # OpenSky just failed. Do not make every visitor wait out the
+                # same timeout while holding the lock.
+                if self._snapshot is None:
+                    raise self._last_error
+                return self._payload(now, degraded_notice="Live refresh delayed. Showing the last snapshot.", reason="provider")
+
             try:
                 result = self._fetch()
             except OpenSkyAPIError as exc:
+                if exc.status_code != 429:
+                    self._retry_after = now + FAILURE_COOLDOWN_SECONDS
+                    self._last_error = exc
                 if self._snapshot is None:
                     raise
                 if exc.status_code == 429:
                     return self._payload(now, degraded_notice="OpenSky rate limit reached. Showing the last snapshot.", reason="quota")
                 return self._payload(now, degraded_notice="Live refresh delayed. Showing the last snapshot.", reason="provider")
 
+            self._retry_after = 0.0
+            self._last_error = None
             self._spent += GLOBAL_CALL_CREDITS
             self._anonymous = result.get("provider") == "opensky-anonymous"
             snapshot_time = result.get("time") or int(now)

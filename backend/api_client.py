@@ -20,6 +20,8 @@ load_local_env()
 
 # Local feed (ADR 0008): one or two 250 NM cells, refreshed every 5 to 10 s.
 LOCAL_FEED_MAX_CELLS = 2
+# After an OpenSky outage, viewport requests go straight to the public providers for this long.
+OPENSKY_DOWN_COOLDOWN_SECONDS = 120
 LOCAL_FEED_CACHE_SECONDS = 5.0
 LOCAL_FEED_REFRESH_SECONDS = 8
 LOCAL_CELL_DEGREES = 0.05
@@ -60,6 +62,10 @@ class OpenSkyClient:
         # spend the daily credits on near-identical boxes.
         self._opensky_live_cache: Dict[str, Dict[str, Any]] = {}
         self._opensky_live_next_request_at = 0.0
+        # When OpenSky cannot be reached at all (Vercel's addresses are not
+        # always accepted), further viewport requests would each wait out a
+        # timeout before using the public providers. Skip it for a while.
+        self._opensky_down_until = 0.0
         # FlightAware is an on-demand enrichment source. Keep it completely
         # outside the map polling loop and cache both positive and empty
         # responses so a user opening the same aircraft again cannot spend a
@@ -1286,9 +1292,15 @@ class OpenSkyClient:
         # box in one request. This fixes the zoom-out coverage gap caused by a
         # point-radius fallback that only covered the map centre.
         if os.getenv("VERCEL") and time_sec is None and self._vercel_opensky_proxy_enabled():
+            if time.time() < self._opensky_down_until:
+                return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)
             try:
                 return self._get_opensky_live_states(params, bbox)
-            except OpenSkyAPIError:
+            except OpenSkyAPIError as exc:
+                # A rate limit or local throttle is not an outage; anything
+                # else means OpenSky or its proxy did not answer.
+                if exc.status_code not in (429, 503):
+                    self._opensky_down_until = time.time() + OPENSKY_DOWN_COOLDOWN_SECONDS
                 # Public ADS-B providers remain the resilience path when the
                 # proxy or OpenSky itself is briefly unavailable.
                 return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)

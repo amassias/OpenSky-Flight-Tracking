@@ -254,3 +254,28 @@ def test_quota_failure_without_snapshot_is_429(client_with):
     response = client_with(FakeUpstream(OpenSkyAPIError("limit", status_code=429))).get("/api/global-snapshot")
 
     assert response.status_code == 429
+
+
+def test_a_failing_upstream_is_not_retried_by_every_visitor(client_with):
+    fake = FakeUpstream(OpenSkyAPIError("OpenSky request failed: connect timeout", status_code=502))
+    clock = Clock()
+    client = client_with(fake, clock=clock)
+
+    first = client.get("/api/global-snapshot")
+    clock.now += 5
+    second = client.get("/api/global-snapshot")
+
+    assert first.status_code == second.status_code == 502
+    assert fake.calls == 1  # the second visitor did not wait out another timeout
+
+
+def test_the_failing_upstream_is_tried_again_after_the_cooldown(client_with):
+    fake = FakeUpstream(OpenSkyAPIError("down", status_code=502), upstream([opensky_row()]))
+    clock = Clock()
+    client = client_with(fake, clock=clock)
+    client.get("/api/global-snapshot")
+
+    clock.now += 120
+    response = client.get("/api/global-snapshot")
+
+    assert response.status_code == 200 and fake.calls == 2

@@ -720,6 +720,49 @@ def test_global_states_use_the_private_proxy_without_a_bounding_box(monkeypatch)
     client.session.get.assert_not_called()
 
 
+def _proxy_client(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
+    monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
+    client = OpenSkyClient()
+    client._get_public_live_states = Mock(return_value={"provider": "adsb.fi", "states": []})
+    return client
+
+
+def test_an_unreachable_opensky_is_skipped_for_a_while_instead_of_costing_a_timeout_every_time(monkeypatch):
+    client = _proxy_client(monkeypatch)
+    client.session.request = Mock(side_effect=requests.ConnectTimeout("no route to opensky-network.org"))
+    bbox = (48.0, 2.0, 49.0, 3.0)
+
+    first = client.get_states(bbox=bbox)
+    second = client.get_states(bbox=bbox)
+
+    assert first["provider"] == second["provider"] == "adsb.fi"
+    assert client.session.request.call_count == 1  # the second request never waited on OpenSky
+
+
+def test_opensky_is_tried_again_once_the_cooldown_has_passed(monkeypatch):
+    client = _proxy_client(monkeypatch)
+    client.session.request = Mock(side_effect=requests.ConnectTimeout("no route"))
+    bbox = (48.0, 2.0, 49.0, 3.0)
+    client.get_states(bbox=bbox)
+
+    client._opensky_down_until = 0.0  # the cooldown has elapsed
+    client.get_states(bbox=bbox)
+
+    assert client.session.request.call_count == 2
+
+
+def test_a_rate_limit_is_not_treated_as_an_outage(monkeypatch):
+    client = _proxy_client(monkeypatch)
+    limited = Mock(status_code=429, headers={}, content=b"x", text="x")
+    client.session.request = Mock(return_value=limited)
+
+    client.get_states(bbox=(48.0, 2.0, 49.0, 3.0))
+
+    assert client._opensky_down_until == 0.0
+
+
 def test_global_states_never_fall_back_to_a_radius_provider(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
