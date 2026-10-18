@@ -33,6 +33,7 @@ if (typeof window !== "undefined") {
   if ("requestIdleCallback" in window) window.requestIdleCallback(prefetch, { timeout: 4000 });
   else setTimeout(prefetch, 2000);
 }
+import { MapHint } from "./components/MapHint";
 const Onboarding = lazy(() => import("./components/Onboarding").then(module => ({ default: module.Onboarding })));
 const ShortcutsDialog = lazy(() => import("./components/ShortcutsDialog").then(module => ({ default: module.ShortcutsDialog })));
 
@@ -82,8 +83,8 @@ export function App() {
   const [airportPinsEnabled, setAirportPinsEnabled] = usePersistentState("skytrace-airport-pins", true);
   const [trafficOpen, setTrafficOpen] = usePersistentState("skytrace-traffic-open", window.innerWidth > 900);
   const [tourSeen, setTourSeen] = usePersistentState("skytrace-onboarded", false);
-  // A shared link opens straight onto its flight or airport; the tour waits.
-  const [tourOpen, setTourOpen] = useState(() => !tourSeen && !new URLSearchParams(window.location.search).has("icao24") && !new URLSearchParams(window.location.search).has("airport"));
+  // First visits get a non-blocking hint instead of an automatic modal tour; the tour stays behind the help icon.
+  const [tourOpen, setTourOpen] = useState(false);
   const closeTour = useCallback(() => { setTourOpen(false); setTourSeen(true); }, [setTourSeen]);
   // Altitude and ground filters are kept between visits; the free-text filter
   // stays per session so the map never opens mysteriously narrowed (B12).
@@ -837,6 +838,7 @@ export function App() {
         )}
       </main>
 
+      {!tourSeen && !tourOpen && !selectedFlight && <MapHint onDismiss={() => setTourSeen(true)} />}
       {tourOpen && <Suspense fallback={null}><Onboarding onClose={closeTour} /></Suspense>}
       <Suspense fallback={null}><AnimatePresence>{shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}</AnimatePresence></Suspense>
 
