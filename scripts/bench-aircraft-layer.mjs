@@ -24,15 +24,16 @@ await page.route("**/api/**", (route) => {
   return route.fulfill({ json: path.endsWith("airports") ? [] : { success: true, flights: [], count: 0, states: [] } });
 });
 await page.goto(`${base}/?at=48,5,${mobile ? 3 : 5}`);
-await page.waitForSelector(".aircraft-gl", { timeout: 30_000 });
-await page.waitForFunction(() => Number(document.querySelector(".aircraft-gl")?.getAttribute("data-aircraft-drawn")) > 5_000, null, { timeout: 30_000 });
+await page.waitForSelector(".flight-map[data-aircraft-drawn]", { timeout: 30_000 });
+await page.waitForFunction(() => Number(document.querySelector(".flight-map")?.getAttribute("data-aircraft-drawn")) > 5_000, null, { timeout: 30_000 });
 if (mobile) await (await context.newCDPSession(page)).send("Emulation.setCPUThrottlingRate", { rate: Number(throttle) });
 
 const frames = await page.evaluate(async (ms) => {
   const intervals = [];
   let last = performance.now();
   const end = last + ms;
-  const map = document.querySelector(".leaflet-container");
+  // MapLibre listens for pointer events on its canvas container.
+  const map = document.querySelector(".maplibregl-canvas-container");
   const box = map.getBoundingClientRect();
   const fire = (type, x, y) => map.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button: 0 }));
   let step = 0;
@@ -56,5 +57,5 @@ frames.shift();
 frames.sort((a, b) => a - b);
 const mean = frames.reduce((sum, value) => sum + value, 0) / frames.length;
 const p = (q) => frames[Math.min(frames.length - 1, Math.floor(frames.length * q))];
-console.log(JSON.stringify({ throttle: Number(throttle), seconds: Number(seconds), endView: new URL(page.url()).searchParams.get("at"), aircraft: await page.locator(".aircraft-gl").getAttribute("data-aircraft-drawn"), avgFps: +(1000 / mean).toFixed(1), p95FrameMs: +p(0.95).toFixed(1), worstFrameMs: +frames.at(-1).toFixed(1) }));
+console.log(JSON.stringify({ throttle: Number(throttle), seconds: Number(seconds), endView: new URL(page.url()).searchParams.get("at"), aircraft: await page.locator(".flight-map").getAttribute("data-aircraft-drawn"), avgFps: +(1000 / mean).toFixed(1), p95FrameMs: +p(0.95).toFixed(1), worstFrameMs: +frames.at(-1).toFixed(1) }));
 await browser.close();

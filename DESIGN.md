@@ -145,7 +145,7 @@ SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks a
 - **Aircraft ink.** Every marker uses `aircraft` ink (white on dark, near-black on light), including the dense canvas silhouettes, so zooming never changes an aircraft's colour.
 - Known ICAO types use model-specific overhead silhouettes from a shared SVG sprite. Their outlines and proportions distinguish aircraft while retaining the same ink, heading and state colours. Unmapped types use the existing category symbols; a family match is representative, not an exact airframe-variant claim.
 - **Altitude ramp.** A cool, ordered ramp (cyan to blue, indigo, purple, pink) colours the selected track and its legend only.
-- Leaflet paths and canvas silhouettes cannot read CSS variables, so `MAP_COLORS` in `FlightMap.tsx` mirrors the tokens per theme.
+- Map layers (paths and silhouettes drawn by MapLibre GL) cannot read CSS variables, so `MAP_COLORS` in `aircraftLayer.ts` mirrors the tokens per theme.
 
 ## Typography
 

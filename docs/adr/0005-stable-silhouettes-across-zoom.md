@@ -1,6 +1,6 @@
 # 0005. Keep aircraft silhouettes stable across zoom
 
-Status: accepted (2026-10-18). Supersedes the dense-dot consequence of ADR 0004.
+Status: accepted (2026-10-18). Supersedes the dense-dot consequence of ADR 0004. The canvas renderer described below was replaced by the MapLibre GL layer of [0009](0009-maplibre-gl-aircraft-layer.md) and [0010](0010-maplibre-gl-map.md); the shapes, sizes and outline states are unchanged.
 
 ## Context
 

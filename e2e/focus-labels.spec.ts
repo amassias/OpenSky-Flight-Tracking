@@ -40,12 +40,12 @@ async function mockApi(page: Page) {
 
 const labels = (page: Page) => page.locator('.aircraft-label');
 const labelTexts = async (page: Page) => (await labels(page).locator('b').allTextContents()).sort();
-const drawn = async (page: Page) => Number(await page.locator('.aircraft-gl').getAttribute('data-aircraft-drawn') ?? 0);
+const drawn = async (page: Page) => Number(await page.locator('.flight-map').getAttribute('data-aircraft-drawn') ?? 0);
 
 async function openDense(page: Page, view: string) {
   await mockApi(page);
   await page.goto(`/?at=${view}`);
-  await expect(page.locator('.aircraft-gl')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('.flight-map')).toHaveCount(1, { timeout: 15_000 });
   await expect.poll(() => drawn(page), { timeout: 15_000 }).toBeGreaterThan(400);
   await page.waitForTimeout(600);
 }
@@ -64,7 +64,7 @@ test('unlabelled aircraft are still drawn as silhouettes on the map', async ({ p
   await openDense(page, '48,5,9');
   // 918 aircraft in view, 17 of them labelled (and so drawn as detailed markers instead).
   await expect.poll(() => drawn(page)).toBe(901);
-  await expect(page.locator('.aircraft-gl')).toBeVisible();
+  await expect(page.locator('.flight-map')).toBeVisible();
 });
 
 test('zoomed out, only emergencies keep a label', async ({ page }) => {
@@ -74,7 +74,7 @@ test('zoomed out, only emergencies keep a label', async ({ page }) => {
 
 test('the selected aircraft label is never hidden by another label', async ({ page }) => {
   await openDense(page, '48,5,9');
-  const box = (await page.locator('.leaflet-container').boundingBox())!;
+  const box = (await page.locator('.flight-map').boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.locator('.aircraft-marker.active')).toHaveCount(1, { timeout: 10_000 });
   const selected = page.locator('.aircraft-marker-selected .aircraft-label');

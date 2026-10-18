@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
-import { sampleByDensity } from "./utils";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -25,26 +24,5 @@ describe("api.globalSnapshot", () => {
   it("rejects a body that is not a snapshot", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } })));
     await expect(api.globalSnapshot()).rejects.toThrow();
-  });
-});
-
-describe("sampleByDensity", () => {
-  const make = (n: number) => Array.from({ length: n }, (_, i) => ({ icao24: i.toString(16).padStart(6, "0") }));
-
-  it("keeps everything at or below the limit", () => {
-    expect(sampleByDensity(make(3_000), 3_000, () => false)).toHaveLength(3_000);
-  });
-
-  it("thins a larger set to about the limit, the same way on every call", () => {
-    const all = make(10_000);
-    const first = sampleByDensity(all, 3_000, () => false);
-    expect(first.length).toBeGreaterThan(2_700);
-    expect(first.length).toBeLessThan(3_300);
-    expect(sampleByDensity(all, 3_000, () => false).map((a) => a.icao24)).toEqual(first.map((a) => a.icao24));
-  });
-
-  it("never drops an aircraft that must stay", () => {
-    const sampled = sampleByDensity(make(10_000), 3_000, (a) => a.icao24 === "000007");
-    expect(sampled.some((a) => a.icao24 === "000007")).toBe(true);
   });
 });

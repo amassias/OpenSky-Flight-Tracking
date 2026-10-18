@@ -1,40 +1,41 @@
 import { airlineBadge, airlineLogo, type AirlineBadge } from "../../../shared/aircraftIdentity";
-import { AircraftCanvasRenderer, type AircraftCanvasStyle } from "../aircraftCanvas";
 import { aircraftGlyph } from "../aircraftGlyph";
 import { AircraftHoverStore } from "../aircraftHover";
 import { MAP_COLORS } from "../aircraftLayer";
 import { AircraftGlLayer } from "./AircraftGlLayer";
+import { MapCanvas } from "./MapCanvas";
+import { useMapHandle, type MapHandle } from "../mapHandle";
 import { focusLabels, labelLevelForZoom, placeLabels, type FocusReason, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
 import { destinationGuide } from "../futurePath";
 import { positionAge, positionAgeLabel, sameLiveFlight } from "../../flights/flightTelemetry";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import L from "leaflet";
-import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
+import type { LngLatBounds, LayerSpecification, Map as GlMap } from "maplibre-gl";
 import { LocateFixed, Maximize2, Minimize2, Navigation, Pause, Play } from "../../../shared/components/icons";
 import { Minus, Plus, Route } from "../../../shared/components/customIcons";
 import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../../../shared/api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../../../shared/types";
 import { newestFix, preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
-import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, sampleByDensity, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
+import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
 import { causeFromError, causeFromReason, describeLiveStatus, type LiveCause } from "../liveStatus";
 import { distanceText, flightLevelText, speedText, useUnits } from "../../../shared/units";
+import { boundsAround, circlePolygon, fromGlZoom, mercatorPixel, placementCenter, toGlZoom, visibleBoundsFromEdges, type Insets } from "../mapCamera";
+import { useGeoJsonLayers, useOverlayToken } from "../mapLayers";
+import { sharedTooltip } from "../mapTooltip";
+import { useDomMarker } from "../useDomMarker";
 import { AltitudeLegend } from "./AltitudeLegend";
 import { AircraftHoverPreview } from "./AircraftHoverPreview";
 
 /** Recent positions kept per aircraft for its trail. */
 const TRAIL_POINTS = 8;
-/** Only the Leaflet canvas fallback (no WebGL) draws at most about this many aircraft; more are thinned by density. */
-const MAX_DRAWN_AIRCRAFT = 3_000;
 /** Local feed cells asked for around the centre when the Global snapshot is unavailable. */
 const REDUCED_COVERAGE_CELLS = 4;
 /** The Local feed (close zoom) refreshes every 5 to 10 s (ADR 0008). */
 const LOCAL_FEED_REFRESH_SECONDS = 8;
-const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
 
@@ -54,6 +55,9 @@ interface PlaneIconOptions {
   airborne?: boolean;
 }
 
+/** What a DOM marker is made of: the classes of its element and its inner markup. */
+interface MarkerLook { className: string; html: string }
+
 function airlineBadgeHtml(badge: AirlineBadge) {
   return `<span class="airline-badge" style="background:${escapeHtml(badge.color)}">${escapeHtml(badge.text)}</span>`;
 }
@@ -67,42 +71,38 @@ function swapLogoForBadge(logo?: HTMLImageElement | null) {
   logo.remove();
 }
 
-function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", aircraftType, emergency = false, label, airborne = false }: PlaneIconOptions) {
+const AIRCRAFT_MARKER_SIZE = 30;
+
+function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", aircraftType, emergency = false, label, airborne = false }: PlaneIconOptions): MarkerLook {
   const { model, glyph, kind: resolvedKind } = aircraftGlyph(kind, aircraftType);
   kind = resolvedKind;
   const labelHtml = label
     ? `<span class="aircraft-label label-level-${label.level ?? 3}">${label.logo ? `<img class="airline-logo" src="${escapeHtml(label.logo)}" alt="" width="20" height="20" referrerpolicy="no-referrer"${label.badge ? ` data-badge-text="${escapeHtml(label.badge.text)}" data-badge-color="${escapeHtml(label.badge.color)}"` : ""} />` : label.badge ? airlineBadgeHtml(label.badge) : ""}<b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
     : "";
-  return L.divIcon({
+  return {
     className: `aircraft-marker-wrap${active ? " aircraft-marker-selected" : ""}`,
     html: `<span class="aircraft-marker kind-${kind}${model ? " aircraft-model" : ""} ${active ? "active" : ""} ${onGround ? "ground" : ""} ${airborne ? "airborne" : ""} ${emergency ? "emergency" : ""}" data-aircraft-kind="${kind}"${model ? ` data-aircraft-model="${model.id}" data-aircraft-match="${model.match}"` : ""}${icao24 ? ` data-icao24="${icao24}"` : ""} style="--heading:${Number.isFinite(heading) ? heading : 0}deg">${glyph}</span>${labelHtml}`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-  });
+  };
 }
 
-function airportPinIcon(airport: Airport, active: boolean) {
-  return L.divIcon({
+function airportPinIcon(airport: Airport, active: boolean): MarkerLook {
+  return {
     className: "airport-pin-wrap",
     html: `<span class="airport-pin${active ? " active" : ""}"><i></i><b>${escapeHtml(airport.iata || airport.icao)}</b></span>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-  });
+  };
 }
 
 /**
- * Leaflet attaches layer event handlers in an effect. On Firefox a marker can
- * become clickable before that effect runs (especially while the map is
- * settling after a viewport change). A single capture listener on the map
- * container closes that small gap and also prevents the click from turning
- * into an accidental map drag. The marker keeps its regular Leaflet handler
- * for normal interactions; this is only an early, delegated fallback.
+ * One delegated listener on the map container catches a press on an aircraft
+ * marker even while the map is settling after a viewport change, and keeps the
+ * press from turning into an accidental map drag. The marker keeps its own
+ * handlers for normal interactions; this is only an early, delegated fallback.
  */
 function AircraftSelectionBridge({ aircraft, onSelect }: {
   aircraft: LiveAircraft[];
   onSelect: (flight: Flight) => void;
 }) {
-  const map = useMap();
+  const { map } = useMapHandle();
   const aircraftRef = useRef(new Map<string, LiveAircraft>());
   const lastSelectionRef = useRef<{ icao24: string; at: number } | null>(null);
   // Keep the ref current during render so a click that lands in the same
@@ -134,7 +134,7 @@ function AircraftSelectionBridge({ aircraft, onSelect }: {
     };
 
     // mousedown is deliberately included: Playwright and Firefox can dispatch
-    // it before Leaflet's own click effect has been installed.
+    // it before the marker's own click handler has been installed.
     container.addEventListener("pointerdown", selectFromEvent, true);
     container.addEventListener("mousedown", selectFromEvent, true);
     container.addEventListener("click", selectFromEvent, true);
@@ -147,31 +147,24 @@ function AircraftSelectionBridge({ aircraft, onSelect }: {
   return null;
 }
 
-function userLocationIcon() {
-  return L.divIcon({
-    className: "user-location-icon-wrap",
-    html: '<span class="user-location-marker" aria-hidden="true"><span class="user-location-dot"></span></span>',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-  });
-}
+const USER_LOCATION_LOOK: MarkerLook = {
+  className: "user-location-icon-wrap",
+  html: '<span class="user-location-marker" aria-hidden="true"><span class="user-location-dot"></span></span>',
+};
 
-function routeEndpointIcon(kind: "start" | "end", theme: MapTheme) {
+function routeEndpointIcon(kind: "start" | "end", theme: MapTheme): MarkerLook {
   const start = kind === "start";
   const color = start ? MAP_COLORS[theme].ground : MAP_COLORS[theme].accent;
   const path = start
     ? '<path d="M6 21V3m0 0h12l-3 4 3 4H6" />'
     : '<path d="M5 21V3m0 0h13l-3 4 3 4H5m0 0h13v6H5" />';
-  return L.divIcon({
+  return {
     className: "route-endpoint-icon-wrap",
     html: `<span class="route-endpoint-marker route-endpoint-${kind}" style="--endpoint-color:${color}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-  });
+  };
 }
 
-function updateMarkerObservation(marker: L.Marker, aircraft: LiveAircraft, now: number) {
-  const element = marker.getElement();
+function updateMarkerObservation(element: HTMLElement | null, aircraft: LiveAircraft, now: number) {
   if (!element) return;
   const age = positionAge(aircraft, now);
   const state = age == null ? "unknown" : age > 60 ? "delayed" : "recent";
@@ -193,7 +186,6 @@ interface AircraftMarkerProps {
   onHover?: (aircraft: LiveAircraft, pointer: { x: number; y: number }) => void;
   onLeave?: (icao24: string) => void;
   theme?: MapTheme;
-  renderer?: L.Renderer;
 }
 
 function areMarkersEqual(
@@ -226,6 +218,7 @@ function areMarkersEqual(
 }
 
 const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected, labelLevel = 0, onSelect, onHover, onLeave }: AircraftMarkerProps) {
+  const handle = useMapHandle();
   const units = useUnits();
   const iconKind = aircraftIconKind(aircraft);
   const heading = aircraft.true_track ?? 0;
@@ -237,62 +230,61 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     aircraft.baro_altitude != null && !aircraft.on_ground ? flightLevelText(aircraft.baro_altitude, units) : null,
     aircraft.velocity != null && !aircraft.on_ground ? speedText(aircraft.velocity, units).replace(" ", "") : null,
   ].filter(Boolean).join(" · ");
-  const icon = useMemo(
+  const look = useMemo(
     () => planeIcon({ heading, active, onGround: aircraft.on_ground === true, icao24: aircraft.icao24, kind: iconKind, aircraftType: aircraft.aircraft_type, emergency, airborne: aircraft.on_ground === false, label: selected || labelLevel ? { primary: labelPrimary, secondary: labelSecondary, level: selected ? 3 : labelLevel, logo: selected || labelLevel >= 2 ? logo : null, badge: selected || labelLevel >= 2 ? badge : null } : undefined }),
     [aircraft.icao24, aircraft.aircraft_type, aircraft.on_ground, active, selected, labelLevel, iconKind, heading, emergency, labelPrimary, labelSecondary, logo, badge],
   );
   // A fresh fix is already some seconds old when it arrives, so start from
   // where the aircraft is now rather than where it was reported.
-  // Only the first position is passed to Leaflet; every later move is made
+  // Only the first position is given to the marker; every later move is made
   // imperatively below so a new fix eases in instead of jumping.
   const initialPosition = useRef<[number, number]>(projectPosition(aircraft, Date.now() / 1000) ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0]);
   const catchUp = useRef<{ from: [number, number]; startedAt: number } | null>(null);
-  // Read through a ref so the handler identity never changes, which keeps
-  // Leaflet from detaching and re-attaching listeners on every refresh.
+  // Read through a ref so the handler identity never changes.
   const aircraftRef = useRef(aircraft);
   aircraftRef.current = aircraft;
-  const markerRef = useRef<L.Marker | null>(null);
   const selectAircraft = useCallback(() => {
     onSelect(liveAircraftToFlight(aircraftRef.current));
   }, [onSelect]);
   // Select on press so a progressive tile refresh cannot replace the marker
   // between pointer-down and click-up. Keeping click covers keyboard/synthetic
   // activation while the selection itself is idempotent.
-  const eventHandlers = useMemo(() => ({
+  const events = useMemo(() => ({
     mousedown: selectAircraft,
     click: selectAircraft,
-    mouseover: (event: L.LeafletMouseEvent) => {
+    mouseover: (event: MouseEvent) => {
       if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-        onHover?.(aircraftRef.current, { x: event.originalEvent.clientX, y: event.originalEvent.clientY });
+        onHover?.(aircraftRef.current, { x: event.clientX, y: event.clientY });
       }
     },
     mouseout: () => onLeave?.(aircraftRef.current.icao24),
   }), [selectAircraft, onHover, onLeave]);
+  const visible = aircraft.latitude != null && aircraft.longitude != null;
+  const { markerRef, elementRef } = useDomMarker({
+    handle, position: initialPosition.current, className: look.className, html: look.html, size: AIRCRAFT_MARKER_SIZE,
+    title: `View ${labelPrimary}`, label: `View ${labelPrimary}`, zIndex: selected || active ? 900 : 100, events,
+  });
 
   useEffect(() => {
-    const element = markerRef.current?.getElement();
-    element?.setAttribute("aria-label", `View ${labelPrimary}`);
-    element?.setAttribute("title", `View ${labelPrimary}`);
-    const logo = element?.querySelector<HTMLImageElement>(".airline-logo");
-    const hideLogo = () => swapLogoForBadge(logo);
-    logo?.addEventListener("error", hideLogo);
-    if (logo?.complete && !logo.naturalWidth) hideLogo();
-    return () => logo?.removeEventListener("error", hideLogo);
-  }, [labelPrimary, icon]);
+    const logoElement = elementRef.current?.querySelector<HTMLImageElement>(".airline-logo");
+    const hideLogo = () => swapLogoForBadge(logoElement);
+    logoElement?.addEventListener("error", hideLogo);
+    if (logoElement?.complete && !logoElement.naturalWidth) hideLogo();
+    return () => logoElement?.removeEventListener("error", hideLogo);
+  }, [labelPrimary, look, elementRef]);
 
   useEffect(() => {
-    if (markerRef.current) updateMarkerObservation(markerRef.current, aircraft, Date.now() / 1000);
-  }, [aircraft, icon]);
+    updateMarkerObservation(elementRef.current, aircraft, Date.now() / 1000);
+  }, [aircraft, look, elementRef]);
 
   // A new fix pulls the marker from where it is shown to the new estimate over
   // about 1.5 s.
   useEffect(() => {
-    const shown = markerRef.current?.getLatLng();
+    const shown = markerRef.current?.getLngLat();
     if (shown) catchUp.current = { from: [shown.lat, shown.lng], startedAt: Date.now() / 1000 };
-  }, [aircraft.latitude, aircraft.longitude, aircraft.time_position]);
+  }, [aircraft.latitude, aircraft.longitude, aircraft.time_position, markerRef]);
 
-  // Movement runs on the 10 to 30 fps frame clock and pauses while the page is
-  // hidden. Leaflet's own camera animations position markers immediately.
+  // Movement runs on the 10 to 30 fps frame clock and pauses while the page is hidden.
   useEffect(() => subscribeToFrame((now) => {
     const current = aircraftRef.current;
     const marker = markerRef.current;
@@ -300,25 +292,25 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     const projected = projectPosition(current, now);
     const pull = catchUp.current;
     const next = projected && pull ? catchUpPosition(pull.from, projected, now - pull.startedAt) : projected;
-    const shown = marker.getLatLng();
-    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) marker.setLatLng(next);
-  }), []);
+    const shown = marker.getLngLat();
+    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) marker.setLngLat([next[1], next[0]]);
+  }), [markerRef]);
 
   useEffect(() => subscribeToTick((now) => {
-    const marker = markerRef.current;
-    if (marker) updateMarkerObservation(marker, aircraftRef.current, now);
-  }), []);
+    updateMarkerObservation(elementRef.current, aircraftRef.current, now);
+  }), [elementRef]);
 
-  if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <Marker ref={markerRef} position={initialPosition.current} icon={icon} title={`View ${labelPrimary}`} alt={`View ${labelPrimary}`} eventHandlers={eventHandlers} />;
+  useEffect(() => {
+    if (elementRef.current) elementRef.current.hidden = !visible;
+  }, [visible, elementRef]);
+  return null;
 }, areMarkersEqual);
 
-function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEnabled, dense, webgl, theme, onSelect, onWebglUnavailable, hoverStore }: {
+function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEnabled, dense, theme, onSelect, hoverStore }: {
   aircraft: readonly LiveAircraft[]; selectedId: string | null; followedId: string | null; previewId?: string; labelsEnabled: boolean;
-  dense: boolean; webgl: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; onWebglUnavailable: () => void; hoverStore: AircraftHoverStore;
+  dense: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; hoverStore: AircraftHoverStore;
 }) {
-  const map = useMap();
-  const canvasRenderer = useMemo(() => new AircraftCanvasRenderer(), []);
+  const { map } = useMapHandle();
   const showHover = useCallback((item: LiveAircraft, pointer: { x: number; y: number }) => {
     const rect = map.getContainer().getBoundingClientRect();
     const point = { x: pointer.x - rect.left, y: pointer.y - rect.top };
@@ -328,17 +320,20 @@ function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEn
   }, [hoverStore, map]);
   const leaveHover = useCallback((icao24: string) => hoverStore.hideLater(icao24), [hoverStore]);
   useEffect(() => {
-    const clear = () => hoverStore.clear();
+    const clear = (event: { follow?: boolean }) => { if (!event.follow) hoverStore.clear(); };
     const resume = () => hoverStore.resume();
     map.getContainer().addEventListener("pointermove", resume, { passive: true });
-    map.on("movestart zoomstart", clear);
-    return () => { map.getContainer().removeEventListener("pointermove", resume); map.off("movestart zoomstart", clear); hoverStore.clear(); };
+    map.on("movestart", clear);
+    map.on("zoomstart", clear);
+    return () => { map.getContainer().removeEventListener("pointermove", resume); map.off("movestart", clear); map.off("zoomstart", clear); hoverStore.clear(); };
   }, [hoverStore, map]);
-  const [view, setView] = useState(() => ({ zoom: map.getZoom(), bounds: map.getBounds(), center: map.getCenter() }));
+  const [view, setView] = useState(() => ({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds(), center: map.getCenter() }));
   useEffect(() => {
-    const update = () => setView({ zoom: map.getZoom(), bounds: map.getBounds(), center: map.getCenter() });
-    map.on("zoomend moveend resize", update);
-    return () => { map.off("zoomend moveend resize", update); };
+    const update = () => setView({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds(), center: map.getCenter() });
+    map.on("zoomend", update);
+    map.on("moveend", update);
+    map.on("resize", update);
+    return () => { map.off("zoomend", update); map.off("moveend", update); map.off("resize", update); };
   }, [map]);
   // Focus labels: only the selected and followed aircraft, emergencies and the few aircraft
   // nearest the centre carry a label; every other aircraft stays a plain silhouette.
@@ -346,13 +341,13 @@ function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEn
   const labelled = useMemo(() => {
     if (!labelsEnabled) return new Map<string, LabelLevel>();
     const focus = focusLabels({ aircraft, selectedId, followedId, center: view.center, zoom: view.zoom,
-      inView: item => view.bounds.contains([item.latitude!, item.longitude!]) });
+      inView: item => containsPoint(view.bounds, item.latitude!, item.longitude!) });
     const byId = new Map(aircraft.map(item => [item.icao24, item]));
     const priority: Record<FocusReason, number> = { selected: 4, followed: 3, emergency: 2, nearest: 1 };
     const kept = placeLabels(focus.flatMap(({ id, reason }) => {
       const item = byId.get(id)!;
       if (item.latitude == null || item.longitude == null) return [];
-      const point = map.latLngToContainerPoint([item.latitude, item.longitude]);
+      const point = map.project([item.longitude, item.latitude]);
       const detail = id === selectedId || level >= 3;
       return [{ id, priority: priority[reason], x: point.x + 18, y: point.y - (detail ? 21 : 14),
         width: detail ? 172 : Math.max(85, (item.callsign || item.registration || item.icao24).length * 8 + (level >= 2 ? 38 : 16)), height: detail ? 44 : 30 }];
@@ -362,89 +357,41 @@ function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEn
   // Aircraft with a label or the selection keep a detailed marker; the rest are silhouettes.
   const detailedIds = useMemo(() => new Set([...labelled.keys(), ...(selectedId ? [selectedId] : [])]), [labelled, selectedId]);
   const detailed = dense ? aircraft.filter(item => detailedIds.has(item.icao24)) : aircraft;
-  return <>{dense && webgl && <AircraftGlLayer aircraft={aircraft} theme={theme} previewId={previewId ?? null} excludeId={selectedId} excludeIds={detailedIds}
-    onSelect={onSelect} onHover={showHover} onLeave={leaveHover} onUnavailable={onWebglUnavailable} />}
-    {dense && !webgl && aircraft.filter(item => !detailedIds.has(item.icao24)).map(item =>
-      <AircraftCanvasMarker renderer={canvasRenderer} key={item.icao24} aircraft={item} active={item.icao24 === previewId} theme={theme} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}
+  return <>{dense && <AircraftGlLayer aircraft={aircraft} theme={theme} previewId={previewId ?? null} excludeId={selectedId} excludeIds={detailedIds}
+    onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />}
     {detailed.map(item => <AircraftMarker key={item.icao24} aircraft={item} active={item.icao24 === selectedId || item.icao24 === previewId}
       selected={item.icao24 === selectedId} labelLevel={labelled.get(item.icao24) ?? 0} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}</>;
 }
 
-const AircraftCanvasMarker = memo(function AircraftCanvasMarker({ aircraft, active, onSelect, onHover, onLeave, renderer, theme = "dark" }: AircraftMarkerProps) {
-  const canvasMarkerRef = useRef<L.CircleMarker | null>(null);
-  const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
-  // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
-  const color = active ? MAP_COLORS[theme].accent : emergencyInfo(aircraft) ? MAP_COLORS[theme].danger : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
-  const old = (positionAge(aircraft, Date.now() / 1000) ?? Infinity) > 60;
-  const glyph = aircraftGlyph(aircraftIconKind(aircraft), aircraft.aircraft_type);
-  const size = glyph.model ? (glyph.kind === "heavy" || glyph.kind === "glider" ? 27 : glyph.kind === "small" ? 21 : 25) : 20;
-  const pathOptions = useMemo<AircraftCanvasStyle>(() => ({
-    color, opacity: old ? 0.55 : 1, weight: 1,
-    aircraftGlyph: glyph.glyph, aircraftHeading: aircraft.true_track ?? 0,
-    aircraftSize: size, aircraftHollow: old,
-  }), [aircraft.true_track, color, glyph.glyph, old, size]);
-  const aircraftRef = useRef(aircraft);
-  aircraftRef.current = aircraft;
-  const eventHandlers = useMemo(() => ({
-    click: () => onSelect(liveAircraftToFlight(aircraftRef.current)),
-    mouseover: (event: L.LeafletMouseEvent) => {
-      if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-        onHover?.(aircraftRef.current, { x: event.originalEvent.clientX, y: event.originalEvent.clientY });
-      }
-    },
-    mouseout: () => onLeave?.(aircraftRef.current.icao24),
-  }), [onSelect, onHover, onLeave]);
-  useEffect(() => {
-    let wasOld = old;
-    return subscribeToTick(now => {
-      const nextOld = (positionAge(aircraftRef.current, now) ?? Infinity) > 60;
-      if (nextOld === wasOld) return;
-      wasOld = nextOld;
-      canvasMarkerRef.current?.setStyle({ aircraftHollow: nextOld, opacity: nextOld ? 0.55 : 1 } as AircraftCanvasStyle);
-    });
-  }, [active, old]);
-  if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <CircleMarker ref={canvasMarkerRef} renderer={renderer} center={position} radius={size / 2 + 2} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
-}, areMarkersEqual);
+/** Whether a position is inside the camera's bounds, which may reach past +-180 with world copies. */
+function containsPoint(bounds: LngLatBounds, latitude: number, longitude: number): boolean {
+  if (latitude < bounds.getSouth() || latitude > bounds.getNorth()) return false;
+  const wrapped = [longitude, longitude + 360, longitude - 360];
+  return wrapped.some((value) => value >= bounds.getWest() && value <= bounds.getEast());
+}
 
-interface BoundsReporterProps { onBounds: (bounds: Bounds, visible: Bounds) => void }
+interface BoundsReporterProps { onBounds: (visible: Bounds) => void }
 function BoundsReporter({ onBounds }: BoundsReporterProps) {
-  const map = useMap();
+  const { map } = useMapHandle();
   useEffect(() => {
-    function report(target?: L.LatLngBounds) {
-      const bounds = target ?? map.getBounds();
-      const visible = {
-        lamin: Math.max(-90, bounds.getSouth()),
-        lomin: Math.max(-180, bounds.getWest()),
-        lamax: Math.min(90, bounds.getNorth()),
-        lomax: Math.min(180, bounds.getEast()),
-      };
-      onBounds(quantizeBounds(expandBounds(visible), 0.25), visible);
-    }
-    const onMoveEnd = () => report();
-    // The camera announces where it is headed before it gets there, so the
-    // traffic for the destination loads while the map is still flying.
-    const onPrefetch = (event: L.LeafletEvent) => report((event as L.LeafletEvent & { bounds: L.LatLngBounds }).bounds);
-    map.on("moveend", onMoveEnd);
-    map.on("viewprefetch", onPrefetch);
+    const report = () => {
+      const bounds = map.getBounds();
+      onBounds(visibleBoundsFromEdges({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() }));
+    };
+    map.on("moveend", report);
     const initialTimer = setTimeout(report, 120);
-    const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
-    observer.observe(map.getContainer());
     return () => {
       clearTimeout(initialTimer);
-      map.off("moveend", onMoveEnd);
-      map.off("viewprefetch", onPrefetch);
-      observer.disconnect();
+      map.off("moveend", report);
     };
   }, [map, onBounds]);
   return null;
 }
 
-/** Map bounds the camera will show once it arrives at `center` and `zoom`. */
-function boundsAt(map: L.Map, center: L.LatLng, zoom: number): L.LatLngBounds {
-  const half = map.getSize().divideBy(2);
-  const middle = map.project(center, zoom);
-  return L.latLngBounds(map.unproject(middle.add([-half.x, half.y]), zoom), map.unproject(middle.add([half.x, -half.y]), zoom));
+/** Map bounds the camera will show once it arrives at `center` and `viewZoom`. */
+function boundsAt(map: GlMap, center: [number, number], viewZoom: number): Bounds {
+  const container = map.getContainer();
+  return boundsAround(center, viewZoom, { width: container.clientWidth, height: container.clientHeight });
 }
 
 interface UserLocation {
@@ -458,8 +405,6 @@ interface TrackSegment {
   color: string;
 }
 
-interface Insets { left: number; top: number; right: number; bottom: number }
-
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -470,7 +415,7 @@ function prefersReducedMotion() {
  * already correct while a panel is still sliding in; measuring the panel
  * mid-animation is what used to send the first camera move to the wrong place.
  */
-function getSafeInsets(map: L.Map): Insets {
+function getSafeInsets(map: GlMap): Insets {
   const edge = 16;
   const insets: Insets = { left: edge, top: edge, right: edge, bottom: edge };
   const workspace = map.getContainer().closest<HTMLElement>(".workspace");
@@ -484,7 +429,7 @@ function getSafeInsets(map: L.Map): Insets {
     // Phones show the panels as bottom sheets.
     if (workspace.classList.contains("has-dock") || workspace.classList.contains("traffic-open")) {
       const sheet = workspace.querySelector<HTMLElement>(workspace.classList.contains("has-dock") ? ".details-drawer" : ".traffic-slot");
-      insets.bottom += sheet ? sheet.getBoundingClientRect().height : Math.round(map.getSize().y * 0.5);
+      insets.bottom += sheet ? sheet.getBoundingClientRect().height : Math.round(map.getContainer().clientHeight * 0.5);
     }
     return insets;
   }
@@ -494,27 +439,41 @@ function getSafeInsets(map: L.Map): Insets {
   return insets;
 }
 
-/** Map centre that makes `point` land in the middle of the uncovered area. */
-function placementCenter(map: L.Map, point: L.LatLngExpression, zoom: number, insets: Insets): L.LatLng {
-  const offset = L.point((insets.left - insets.right) / 2, (insets.top - insets.bottom) / 2);
-  return map.unproject(map.project(point, zoom).subtract(offset), zoom).wrap();
+/** Moves the camera to `center` at the shared `viewZoom`, flying there unless motion is reduced. */
+function flyCamera(map: GlMap, center: [number, number], viewZoom: number, options: { animate: boolean; duration: number; follow?: boolean; linear?: boolean }) {
+  const target = { center: [center[1], center[0]] as [number, number], zoom: toGlZoom(viewZoom) };
+  if (!options.animate) { map.jumpTo(target); return; }
+  if (options.linear) map.easeTo({ ...target, duration: options.duration * 1000, easing: (t) => t, essential: true }, { follow: options.follow });
+  else map.flyTo({ ...target, duration: options.duration * 1000, essential: true }, { follow: options.follow });
 }
 
-function fitRoute(map: L.Map, track: TrackResponse | undefined, animate: boolean) {
-  const path = track?.track.path ?? [];
-  const bounds = L.latLngBounds([]);
-  for (const point of path) if (Number.isFinite(point[1]) && Number.isFinite(point[2])) bounds.extend([point[1], point[2]]);
-  if (!bounds.isValid()) return;
+/** Frames `points` (latitude, longitude) inside the free part of the map, with a tenth of margin around them. */
+function fitPoints(map: GlMap, points: [number, number][], options: { animate: boolean; duration: number; maxZoom: number; extraPadding?: number }) {
+  if (!points.length) return;
+  const south = Math.min(...points.map((point) => point[0]));
+  const north = Math.max(...points.map((point) => point[0]));
+  const west = Math.min(...points.map((point) => point[1]));
+  const east = Math.max(...points.map((point) => point[1]));
+  const margin = 0.1;
   const insets = getSafeInsets(map);
-  map.stop();
-  map.flyToBounds(bounds.pad(0.1), {
-    animate,
-    duration: 1.1,
-    easeLinearity: 0.2,
-    maxZoom: 9,
-    paddingTopLeft: [insets.left, insets.top],
-    paddingBottomRight: [insets.right, insets.bottom],
+  const extra = options.extraPadding ?? 0;
+  const camera = map.cameraForBounds([
+    [west - (east - west) * margin, south - (north - south) * margin],
+    [east + (east - west) * margin, north + (north - south) * margin],
+  ], {
+    padding: { left: insets.left + extra, top: insets.top + extra, right: insets.right + extra, bottom: insets.bottom + extra },
+    maxZoom: toGlZoom(options.maxZoom),
   });
+  if (!camera?.center) return;
+  const [lng, lat] = Array.isArray(camera.center) ? camera.center : "lng" in camera.center ? [camera.center.lng, camera.center.lat] : [camera.center.lon, camera.center.lat];
+  map.stop();
+  flyCamera(map, [lat, lng], fromGlZoom(camera.zoom ?? map.getZoom()), options);
+}
+
+function fitRoute(map: GlMap, track: TrackResponse | undefined, animate: boolean) {
+  const points: [number, number][] = [];
+  for (const point of track?.track.path ?? []) if (Number.isFinite(point[1]) && Number.isFinite(point[2])) points.push([point[1], point[2]]);
+  fitPoints(map, points, { animate, duration: 1.1, maxZoom: 9 });
 }
 
 function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): TrackSegment[] {
@@ -550,23 +509,17 @@ function buildAltitudeSegments(path: TrackResponse["track"]["path"] = []): Track
  * eased flight. The route is drawn without touching the camera afterwards,
  * so a click never produces two competing motions.
  */
-function revealPoint(map: L.Map, point: [number, number], animate: boolean) {
+function revealPoint(map: GlMap, point: [number, number], animate: boolean) {
   const insets = getSafeInsets(map);
-  const size = map.getSize();
-  const pixel = map.latLngToContainerPoint(point);
-  const safe = { left: insets.left + 56, top: insets.top + 56, right: size.x - insets.right - 56, bottom: size.y - insets.bottom - 56 };
+  const pixel = map.project([point[1], point[0]]);
+  const safe = { left: insets.left + 56, top: insets.top + 56, right: map.getContainer().clientWidth - insets.right - 56, bottom: map.getContainer().clientHeight - insets.bottom - 56 };
   const inside = pixel.x >= safe.left && pixel.x <= safe.right && pixel.y >= safe.top && pixel.y <= safe.bottom;
   // Preserve the visitor's zoom level on selection. A forced zoom made an
   // ordinary click feel like a second, unrelated camera action.
-  const zoom = map.getZoom();
-  if (inside && zoom === map.getZoom()) return;
-  const target = placementCenter(map, point, zoom, insets);
+  if (inside) return;
+  const zoom = fromGlZoom(map.getZoom());
   map.stop();
-  if (zoom === map.getZoom() && map.getCenter().distanceTo(target) < 400_000) {
-    map.panTo(target, { animate, duration: 0.7, easeLinearity: 0.25 });
-  } else {
-    map.flyTo(target, zoom, { animate, duration: 1, easeLinearity: 0.2 });
-  }
+  flyCamera(map, placementCenter(point, zoom, insets), zoom, { animate, duration: 0.8 });
 }
 
 interface MapControllerProps {
@@ -578,10 +531,12 @@ interface MapControllerProps {
   locateRequest: number;
   onLocationFound: (location: UserLocation) => void;
   onLocationError: (message: string) => void;
+  /** The camera announces where it is headed before it gets there, so the traffic for the destination loads while it is flying. */
+  onPrefetch: (visible: Bounds) => void;
 }
 
-function MapController({ airport, airportFocusRequest, flight, track, fitRequest, locateRequest, onLocationFound, onLocationError }: MapControllerProps) {
-  const map = useMap();
+function MapController({ airport, airportFocusRequest, flight, track, fitRequest, locateRequest, onLocationFound, onLocationError, onPrefetch }: MapControllerProps) {
+  const { map } = useMapHandle();
   const selection = useRef<{ id: string; fitted: boolean; revealed: boolean } | null>(null);
   const centeredAirport = useRef<string | null>(null);
   const centeredAirportRequest = useRef(-1);
@@ -634,82 +589,108 @@ function MapController({ airport, airportFocusRequest, flight, track, fitRequest
     map.stop();
     if (first) {
       // The first position appears immediately; later changes travel there.
-      map.setView(placementCenter(map, [airportLatitude, airportLongitude], 8, insets), 8, { animate: false });
+      map.jumpTo({ center: placementCenterLngLat([airportLatitude, airportLongitude], 8, insets), zoom: toGlZoom(8) });
     } else {
-      const target = placementCenter(map, [airportLatitude, airportLongitude], 9, insets);
-      map.fire("viewprefetch", { bounds: boundsAt(map, target, 9) });
-      map.flyTo(target, 9, { animate: !prefersReducedMotion(), duration: 0.9, easeLinearity: 0.2 });
+      const target = placementCenter([airportLatitude, airportLongitude], 9, insets);
+      onPrefetch(boundsAt(map, target, 9));
+      flyCamera(map, target, 9, { animate: !prefersReducedMotion(), duration: 0.9 });
     }
-  }, [airportIcao, airportLatitude, airportLongitude, airportFocusRequest, flight, map]);
+  }, [airportIcao, airportLatitude, airportLongitude, airportFocusRequest, flight, map, onPrefetch]);
 
   useEffect(() => {
     if (!locateRequest) return;
-    map.locate({ setView: true, maxZoom: 11, enableHighAccuracy: true });
-  }, [locateRequest, map]);
-
-  useEffect(() => {
-    function handleLocationFound(event: L.LocationEvent) {
-      onLocationFound({
-        latitude: event.latlng.lat,
-        longitude: event.latlng.lng,
-        accuracy: Number.isFinite(event.accuracy) ? event.accuracy : 0,
-      });
-    }
-    function handleLocationError(event: L.ErrorEvent) {
-      onLocationError(event.message || "Location is unavailable in this browser.");
-    }
-    map.on("locationfound", handleLocationFound);
-    map.on("locationerror", handleLocationError);
-    return () => {
-      map.off("locationfound", handleLocationFound);
-      map.off("locationerror", handleLocationError);
-    };
-  }, [map, onLocationError, onLocationFound]);
+    if (!navigator.geolocation) { onLocationError("Geolocation not supported."); return; }
+    navigator.geolocation.getCurrentPosition((position) => {
+      const { latitude, longitude, accuracy } = position.coords;
+      onLocationFound({ latitude, longitude, accuracy: Number.isFinite(accuracy) ? accuracy : 0 });
+      // Frame the accuracy circle, but never closer than street level of a city (zoom 11).
+      const ring = circlePolygon([latitude, longitude], Math.max(accuracy, 20));
+      const camera = map.cameraForBounds([[Math.min(...ring.map((p) => p[0])), Math.min(...ring.map((p) => p[1]))], [Math.max(...ring.map((p) => p[0])), Math.max(...ring.map((p) => p[1]))]], { maxZoom: toGlZoom(11) });
+      const zoom = camera?.zoom != null ? fromGlZoom(camera.zoom) : 11;
+      map.stop();
+      flyCamera(map, [latitude, longitude], Math.min(zoom, 11), { animate: !prefersReducedMotion(), duration: 0.9 });
+    }, (error) => {
+      onLocationError(`Geolocation error: ${error.message || "location is unavailable"}.`);
+    }, { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 });
+  }, [locateRequest, map, onLocationError, onLocationFound]);
   return null;
 }
 
-/** A single selected label stays readable at every zoom. */
+/** [longitude, latitude] of the camera that places `point` in the uncovered area. */
+function placementCenterLngLat(point: [number, number], viewZoom: number, insets: Insets): [number, number] {
+  const [latitude, longitude] = placementCenter(point, viewZoom, insets);
+  return [longitude, latitude];
+}
+
+/** Marks on the map container what the camera is doing and whether labels are on. */
 function MapViewClasses({ labelsEnabled }: { labelsEnabled: boolean }) {
-  const map = useMap();
+  const { map } = useMapHandle();
   useEffect(() => {
     const container = map.getContainer();
-    const apply = () => {
-      container.classList.toggle("show-labels", labelsEnabled);
-    };
-    apply();
-    map.on("zoomend", apply);
-    const cameraStart = () => container.classList.add("map-camera-moving");
+    container.classList.toggle("show-labels", labelsEnabled);
+    // The follow camera nudges the map every second; that is not the map "moving".
+    const cameraStart = (event: { follow?: boolean }) => { if (!event.follow) container.classList.add("map-camera-moving"); };
     const cameraEnd = () => container.classList.remove("map-camera-moving");
-    map.on("movestart zoomstart", cameraStart);
+    map.on("movestart", cameraStart);
+    map.on("zoomstart", cameraStart);
     map.on("moveend", cameraEnd);
     return () => {
-      map.off("zoomend", apply);
-      map.off("movestart zoomstart", cameraStart);
+      map.off("movestart", cameraStart);
+      map.off("zoomstart", cameraStart);
       map.off("moveend", cameraEnd);
-      container.classList.remove("show-labels", "show-label-detail");
-      container.classList.remove("map-camera-moving");
+      container.classList.remove("show-labels", "show-label-detail", "map-camera-moving");
     };
   }, [labelsEnabled, map]);
   return null;
 }
 
-function AirportPins({ airports, activeIcao, onSelect }: { airports: Airport[]; activeIcao: string | null; onSelect: (airport: Airport) => void }) {
-  const map = useMap();
-  const [viewport, setViewport] = useState(() => ({ zoom: map.getZoom(), bounds: map.getBounds() }));
+/** A tooltip owned by the map, shown above a DOM marker while it is hovered or focused. */
+function useMarkerTooltip(html: string | null, elementRef: { current: HTMLElement | null }, handle: MapHandle) {
   useEffect(() => {
-    const update = () => setViewport({ zoom: map.getZoom(), bounds: map.getBounds() });
-    map.on("moveend zoomend", update);
-    return () => { map.off("moveend zoomend", update); };
+    const element = elementRef.current;
+    if (!element || !html) return;
+    const tooltip = sharedTooltip(handle.map.getContainer());
+    const show = () => tooltip.showAbove(html, element);
+    const hide = () => tooltip.hide();
+    element.addEventListener("mouseenter", show);
+    element.addEventListener("focus", show);
+    element.addEventListener("mouseleave", hide);
+    element.addEventListener("blur", hide);
+    return () => {
+      element.removeEventListener("mouseenter", show);
+      element.removeEventListener("focus", show);
+      element.removeEventListener("mouseleave", hide);
+      element.removeEventListener("blur", hide);
+      tooltip.hide();
+    };
+  }, [html, elementRef, handle]);
+}
+
+function AirportPins({ airports, activeIcao, onSelect }: { airports: Airport[]; activeIcao: string | null; onSelect: (airport: Airport) => void }) {
+  const { map } = useMapHandle();
+  const [viewport, setViewport] = useState(() => ({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds() }));
+  useEffect(() => {
+    const update = () => setViewport({ zoom: fromGlZoom(map.getZoom()), bounds: map.getBounds() });
+    map.on("moveend", update);
+    map.on("zoomend", update);
+    return () => { map.off("moveend", update); map.off("zoomend", update); };
   }, [map]);
   const groups = useMemo(() => {
-    const bounds = viewport.bounds.pad(0.1);
+    const south = viewport.bounds.getSouth();
+    const north = viewport.bounds.getNorth();
+    const west = viewport.bounds.getWest();
+    const east = viewport.bounds.getEast();
+    // A tenth of the view around it, so pins appear just before they scroll in.
+    const latPadding = (north - south) * 0.1;
+    const lngPadding = (east - west) * 0.1;
     const visible = airports.filter((airport) => airport.latitude != null && airport.longitude != null
-      && bounds.contains([airport.latitude, airport.longitude]));
+      && airport.latitude >= south - latPadding && airport.latitude <= north + latPadding
+      && [airport.longitude, airport.longitude + 360, airport.longitude - 360].some((value) => value >= west - lngPadding && value <= east + lngPadding));
     if (viewport.zoom >= AIRPORT_CLUSTER_MAX_ZOOM) return visible.map((airport) => [airport]);
     const active = visible.filter((airport) => airport.icao === activeIcao);
     return [...active.map((airport) => [airport]), ...groupAirports(visible.filter((airport) => airport.icao !== activeIcao),
-      (airport) => map.project([airport.latitude!, airport.longitude!], viewport.zoom))];
-  }, [airports, activeIcao, map, viewport]);
+      (airport) => mercatorPixel(airport.latitude!, airport.longitude!, viewport.zoom))];
+  }, [airports, activeIcao, viewport]);
   return <>
     {groups.map((group) => group.length === 1 ? (
       <AirportPin key={group[0].icao} airport={group[0]} active={group[0].icao === activeIcao} onSelect={onSelect} />
@@ -718,35 +699,33 @@ function AirportPins({ airports, activeIcao, onSelect }: { airports: Airport[]; 
 }
 
 function AirportCluster({ airports }: { airports: Airport[] }) {
-  const map = useMap();
-  const bounds = useMemo(() => L.latLngBounds(airports.map((airport) => [airport.latitude!, airport.longitude!] as [number, number])), [airports]);
-  const icon = useMemo(() => L.divIcon({
-    className: "airport-cluster-wrap", html: `<span class="airport-cluster">${airports.length}</span>`,
-    iconSize: [32, 32], iconAnchor: [16, 16],
-  }), [airports.length]);
-  const handlers = useMemo(() => ({ click: () => {
+  const handle = useMapHandle();
+  const { map } = handle;
+  const center = useMemo<[number, number]>(() => {
+    const latitudes = airports.map((airport) => airport.latitude!);
+    const longitudes = airports.map((airport) => airport.longitude!);
+    return [(Math.min(...latitudes) + Math.max(...latitudes)) / 2, (Math.min(...longitudes) + Math.max(...longitudes)) / 2];
+  }, [airports]);
+  const look = useMemo<MarkerLook>(() => ({ className: "airport-cluster-wrap", html: `<span class="airport-cluster">${airports.length}</span>` }), [airports.length]);
+  const events = useMemo(() => ({ click: () => {
     map.stop();
-    const insets = getSafeInsets(map);
-    map.flyToBounds(bounds, { animate: !prefersReducedMotion(), duration: 0.7,
-      maxZoom: Math.min(9, map.getZoom() + 2),
-      paddingTopLeft: [insets.left + 32, insets.top + 32], paddingBottomRight: [insets.right + 32, insets.bottom + 32] });
-  } }), [map, bounds]);
-  return <Marker position={bounds.getCenter()} icon={icon} eventHandlers={handlers} zIndexOffset={600}
-    title={`${airports.length} airports · Zoom to explore`}>
-    <Tooltip direction="top" offset={[0, -14]} opacity={1} className="aircraft-tooltip">
-      <strong>{airports.length} airports</strong><span>Click to zoom and choose an airport</span>
-    </Tooltip>
-  </Marker>;
+    fitPoints(map, airports.map((airport) => [airport.latitude!, airport.longitude!] as [number, number]), {
+      animate: !prefersReducedMotion(), duration: 0.7, maxZoom: Math.min(9, fromGlZoom(map.getZoom()) + 2), extraPadding: 32 });
+  } }), [map, airports]);
+  const { elementRef } = useDomMarker({ handle, position: center, className: look.className, html: look.html, size: 32,
+    title: `${airports.length} airports · Zoom to explore`, zIndex: 600, events });
+  useMarkerTooltip(`<strong>${airports.length} airports</strong><span>Click to zoom and choose an airport</span>`, elementRef, handle);
+  return null;
 }
 
 function AirportPin({ airport, active, onSelect }: { airport: Airport; active: boolean; onSelect: (airport: Airport) => void }) {
-  const icon = useMemo(() => airportPinIcon(airport, active), [airport, active]);
-  const handlers = useMemo(() => ({ click: () => onSelect(airport) }), [airport, onSelect]);
-  return (
-    <Marker position={[airport.latitude!, airport.longitude!]} icon={icon} eventHandlers={handlers} zIndexOffset={active ? 700 : 500} title={`${airport.name} · Arrivals & departures`} alt={`${airport.iata || airport.icao}: arrivals and departures`}>
-      <Tooltip direction="top" offset={[0, -6]} opacity={1} className="aircraft-tooltip"><strong>{airport.name}</strong><span>{airport.icao}{airport.iata ? ` · ${airport.iata}` : ""} · Arrivals & departures</span></Tooltip>
-    </Marker>
-  );
+  const handle = useMapHandle();
+  const look = useMemo(() => airportPinIcon(airport, active), [airport, active]);
+  const events = useMemo(() => ({ click: () => onSelect(airport) }), [airport, onSelect]);
+  const { elementRef } = useDomMarker({ handle, position: [airport.latitude!, airport.longitude!], className: look.className, html: look.html, size: 24,
+    title: `${airport.name} · Arrivals & departures`, zIndex: active ? 700 : 500, events });
+  useMarkerTooltip(`<strong>${escapeHtml(airport.name)}</strong><span>${escapeHtml(airport.icao)}${airport.iata ? ` · ${escapeHtml(airport.iata)}` : ""} · Arrivals &amp; departures</span>`, elementRef, handle);
+  return null;
 }
 
 /**
@@ -814,6 +793,33 @@ function revealPath(points: TrackPoint[], fraction: number): TrackPoint[] {
   return drawn;
 }
 
+const lineString = (positions: [number, number][], properties: GeoJSON.GeoJsonProperties): GeoJSON.Feature<GeoJSON.LineString> => ({
+  type: "Feature", properties, geometry: { type: "LineString", coordinates: positions.map(([latitude, longitude]) => [longitude, latitude]) },
+});
+
+const ROUND_LINE = { "line-cap": "round", "line-join": "round" } as const;
+const TRACE_LAYERS: LayerSpecification[] = [
+  { id: "trace-halo", type: "line", source: "trace", filter: ["==", ["get", "kind"], "halo"], layout: ROUND_LINE,
+    paint: { "line-color": ["get", "color"], "line-width": 8, "line-opacity": ["get", "opacity"] } },
+  { id: "trace-line", type: "line", source: "trace", filter: ["==", ["get", "kind"], "line"], layout: ROUND_LINE,
+    paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": ["get", "opacity"] } },
+  // The stretch from the end of the trace to the estimated position is dashed: it is not a recorded fix.
+  { id: "trace-head", type: "line", source: "trace", filter: ["==", ["get", "kind"], "head"], layout: { "line-join": "round" },
+    paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": ["get", "opacity"], "line-dasharray": [1.4, 2] } },
+];
+const PROJECTION_LAYERS: LayerSpecification[] = [
+  // A wide invisible line makes the thin projection easy to hover.
+  { id: "projection-hit", type: "line", source: "projection", paint: { "line-color": "#000", "line-width": 18, "line-opacity": 0 } },
+  { id: "projection-future", type: "line", source: "projection", filter: ["==", ["get", "kind"], "future"],
+    paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.8, "line-dasharray": [5, 6] } },
+  { id: "projection-heading", type: "line", source: "projection", filter: ["==", ["get", "kind"], "heading"],
+    paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.8, "line-dasharray": [2.5, 3.5] } },
+];
+const PROJECTION_TIPS: Record<string, string> = {
+  future: "Estimated direct line to destination · not a filed route",
+  heading: "Estimated heading · next 2 min",
+};
+
 interface SelectedTrackProps {
   flight: Flight;
   track?: TrackResponse;
@@ -830,7 +836,8 @@ interface SelectedTrackProps {
  * traffic never re-renders with it.
  */
 function SelectedTrack({ flight, track, live, theme, following, onRelease }: SelectedTrackProps) {
-  const map = useMap();
+  const handle = useMapHandle();
+  const { map } = handle;
   const now = useNowSeconds(true);
   const selectedId = flight.icao24.toLowerCase();
   const head = useMemo<[number, number] | null>(() => {
@@ -860,33 +867,54 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
     const altitude = live?.baro_altitude ?? lastBase[3];
     return { positions: [[lastBase[1], lastBase[2]], head], color: altitudeColor(altitude) };
   }, [fraction, head, lastBase, live?.baro_altitude]);
-  // The halo under the long trace only changes while it is revealed; the
-  // one-second head stretch gets its own short halo so a live tick never
-  // copies and re-projects the whole trace.
-  const halo = useMemo<[number, number][]>(() => drawnBase.map((point) => [point[1], point[2]] as [number, number]), [drawnBase]);
   const firstPoint = basePoints[0];
-  const haloOptions = useMemo(() => ({ color: MAP_COLORS[theme].halo, weight: 8, opacity: 0.7 * fade, lineCap: "round" as const, lineJoin: "round" as const }), [fade, theme]);
-  const startIcon = useMemo(() => routeEndpointIcon("start", theme), [theme]);
+  const startLook = useMemo(() => routeEndpointIcon("start", theme), [theme]);
+  const showStart = Boolean(firstPoint && basePoints.length > 1 && fade > 0.5);
+
+  const halo = MAP_COLORS[theme].halo;
+  const traceData = useMemo<GeoJSON.FeatureCollection>(() => {
+    const features: GeoJSON.Feature[] = [];
+    if (drawnBase.length > 1) features.push(lineString(drawnBase.map((point) => [point[1], point[2]] as [number, number]), { kind: "halo", color: halo, opacity: 0.7 * fade }));
+    if (headSegment) features.push(lineString(headSegment.positions, { kind: "halo", color: halo, opacity: 0.7 * fade * headFade }));
+    for (const segment of baseSegments) features.push(lineString(segment.positions, { kind: "line", color: segment.color, opacity: 0.96 * fade }));
+    if (headSegment) features.push(lineString(headSegment.positions, { kind: "head", color: headSegment.color, opacity: 0.96 * headFade }));
+    return { type: "FeatureCollection", features };
+  }, [baseSegments, drawnBase, fade, halo, headFade, headSegment]);
+  useGeoJsonLayers(handle, "trace", TRACE_LAYERS, traceData);
+  useOverlayToken(handle, "trace", traceData.features.length > 0);
+
   const units = useUnits();
-  const fallbackMarkerRef = useRef<L.Marker | null>(null);
-  const fallbackIcon = useMemo(
+  const fallbackLook = useMemo(
     () => planeIcon({ heading: flight.true_track ?? 0, active: true, onGround: flight.on_ground === true, icao24: flight.icao24, kind: aircraftIconKind(flight), aircraftType: flight.aircraft_type, airborne: flight.on_ground === false, label: { primary: flight.callsign || flight.registration || flight.icao24.toUpperCase(), secondary: [flight.baro_altitude != null ? flightLevelText(flight.baro_altitude, units) : null, flight.velocity != null ? speedText(flight.velocity, units) : null].filter(Boolean).join(" · "), logo: airlineLogo(flight), badge: airlineBadge(flight) } }),
     [flight, units],
   );
-  useEffect(() => {
-    const logo = fallbackMarkerRef.current?.getElement()?.querySelector<HTMLImageElement>(".airline-logo");
-    const hideLogo = () => swapLogoForBadge(logo);
-    logo?.addEventListener("error", hideLogo);
-    if (logo?.complete && !logo.naturalWidth) hideLogo();
-    return () => logo?.removeEventListener("error", hideLogo);
-  }, [fallbackIcon, live]);
 
   const projection = headingProjection(live ?? flight, now, head);
   const futurePath = destinationGuide({ ...flight, ...live }, now, head);
-  const projectionRenderer = useMemo(() => L.svg({ padding: 0.5 }), []);
-  const arrowIcon = useMemo(() => L.divIcon({ className: "heading-arrow-wrap",
-    html: `<span class="heading-arrow" style="transform:rotate(${(live?.true_track ?? flight.true_track ?? 0) - 90}deg);color:${MAP_COLORS[theme].accent}"><svg viewBox="0 0 20 20"><path d="m5 4 9 6-9 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>`,
-    iconSize: [20, 20], iconAnchor: [10, 10] }), [live?.true_track, flight.true_track, theme]);
+  const projectionData = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (futurePath) return { type: "FeatureCollection", features: [lineString(futurePath, { kind: "future", color: theme === "dark" ? "#a1a1a6" : "#515154" })] };
+    if (projection) return { type: "FeatureCollection", features: [lineString(projection, { kind: "heading", color: MAP_COLORS[theme].accent })] };
+    return { type: "FeatureCollection", features: [] };
+  }, [futurePath, projection, theme]);
+  useGeoJsonLayers(handle, "projection", PROJECTION_LAYERS, projectionData);
+  useOverlayToken(handle, "future-path", Boolean(futurePath));
+  useOverlayToken(handle, "heading-projection", !futurePath && Boolean(projection));
+  // A sticky tooltip explains what the dashed line is, wherever it is hovered.
+  useEffect(() => {
+    const tooltip = sharedTooltip(map.getContainer());
+    const move = (event: { point: { x: number; y: number }; features?: Array<{ properties?: Record<string, unknown> }> }) => {
+      const kind = String(event.features?.[0]?.properties?.kind ?? "");
+      if (PROJECTION_TIPS[kind]) { tooltip.show(PROJECTION_TIPS[kind], event.point.x, event.point.y); map.getCanvas().style.cursor = "help"; }
+    };
+    const leave = () => { tooltip.hide(); map.getCanvas().style.cursor = ""; };
+    map.on("mousemove", "projection-hit", move);
+    map.on("mouseleave", "projection-hit", leave);
+    return () => { map.off("mousemove", "projection-hit", move); map.off("mouseleave", "projection-hit", leave); tooltip.hide(); map.getCanvas().style.cursor = ""; };
+  }, [map]);
+
+  const heading = (live?.true_track ?? flight.true_track ?? 0) - 90;
+  const arrowLook = useMemo<MarkerLook>(() => ({ className: "heading-arrow-wrap",
+    html: `<span class="heading-arrow" style="transform:rotate(${heading}deg);color:${MAP_COLORS[theme].accent}"><svg viewBox="0 0 20 20"><path d="m5 4 9 6-9 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>` }), [heading, theme]);
 
   const followStarted = useRef(false);
   useEffect(() => {
@@ -897,8 +925,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
     const container = map.getContainer();
     const stopForManualMapUse = (event: PointerEvent) => {
       if (event.target instanceof Element && event.target.closest(".aircraft-marker-wrap, .airport-pin-wrap")) return;
-      // Leaflet can ignore dragstart during an animated follow pan. Give the
-      // pointer back to the visitor as soon as they interact with the map.
+      // Give the pointer back to the visitor as soon as they interact with the map.
       map.stop();
       onRelease();
     };
@@ -916,39 +943,85 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
     if (!followStarted.current) {
       // First frame: close in on the aircraft, then only pan along with it.
       followStarted.current = true;
-      const zoom = Math.max(map.getZoom(), 9);
+      const zoom = Math.max(fromGlZoom(map.getZoom()), 9);
       map.stop();
-      map.flyTo(placementCenter(map, head, zoom, insets), zoom, { animate, duration: 0.9 });
+      flyCamera(map, placementCenter(head, zoom, insets), zoom, { animate, duration: 0.9 });
       return;
     }
     // One second of linear pan per one-second tick keeps the aircraft still on screen.
-    map.panTo(placementCenter(map, head, map.getZoom(), insets), { animate, duration: 1, easeLinearity: 1, noMoveStart: true });
+    flyCamera(map, placementCenter(head, fromGlZoom(map.getZoom()), insets), fromGlZoom(map.getZoom()), { animate, duration: 1, linear: true, follow: true });
   }, [following, head, map]);
 
   return (
     <>
-      {futurePath ? <Polyline positions={futurePath} renderer={projectionRenderer} pathOptions={{ className: "estimated-future-path", color: theme === "dark" ? "#a1a1a6" : "#515154", weight: 2, dashArray: "10 12", opacity: 0.8, interactive: true }}>
-        <Tooltip sticky className="aircraft-tooltip">Estimated direct line to destination · not a filed route</Tooltip>
-      </Polyline> : projection && <>
-        <Polyline positions={projection} renderer={projectionRenderer} pathOptions={{ className: "heading-projection", color: MAP_COLORS[theme].accent, weight: 2, dashArray: "5 7", opacity: 0.8 }}>
-          <Tooltip sticky className="aircraft-tooltip">Estimated heading · next 2 min</Tooltip>
-        </Polyline>
-        <Marker position={projection[1]} icon={arrowIcon} keyboard={false} interactive={false} />
-      </>}
-      {halo.length > 1 && <Polyline positions={halo} pathOptions={haloOptions} />}
-      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ ...haloOptions, opacity: haloOptions.opacity * headFade }} />}
-      {baseSegments.map((segment, index) => (
-        <Polyline key={`${segment.color}-${index}`} positions={segment.positions} pathOptions={{ color: segment.color, weight: 3.5, opacity: 0.96 * fade, lineCap: "round", lineJoin: "round" }} />
-      ))}
-      {headSegment && <Polyline positions={headSegment.positions} pathOptions={{ className: "estimated-position-segment", dashArray: "5 7", color: headSegment.color, weight: 3.5, opacity: 0.96 * headFade, lineCap: "round", lineJoin: "round" }} />}
-      {firstPoint && basePoints.length > 1 && fade > 0.5 && (
-        <Marker position={[firstPoint[1], firstPoint[2]]} icon={startIcon} keyboard={false}>
-          <Tooltip direction="top" offset={[0, -8]} opacity={1} className="aircraft-tooltip"><strong>Trace start</strong><span className="mono">{formatAltitude(firstPoint[3])}</span></Tooltip>
-        </Marker>
-      )}
-      {!live && head && <Marker ref={fallbackMarkerRef} position={head} icon={fallbackIcon} keyboard={false} />}
+      {!futurePath && projection && <HeadingArrow position={projection[1]} look={arrowLook} />}
+      {showStart && firstPoint && <TraceStart position={[firstPoint[1], firstPoint[2]]} look={startLook} altitude={firstPoint[3]} />}
+      {!live && head && <FallbackAircraft position={head} look={fallbackLook} />}
     </>
   );
+}
+
+function HeadingArrow({ position, look }: { position: [number, number]; look: MarkerLook }) {
+  const handle = useMapHandle();
+  useDomMarker({ handle, position, className: look.className, html: look.html, size: 20, interactive: false });
+  return null;
+}
+
+function TraceStart({ position, look, altitude }: { position: [number, number]; look: MarkerLook; altitude: TrackPoint[3] }) {
+  const handle = useMapHandle();
+  const { elementRef } = useDomMarker({ handle, position, className: look.className, html: look.html, size: 26, interactive: false });
+  useMarkerTooltip(`<strong>Trace start</strong><span class="mono">${escapeHtml(formatAltitude(altitude))}</span>`, elementRef, handle);
+  return null;
+}
+
+/** The selected aircraft when no live feed carries it: drawn where the flight record says it is. */
+function FallbackAircraft({ position, look }: { position: [number, number]; look: MarkerLook }) {
+  const handle = useMapHandle();
+  const { elementRef } = useDomMarker({ handle, position, className: look.className, html: look.html, size: AIRCRAFT_MARKER_SIZE, interactive: false, zIndex: 900 });
+  useEffect(() => {
+    const logoElement = elementRef.current?.querySelector<HTMLImageElement>(".airline-logo");
+    const hideLogo = () => swapLogoForBadge(logoElement);
+    logoElement?.addEventListener("error", hideLogo);
+    if (logoElement?.complete && !logoElement.naturalWidth) hideLogo();
+    return () => logoElement?.removeEventListener("error", hideLogo);
+  }, [look, elementRef]);
+  return null;
+}
+
+/** Faint lines through the positions this page has seen for each aircraft. */
+const TRAIL_LAYERS: LayerSpecification[] = [
+  { id: "trails", type: "line", source: "trails", layout: { "line-cap": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-opacity": 0.5 } },
+];
+
+function Trails({ trails }: { trails: Array<{ icao24: string; positions: [number, number][]; color: string }> }) {
+  const handle = useMapHandle();
+  const data = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: "FeatureCollection",
+    features: trails.map((trail) => lineString(trail.positions, { color: trail.color })),
+  }), [trails]);
+  useGeoJsonLayers(handle, "trails", TRAIL_LAYERS, data);
+  useOverlayToken(handle, "trails", trails.length > 0);
+  return null;
+}
+
+const ACCURACY_LAYERS: LayerSpecification[] = [
+  { id: "accuracy-fill", type: "fill", source: "accuracy", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } },
+  { id: "accuracy-line", type: "line", source: "accuracy", paint: { "line-color": ["get", "color"], "line-width": 1, "line-opacity": 0.5 } },
+];
+
+/** The visitor's position: an accuracy circle and a pulsing dot. */
+function UserLocationMarker({ location, theme }: { location: UserLocation; theme: MapTheme }) {
+  const handle = useMapHandle();
+  const data = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: "FeatureCollection",
+    features: [{ type: "Feature", properties: { color: MAP_COLORS[theme].accent },
+      geometry: { type: "Polygon", coordinates: [circlePolygon([location.latitude, location.longitude], Math.max(location.accuracy, 20))] } }],
+  }), [location, theme]);
+  useGeoJsonLayers(handle, "accuracy", ACCURACY_LAYERS, data);
+  useOverlayToken(handle, "user-location", true);
+  const { elementRef } = useDomMarker({ handle, position: [location.latitude, location.longitude], className: USER_LOCATION_LOOK.className, html: USER_LOCATION_LOOK.html, size: 30, zIndex: 300, interactive: false });
+  useMarkerTooltip(`<strong>Your location</strong><span class="mono">Accuracy ±${Math.round(location.accuracy)} m</span>`, elementRef, handle);
+  return null;
 }
 
 interface FlightMapProps {
@@ -1051,18 +1124,20 @@ export function FlightMap({
     hoverStore.suspend();
     onSelectFlight(flight);
   }, [hoverStore, onSelectFlight]);
-  const [map, setMap] = useState<L.Map | null>(null);
+  const [handle, setHandle] = useState<MapHandle | null>(null);
+  const map = handle?.map ?? null;
   const appliedInitialView = useRef(false);
   useEffect(() => {
     if (!map || !initialView || appliedInitialView.current) return;
     appliedInitialView.current = true;
-    map.setView([initialView.latitude, initialView.longitude], initialView.zoom, { animate: false });
+    map.jumpTo({ center: [initialView.longitude, initialView.latitude], zoom: toGlZoom(initialView.zoom) });
   }, [initialView, map]);
   useEffect(() => {
     if (!map || !onViewChange) return;
     const report = () => {
       const center = map.getCenter();
-      onViewChange({ latitude: center.lat, longitude: center.lng, zoom: map.getZoom() });
+      // Zoom is continuous with the wheel; the shared link keeps two decimals.
+      onViewChange({ latitude: center.lat, longitude: center.lng, zoom: Math.round(fromGlZoom(map.getZoom()) * 100) / 100 });
     };
     map.on("moveend", report);
     return () => { map.off("moveend", report); };
@@ -1079,8 +1154,10 @@ export function FlightMap({
   useEffect(() => {
     if (bounds) onViewportCenter?.([(bounds.lamin + bounds.lamax) / 2, (bounds.lomin + bounds.lomax) / 2]);
   }, [bounds, onViewportCenter]);
-  const [webglFailed, setWebglFailed] = useState(false);
-  const handleWebglUnavailable = useCallback(() => setWebglFailed(true), []);
+  // Bounds the camera reports are widened and snapped before they become a request.
+  const handleVisible = useCallback((visible: Bounds) => handleBounds(quantizeBounds(expandBounds(visible), 0.25), visible), [handleBounds]);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
+  const handleMapUnavailable = useCallback(() => setMapUnavailable(true), []);
   const [locateRequest, setLocateRequest] = useState(0);
   const [fitRequest, setFitRequest] = useState(0);
   // Follow keeps the selected aircraft centred as it moves, like FR24's
@@ -1418,14 +1495,11 @@ export function FlightMap({
   // The filters narrow the map, never the aircraft the user is looking at.
   const visibleStates = useMemo(() => {
     const kept = filterAircraft(displayedLiveStates, filters);
-    const withSelected = selectedLive && !kept.includes(selectedLive) ? [...kept, selectedLive] : kept;
-    // WebGL draws every aircraft. Without WebGL the Leaflet canvas draws a
-    // density sample above MAX_DRAWN_AIRCRAFT; the selected, followed and
-    // emergency aircraft stay.
-    return webglFailed ? sampleByDensity(withSelected, MAX_DRAWN_AIRCRAFT, (item) => item === selectedLive || item.icao24 === followingIcao24 || Boolean(emergencyInfo(item))) : withSelected;
-  }, [displayedLiveStates, filters, followingIcao24, selectedLive, webglFailed]);
+    // Every aircraft is drawn: no density sampling (ADR 0009).
+    return selectedLive && !kept.includes(selectedLive) ? [...kept, selectedLive] : kept;
+  }, [displayedLiveStates, filters, selectedLive]);
   // A broad viewport can contain thousands of aircraft. Keep the detailed
-  // plane icons for normal views, then switch to a lightweight canvas layer so
+  // plane icons for normal views, then switch to the map's WebGL layer so
   // zooming out does not turn every aircraft into a DOM subtree.
   const denseTraffic = visibleStates.length > 750;
   // Trails come from successive live snapshots, so they cost no request and
@@ -1485,7 +1559,6 @@ export function FlightMap({
     onLiveCause?.(reportedCause);
   }, [onLiveCause, reportedCause]);
 
-  const locationIcon = useMemo(() => userLocationIcon(), []);
   const handleLocationFound = useCallback((location: UserLocation) => {
     setUserLocation(location);
     setLocationError(null);
@@ -1515,15 +1588,9 @@ export function FlightMap({
 
   return (
     <section className="map-surface" aria-label="Live flight map" inert={readingDetails && isMobile}>
-      <MapContainer ref={setMap} center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | <a href="https://opensky-network.org">OpenSky</a>, <a href="https://adsb.fi">adsb.fi</a>, <a href="https://adsb.lol">adsb.lol</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          className={theme === "dark" ? "map-tiles-dark" : "map-tiles-light"}
-          key={theme}
-          maxZoom={19}
-        />
-        <BoundsReporter onBounds={handleBounds} />
+      <MapCanvas theme={theme} initialView={initialView ? { center: [initialView.latitude, initialView.longitude], zoom: initialView.zoom } : undefined}
+        onUnavailable={handleMapUnavailable} onReady={setHandle}>
+        <BoundsReporter onBounds={handleVisible} />
         <MapViewClasses labelsEnabled={labelsEnabled} />
         <MapController
           airport={airport}
@@ -1534,31 +1601,20 @@ export function FlightMap({
           locateRequest={locateRequest}
           onLocationFound={handleLocationFound}
           onLocationError={handleLocationError}
+          onPrefetch={handleVisible}
         />
         <AircraftSelectionBridge aircraft={displayedLiveStates} onSelect={selectFlightAndCloseHover} />
         {onSelectAirport && <AirportPins airports={airports} activeIcao={airport?.icao ?? null} onSelect={onSelectAirport} />}
         {selectedFlight && selectedFlight.data_source !== "scheduled" && <SelectedTrack flight={selectedFlight} track={track} live={selectedLive} theme={theme} following={following} onRelease={releaseFollow} />}
-        {trailsEnabled && !denseTraffic && trails.map((trail) => trail.icao24 === selectedIcao24 ? null : (
-          <Polyline key={`trail-${trail.icao24}`} positions={trail.positions} interactive={false} pathOptions={{ color: trail.color, weight: 1.5, opacity: 0.5, lineCap: "round" }} />
-        ))}
+        {trailsEnabled && !denseTraffic && <Trails trails={trails.filter((trail) => trail.icao24 !== selectedIcao24)} />}
         <TrafficAircraft aircraft={visibleStates} selectedId={selectedIcao24} followedId={following ? followingIcao24 : null} previewId={previewFlight?.icao24}
-          labelsEnabled={labelsEnabled} dense={denseTraffic} webgl={!webglFailed} theme={theme} onSelect={selectFlightAndCloseHover} onWebglUnavailable={handleWebglUnavailable} hoverStore={hoverStore} />
-        {userLocation && (
-          <>
-            <Circle
-              center={[userLocation.latitude, userLocation.longitude]}
-              radius={Math.max(userLocation.accuracy, 20)}
-              pathOptions={{ color: MAP_COLORS[theme].accent, weight: 1, opacity: 0.5, fillColor: MAP_COLORS[theme].accent, fillOpacity: 0.08 }}
-            />
-            <Marker position={[userLocation.latitude, userLocation.longitude]} icon={locationIcon}>
-              <Tooltip direction="top" offset={[0, -10]} opacity={1} className="aircraft-tooltip">
-                <strong>Your location</strong>
-                <span className="mono">Accuracy ±{Math.round(userLocation.accuracy)} m</span>
-              </Tooltip>
-            </Marker>
-          </>
-        )}
-      </MapContainer>
+          labelsEnabled={labelsEnabled} dense={denseTraffic} theme={theme} onSelect={selectFlightAndCloseHover} hoverStore={hoverStore} />
+        {userLocation && <UserLocationMarker location={userLocation} theme={theme} />}
+      </MapCanvas>
+      {mapUnavailable && <div className="map-unavailable" role="alert">
+        <strong>The map could not start</strong>
+        <span>This browser could not create a WebGL context. The list of aircraft in view still works once a flight or airport is chosen from the search.</span>
+      </div>}
 
       <AircraftHoverPreview store={hoverStore} />
 

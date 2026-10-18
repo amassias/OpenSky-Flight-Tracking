@@ -49,7 +49,7 @@ test("groups nearby airports and expands the group to selectable markers", async
   const cluster = page.getByTitle("2 airports · Zoom to explore", { exact: true });
   await expect(cluster).toBeVisible();
   await cluster.click();
-  await expect(page.locator(".leaflet-zoom-anim")).toHaveCount(0);
+  await expect(page.locator(".flight-map.map-camera-moving")).toHaveCount(0);
   await cluster.click();
   await expect(page.getByTitle("Paris Orly · Arrivals & departures", { exact: true })).toBeVisible();
   await expect(page.getByTitle("Second test airport · Arrivals & departures", { exact: true })).toBeVisible();

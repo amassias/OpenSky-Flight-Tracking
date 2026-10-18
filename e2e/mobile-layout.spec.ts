@@ -27,7 +27,7 @@ test("map controls clear the top bar and the attribution with a flight open", as
   await expect(page.getByRole("button", { name: "Show full route" })).toBeVisible();
 
   const topbar = await box(page, ".topbar");
-  const attribution = await box(page, ".leaflet-control-attribution");
+  const attribution = await box(page, ".maplibregl-ctrl-attrib");
   const groups = await page.locator(".map-controls > *:visible").evaluateAll((elements) => elements.map((element) => {
     const rect = element.getBoundingClientRect();
     return { top: rect.top, bottom: rect.bottom };

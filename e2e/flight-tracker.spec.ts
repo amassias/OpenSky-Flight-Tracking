@@ -88,14 +88,14 @@ test("closing a shared flight keeps it closed", async ({ page }) => {
 test("search suggestions dismiss when leaving the field", async ({ page }) => {
   await page.getByRole("combobox", { name: "Search flights and airports" }).click();
   await expect(page.getByRole("listbox")).toBeVisible();
-  await page.locator(".leaflet-map").click({ position: { x: 10, y: 300 } });
+  await page.locator(".flight-map").click({ position: { x: 10, y: 300 } });
   await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 
 test("resolves origin and destination for a selected live aircraft", async ({ page }) => {
-  // Click the Leaflet hit target a user interacts with. The inner plane SVG is
+  // Click the hit target a user interacts with. The inner plane SVG is
   // rotated and can move under WebKit while a progressive sector settles.
-  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  await page.locator(".aircraft-marker-wrap").first().dispatchEvent("click");
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await expect(page.getByText("Incheon", { exact: true })).toBeVisible();
   await expect(page.getByText("F-HABC", { exact: true }).first()).toBeVisible();
@@ -108,7 +108,7 @@ test("resolves origin and destination for a selected live aircraft", async ({ pa
 });
 
 test("draws the trace from its start up to the selected aircraft", async ({ page }) => {
-  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  await page.locator(".aircraft-marker-wrap").first().dispatchEvent("click");
   await expect(page.locator(".route-endpoint-start")).toHaveCount(1);
   await expect(page.locator(".aircraft-marker.active")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Show full route" })).toBeEnabled();
@@ -122,14 +122,15 @@ test("selecting an aircraft moves the map once and then leaves it alone", async 
     states: [{ icao24: "39abcd", callsign: "AFR123", latitude: 47.6, longitude: 5.2, baro_altitude: 8400, velocity: 220, true_track: 72, on_ground: false }],
   } }));
   await page.goto("/?at=47.6,8.5,7");
-  const pane = page.locator(".leaflet-map-pane");
+  // The settled camera is reported in the shared link.
+  const centre = () => new URL(page.url()).searchParams.get("at");
   await page.getByRole("complementary", { name: "Traffic" }).getByRole("button", { name: /AFR123/ }).click();
   await expect(page.getByRole("complementary", { name: "Selected flight details" })).toBeVisible();
   await page.waitForTimeout(1_400);
-  const settled = await pane.evaluate((element) => (element as HTMLElement).style.transform);
+  const settled = centre();
   // The route arrives after the aircraft is framed; it must not trigger a second flight.
   await page.waitForTimeout(1_500);
-  expect(await pane.evaluate((element) => (element as HTMLElement).style.transform)).toBe(settled);
+  expect(centre()).toBe(settled);
 });
 
 test("keeps airport results populated from the live map snapshot when history is unavailable", async ({ page }) => {
@@ -146,7 +147,7 @@ test("shows a location marker after the user grants geolocation", async ({ page,
   await context.setGeolocation({ latitude: 49.2, longitude: 2.6, accuracy: 35 });
   await page.getByRole("button", { name: "Locate me" }).click();
   await expect(page.locator(".user-location-marker")).toHaveCount(1);
-  await expect(page.locator(".leaflet-marker-icon").filter({ has: page.locator(".user-location-marker") })).toHaveCount(1);
+  await expect(page.locator(".maplibregl-marker").filter({ has: page.locator(".user-location-marker") })).toHaveCount(1);
 
   // A selected aircraft then says where it is from the visitor.
   const reopen = page.getByRole("button", { name: "Open traffic panel" });
@@ -157,14 +158,14 @@ test("shows a location marker after the user grants geolocation", async ({ page,
 
 test("follows the selected aircraft until the map is dragged", async ({ page, isMobile }) => {
   test.skip(isMobile, "Dragging the map is covered on desktop pointers.");
-  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  await page.locator(".aircraft-marker-wrap").first().dispatchEvent("click");
   const follow = page.getByRole("button", { name: "Follow selected aircraft" });
   await follow.click();
   await expect(page.getByRole("button", { name: "Stop following aircraft" })).toHaveAttribute("aria-pressed", "true");
-  // Let the follow fly-in settle; Leaflet ignores drags during a zoom animation.
-  await expect(page.locator(".leaflet-zoom-anim")).toHaveCount(0);
+  // Let the follow fly-in settle before grabbing the map.
+  await expect(page.locator(".flight-map.map-camera-moving")).toHaveCount(0);
   await page.waitForTimeout(1_000);
-  const map = page.locator(".leaflet-container");
+  const map = page.locator(".flight-map");
   const box = (await map.boundingBox())!;
   // Grab open map away from the centred aircraft, clear of the panels.
   const start = { x: box.x + box.width / 2 + 100, y: box.y + 110 };
@@ -230,6 +231,9 @@ test("recovers from an airport search error without losing the query", async ({ 
 test("one search field serves aircraft and airports, reachable from the keyboard", async ({ page, isMobile }) => {
   test.skip(isMobile, "Keyboard shortcuts are a desktop affordance.");
   const search = page.getByRole("combobox", { name: "Search flights and airports" });
+  // The shortcut listener is installed once the app has rendered; wait for that, not just for the page load.
+  await expect(search).toBeVisible();
+  await expect(page.locator(".map-status")).toBeVisible();
   await page.keyboard.press("ControlOrMeta+k");
   await expect(search).toBeFocused();
   await search.fill("afr");
@@ -257,7 +261,7 @@ test("filters hide aircraft on the map and say how many", async ({ page }) => {
 });
 
 test("switching units updates the readouts", async ({ page }) => {
-  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  await page.locator(".aircraft-marker-wrap").first().dispatchEvent("click");
   const readouts = page.getByLabel("Last reported flight readouts");
   await expect(readouts).toContainText("kt");
   await page.getByRole("button", { name: /^Display/ }).click();
@@ -291,7 +295,7 @@ test("replaces the flight drawer cleanly when another aircraft is selected", asy
 
 
 test("shows who owned and operated the selected airframe, and recent flights on request", async ({ page }) => {
-  await page.locator(".leaflet-marker-icon").filter({ has: page.locator(".aircraft-marker") }).first().dispatchEvent("click");
+  await page.locator(".aircraft-marker-wrap").first().dispatchEvent("click");
   const drawer = page.getByRole("complementary", { name: "Selected flight details" });
   await expect(drawer.getByText("Airframe history")).toBeVisible();
   await drawer.locator("summary").filter({ hasText: "Airframe history" }).click();

@@ -18,4 +18,4 @@ icon. Font Awesome Free SVG icons are distributed under
 original attribution comment.
 
 The SVG files are kept here as the source assets. The map inlines their path
-geometry so Leaflet markers inherit the current theme and remain lightweight.
+geometry so map markers inherit the current theme and remain lightweight.
