@@ -233,7 +233,9 @@ input { caret-color: var(--accent); }
 .status-text-airborne { color: var(--ok); }
 .status-text-on_ground { color: var(--muted); }
 .status-text-completed { color: var(--muted); }
-.flight-meta-divider { width: 1px; height: 10px; flex: 0 0 auto; margin: 0 2px; background: var(--line-strong); }
+.flight-meta > * + *:not(.flight-measures)::before { content: "·"; margin-right: 5px; }
+.flight-measures { display: grid; flex: 0 0 auto; grid-template-columns: 6.5ch 12px 6ch; align-items: center; gap: 4px; margin-left: auto; text-align: right; }
+.flight-speed { text-align: right; }
 .flight-plane { margin-left: 8px; color: var(--quiet); transform: rotate(-45deg); transition: color .2s var(--ease-out), transform .3s var(--ease-out); }
 .flight-card:hover .flight-plane { transform: rotate(-45deg) translate(2px, 0); }
 .flight-card.selected .flight-plane { color: var(--accent); }
@@ -314,7 +316,8 @@ input { caret-color: var(--accent); }
 .flight-card.is-emergency { background: color-mix(in srgb, var(--danger) 9%, transparent); }
 .flight-emergency { display: inline-flex; align-items: center; gap: 4px; color: var(--danger); font-weight: 600; }
 .airline .airframe { color: var(--quiet); }
-.flight-altitude { display: inline-flex; align-items: center; gap: 3px; }
+.flight-altitude { text-align: right; }
+.flight-trend { display: inline-flex; align-items: center; justify-content: center; }
 .trend { flex: 0 0 auto; }
 .trend-up { color: var(--ok); }
 .trend-down { color: var(--accent); }

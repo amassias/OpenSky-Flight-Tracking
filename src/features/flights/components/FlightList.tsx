@@ -74,19 +74,16 @@ const FlightCard = memo(function FlightCard({ flight, selected, onSelect, onPrev
           {emergency
             ? <span className="flight-emergency"><TriangleAlert size={11} aria-hidden="true" /> {emergency.code} · {emergency.label}</span>
             : <span className={`flight-status-label status-text-${statusKey}`}>{status}</span>}
-          {now != null && <span className={`flight-position-age freshness-${freshness}`} title="Age of the last received coordinates; Airborne describes the last reported state">{positionAgeLabel(age)}</span>}
-          {time != null && <>
-            <span>·</span>
-            <span>{formatTime(time)} UTC</span>
-          </>}
-          <span className="flight-meta-divider" aria-hidden="true" />
-          <span className="flight-altitude">
-            {formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}
-            {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-label="Climbing" />}
-            {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-label="Descending" />}
+          {now != null && (age == null || age > 60) && <span className={`flight-position-age freshness-${freshness}`} title="Age of the last received coordinates; Airborne describes the last reported state">{positionAgeLabel(age)}</span>}
+          {time != null && <span className="flight-time">{formatTime(time)} UTC</span>}
+          <span className="flight-measures">
+            <span className="flight-altitude">{formatAltitude(flight.baro_altitude ?? flight.geo_altitude)}</span>
+            <span className="flight-trend">
+              {trend === "climbing" && <TrendUp size={11} className="trend trend-up" aria-label="Climbing" />}
+              {trend === "descending" && <TrendDown size={11} className="trend trend-down" aria-label="Descending" />}
+            </span>
+            <span className="flight-speed">{formatSpeed(flight.velocity)}</span>
           </span>
-          <span>·</span>
-          <span>{formatSpeed(flight.velocity)}</span>
         </span>
       </span>
       <Plane className="flight-plane" size={17} aria-hidden="true" />
