@@ -20,6 +20,8 @@ interface AircraftGlLayerProps {
   previewId: string | null;
   /** The selected aircraft keeps its detailed DOM marker. */
   excludeId: string | null;
+  /** Focus-labelled aircraft keep their detailed DOM markers too. */
+  excludeIds?: ReadonlySet<string>;
   onSelect: (flight: Flight) => void;
   onHover: (aircraft: LiveAircraft, pointer: { x: number; y: number }) => void;
   onLeave: (icao24: string) => void;
@@ -35,18 +37,18 @@ interface AircraftGlLayerProps {
  * `setData`, which measured cheaper than incremental updates when every
  * aircraft moves.
  */
-export function AircraftGlLayer({ aircraft, theme, previewId, excludeId, onSelect, onHover, onLeave, onUnavailable }: AircraftGlLayerProps) {
+export function AircraftGlLayer({ aircraft, theme, previewId, excludeId, excludeIds, onSelect, onHover, onLeave, onUnavailable }: AircraftGlLayerProps) {
   const map = useMap();
   const frames = useRef(new AircraftFrames());
-  const live = useRef({ aircraft, theme, previewId, excludeId, onSelect, onHover, onLeave, onUnavailable });
-  live.current = { aircraft, theme, previewId, excludeId, onSelect, onHover, onLeave, onUnavailable };
+  const live = useRef({ aircraft, theme, previewId, excludeId, excludeIds, onSelect, onHover, onLeave, onUnavailable });
+  live.current = { aircraft, theme, previewId, excludeId, excludeIds, onSelect, onHover, onLeave, onUnavailable };
   const refresh = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     frames.current.setAircraft(aircraft);
     refresh.current?.();
   }, [aircraft]);
-  useEffect(() => { refresh.current?.(); }, [theme, previewId, excludeId]);
+  useEffect(() => { refresh.current?.(); }, [theme, previewId, excludeId, excludeIds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,8 +129,8 @@ export function AircraftGlLayer({ aircraft, theme, previewId, excludeId, onSelec
       let source: GeoJSONSource | null = null;
       const update = (now = Date.now() / 1000) => {
         if (!source) return;
-        const { theme: currentTheme, previewId: preview, excludeId: excluded } = live.current;
-        drawn = frames.current.frame(now, { theme: currentTheme, previewId: preview, excludeId: excluded });
+        const { theme: currentTheme, previewId: preview, excludeId: excluded, excludeIds: excludedMore } = live.current;
+        drawn = frames.current.frame(now, { theme: currentTheme, previewId: preview, excludeId: excluded, excludeIds: excludedMore });
         const features: GeoJSON.Feature[] = [];
         const shown: DrawnAircraft[] = [];
         for (const item of drawn) {
