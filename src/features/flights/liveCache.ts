@@ -1,3 +1,4 @@
+import { longitudeInRange } from "../../shared/geoBounds";
 import type { Bounds, LiveAircraft } from "../../shared/types";
 
 /**
@@ -25,8 +26,7 @@ export function isAircraftInBounds(aircraft: LiveAircraft, bounds: Bounds): bool
     && aircraft.longitude != null
     && bounds.lamin <= aircraft.latitude
     && aircraft.latitude <= bounds.lamax
-    && bounds.lomin <= aircraft.longitude
-    && aircraft.longitude <= bounds.lomax;
+    && longitudeInRange(aircraft.longitude, bounds.lomin, bounds.lomax);
 }
 
 export function pruneExpiredViewportCache(cache: Map<string, ViewportCacheEntry>, staleBefore: number): void {

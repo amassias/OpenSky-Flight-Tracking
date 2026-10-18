@@ -1,3 +1,4 @@
+import { longitudeRange } from "./geoBounds";
 import { aircraftModel } from "./aircraftIdentity";
 import { AIRLINE_ICAO_BY_IATA } from "./airlineCodes";
 import type { Bounds, Flight, FlightStatus, LiveAircraft, MapView, TrackPoint, TrackResponse } from "./types";
@@ -130,8 +131,7 @@ export function quantizeBounds(bounds: Bounds, step = 0.1): Bounds {
   return {
     lamin: round(Math.max(-90, floor(bounds.lamin))),
     lamax: round(Math.min(90, ceil(bounds.lamax))),
-    lomin: round(Math.max(-180, floor(bounds.lomin))),
-    lomax: round(Math.min(180, ceil(bounds.lomax))),
+    ...longitudeRange(round(floor(bounds.lomin)), round(ceil(bounds.lomax))),
   };
 }
 
@@ -145,8 +145,7 @@ export function expandBounds(bounds: Bounds, ratio = 0.18): Bounds {
   return {
     lamin: Math.max(-90, bounds.lamin - latPadding),
     lamax: Math.min(90, bounds.lamax + latPadding),
-    lomin: Math.max(-180, bounds.lomin - lonPadding),
-    lomax: Math.min(180, bounds.lomax + lonPadding),
+    ...longitudeRange(bounds.lomin - lonPadding, bounds.lomax + lonPadding),
   };
 }
 
@@ -157,6 +156,14 @@ export function expandBounds(bounds: Bounds, ratio = 0.18): Bounds {
  * the user can keep moving while the next viewport replaces the queue.
  */
 export function splitBoundsIntoTiles(bounds: Bounds, maxTiles = 24): Bounds[] {
+  // Providers require ordered boxes inside [-180, 180]. Split a crossing
+  // before tiling, while the map and its cache keep the continuous interval.
+  if (bounds.lomax > 180) {
+    const first = splitBoundsIntoTiles({ ...bounds, lomax: 180 }, Math.ceil(maxTiles / 2));
+    const second = splitBoundsIntoTiles({ ...bounds, lomin: -180, lomax: bounds.lomax - 360 }, Math.ceil(maxTiles / 2));
+    return first.flatMap((tile, index) => [tile, ...(second[index] ? [second[index]] : [])])
+      .concat(second.slice(first.length)).slice(0, maxTiles);
+  }
   const centerLat = (bounds.lamin + bounds.lamax) / 2;
   const latitudeNm = Math.max(1, (bounds.lamax - bounds.lamin) * 60);
   const longitudeNm = Math.max(1, (bounds.lomax - bounds.lomin) * 60 * Math.max(0.15, Math.cos(centerLat * Math.PI / 180)));
@@ -312,10 +319,12 @@ export function routeProgress(
 
 /** `?at=lat,lon,zoom`, the shareable map position when no airport or flight is open. */
 export function parseMapView(value: string | null): MapView | null {
-  const [latitude, longitude, zoom] = (value ?? "").split(",").map(Number);
+  const parts = (value ?? "").split(",");
+  if (parts.length !== 3 || parts.some(part => !part.trim())) return null;
+  const [latitude, longitude, zoom] = parts.map(Number);
   if (![latitude, longitude, zoom].every(Number.isFinite)) return null;
-  if (Math.abs(latitude) > 85 || Math.abs(longitude) > 180 || zoom < 2 || zoom > 18) return null;
-  return { latitude, longitude, zoom: Math.round(zoom) };
+  if (Math.abs(latitude) > 85.051129 || Math.abs(longitude) > 180 || zoom < 1 || zoom > 19) return null;
+  return { latitude, longitude, zoom };
 }
 
 

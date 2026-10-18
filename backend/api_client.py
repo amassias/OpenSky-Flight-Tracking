@@ -742,8 +742,19 @@ class OpenSkyClient:
         now_sec = int(now_sec / 1000) if now_sec > 10_000_000_000 else int(now_sec)
         aircraft_by_hex: Dict[str, Dict[str, Any]] = {}
         for payload in payloads:
+            raw_time = payload.get("now")
+            tile_time = float(raw_time) if isinstance(raw_time, (int, float)) else now_sec
+            if tile_time > 10_000_000_000:
+                tile_time /= 1000
+            offset = max(0, now_sec - tile_time)
             for item in payload.get("ac") or []:
                 if isinstance(item, dict) and item.get("hex"):
+                    # `seen` is relative to this tile's clock, not the newest
+                    # tile. Align ages before comparing or converting fixes.
+                    item = {**item, **{
+                        field: item[field] + offset for field in ("seen", "seen_pos")
+                        if isinstance(item.get(field), (int, float))
+                    }}
                     key = str(item["hex"]).lower()
                     known = aircraft_by_hex.get(key)
                     # Overlapping cells can report the same aircraft: keep the freshest fix.

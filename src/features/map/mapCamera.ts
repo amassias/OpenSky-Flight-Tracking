@@ -1,3 +1,4 @@
+import { longitudeRange } from "../../shared/geoBounds";
 import type { Bounds } from "../../shared/types";
 
 /**
@@ -32,9 +33,8 @@ export function insetOffset(insets: Insets): [number, number] {
 export function visibleBoundsFromEdges(edges: { south: number; north: number; west: number; east: number }): Bounds {
   return {
     lamin: Math.max(-90, edges.south),
-    lomin: Math.max(-180, edges.west),
+    ...longitudeRange(edges.west, edges.east),
     lamax: Math.min(90, edges.north),
-    lomax: Math.min(180, edges.east),
   };
 }
 

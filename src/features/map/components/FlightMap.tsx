@@ -1,3 +1,4 @@
+import { longitudeInRange } from "../../../shared/geoBounds";
 import { airlineBadge, airlineLogo, type AirlineBadge } from "../../../shared/aircraftIdentity";
 import { aircraftGlyph } from "../aircraftGlyph";
 import { AircraftHoverStore } from "../aircraftHover";
@@ -367,8 +368,7 @@ function TrafficAircraft({ aircraft, selectedId, followedId, previewId, labelsEn
 /** Whether a position is inside the camera's bounds, which may reach past +-180 with world copies. */
 function containsPoint(bounds: LngLatBounds, latitude: number, longitude: number): boolean {
   if (latitude < bounds.getSouth() || latitude > bounds.getNorth()) return false;
-  const wrapped = [longitude, longitude + 360, longitude - 360];
-  return wrapped.some((value) => value >= bounds.getWest() && value <= bounds.getEast());
+  return longitudeInRange(longitude, bounds.getWest(), bounds.getEast());
 }
 
 interface BoundsReporterProps { onBounds: (visible: Bounds) => void }
@@ -1153,7 +1153,7 @@ export function FlightMap({
     setBounds((current) => (boundsEqual(current, next) ? current : next));
   }, []);
   useEffect(() => {
-    if (bounds) onViewportCenter?.([(bounds.lamin + bounds.lamax) / 2, (bounds.lomin + bounds.lomax) / 2]);
+    if (bounds) onViewportCenter?.([(bounds.lamin + bounds.lamax) / 2, ((bounds.lomin + bounds.lomax) / 2 + 180) % 360 - 180]);
   }, [bounds, onViewportCenter]);
   // Bounds the camera reports are widened and snapped before they become a request.
   const handleVisible = useCallback((visible: Bounds) => handleBounds(quantizeBounds(expandBounds(visible), 0.25), visible), [handleBounds]);
@@ -1299,6 +1299,7 @@ export function FlightMap({
     const coveredTiles: Bounds[] = [];
     let loadedTiles = 0;
     let failedTiles = 0;
+    let degradedTiles = 0;
     let latestTime: number | null = cachedViewport?.time ?? null;
     let provider: string | undefined = cachedViewport?.provider;
     let cacheTimestamp: number | null = cachedViewport?.cachedAt ?? null;
@@ -1321,7 +1322,7 @@ export function FlightMap({
       refresh_after_seconds: refreshAfterSeconds,
       coverage_tiles: loadedTiles,
       coverage_complete: loadedTiles >= totalViewportTiles && failedTiles === 0,
-      degraded: failedTiles > 0,
+      degraded: failedTiles > 0 || degradedTiles > 0,
       notice: failedTiles > 0 ? "Some live sectors are delayed. Loaded sectors remain visible." : undefined,
     });
 
@@ -1402,6 +1403,10 @@ export function FlightMap({
           }
         } else {
           response = await localCell(tile);
+          if (response.degraded || (response.time != null && Date.now() / 1000 - response.time > 180)) {
+            degradedTiles += 1;
+            cause = causeFromReason(response.degraded_reason);
+          }
         }
         if (controller.signal.aborted) return;
         lastAnswerRef.current = { time: response.time, receivedAt: Date.now() };
@@ -1446,10 +1451,7 @@ export function FlightMap({
       for (const [icao24, aircraft] of retained) {
         if (freshAircraft.has(icao24)) continue;
         if (aircraft.latitude == null || aircraft.longitude == null) continue;
-        const insideCoveredTile = coveredTiles.some((tile) => (
-          tile.lamin <= aircraft.latitude! && aircraft.latitude! <= tile.lamax
-          && tile.lomin <= aircraft.longitude! && aircraft.longitude! <= tile.lomax
-        ));
+        const insideCoveredTile = coveredTiles.some((tile) => isAircraftInBounds(aircraft, tile));
         if (insideCoveredTile) {
           retained.delete(icao24);
           aircraftCacheRef.current.delete(icao24);
@@ -1457,7 +1459,7 @@ export function FlightMap({
         }
       }
       saveViewportCache();
-      if (!wideView && failedTiles === 0) cause = null;
+      if (!wideView && failedTiles === 0 && degradedTiles === 0) cause = null;
       degradationRef.current = { cause, reducedCoverage };
       if (failedTiles === 0 && loadedTiles > 0 && !cause) {
         coverageRef.current = { bounds, until: Date.now() + Math.max(minRefreshSeconds, refreshAfterSeconds) * 1_000 };

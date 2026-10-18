@@ -297,6 +297,7 @@ export interface Bounds {
   lamin: number;
   lomin: number;
   lamax: number;
+  /** Continuous east edge; may exceed 180 for a date-line crossing. Provider requests split it first. */
   lomax: number;
 }
 

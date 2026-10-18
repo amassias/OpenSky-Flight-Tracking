@@ -917,3 +917,23 @@ def test_each_aircraft_carries_the_label_of_the_feed_that_gave_its_fix(monkeypat
 
     assert result["provider"] == "adsb.lol"
     assert result["states"][0][18]["feed"] == "adsb.lol"
+
+
+def test_viewport_merge_keeps_absolute_fix_times_across_differently_aged_provider_tiles(monkeypatch):
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    now = 1_800_000_000
+    client = OpenSkyClient()
+    old = {"now": (now - 60) * 1000, "ac": [
+        {"hex": "abc001", "lat": 48.8, "lon": 2.1, "seen": 0, "seen_pos": 0},
+        {"hex": "abc002", "lat": 48.8, "lon": 2.2, "seen": 0, "seen_pos": 0},
+    ]}
+    fresh = {"now": now * 1000, "ac": [
+        {"hex": "abc001", "lat": 48.8, "lon": 2.3, "seen": 5, "seen_pos": 5},
+    ]}
+    client.session.get = Mock(side_effect=[_json_response(old) for _ in range(5)] + [_json_response(fresh)])
+    with patch("backend.api_client.time.time", return_value=now):
+        result = client.get_live_fallback_states(bbox=(40.0, -5.0, 55.0, 10.0))
+    rows = {row[0]: row for row in result["states"]}
+    assert rows["abc001"][3] == now - 5
+    assert rows["abc001"][5] == 2.3
+    assert rows["abc002"][3] == now - 60

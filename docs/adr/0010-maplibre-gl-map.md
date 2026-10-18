@@ -24,3 +24,14 @@ Two engines meant two cameras to keep in step (a MapLibre canvas mirrored the Le
 - Wheel zoom is gentler than Leaflet's (one wheel notch is a fraction of a level, not several), and drag has inertia. Browser tests that used one large wheel movement to jump several levels now use the zoom buttons.
 - Everything the axe audit saw only in the app chrome now includes the map: the markers carry a name, and MapLibre's own controls are limited to the attribution.
 - A pixel-exact comparison with Leaflet was not made: label placement, trace widths and tile greys were compared by eye on screenshots in both themes.
+
+## Date-line correction (2026-10-18)
+
+Map camera bounds use a continuous longitude interval: west is canonical and
+east may exceed 180 when the view crosses the date line. Membership wraps each
+aircraft longitude into that interval; guard bands and quantisation preserve
+it. Only provider requests split the interval into ordered boxes inside
+[-180, 180]. This keeps both sides of the Pacific visible without sending an
+invalid bounding box or substituting worldwide traffic for the visible view.
+Shared links retain fractional zoom and accept the full declared 1–19 range;
+MapLibre can further constrain the lowest zoom to the height of its viewport.

@@ -158,6 +158,13 @@ describe("routeProgress", () => {
 });
 
 describe("parseMapView", () => {
+  it("preserves MapLibre's fractional zoom and both supported zoom limits in shared links", () => {
+    expect(parseMapView("48.85,2.35,8.25")?.zoom).toBe(8.25);
+    expect(parseMapView("0,0,1")?.zoom).toBe(1);
+    expect(parseMapView("0,0,19")?.zoom).toBe(19);
+    expect(parseMapView(",,10")).toBeNull();
+  });
+
   it("reads a shared lat,lon,zoom position", () => {
     expect(parseMapView("51.470,-0.454,10")).toEqual({ latitude: 51.47, longitude: -0.454, zoom: 10 });
   });
