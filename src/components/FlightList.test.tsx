@@ -114,6 +114,7 @@ describe("FlightList exploration and recovery", () => {
 
 it("shows fix age and distinguishes an old fix from a recent contact", () => {
   const now = Math.floor(Date.now() / 1000);
+  vi.spyOn(Date, "now").mockReturnValue(now * 1000);
   render(<FlightList variant="live" flights={[
     {icao24:"new001",callsign:"NEW1",on_ground:false,time_position:now-4,last_contact:now},
     {icao24:"old001",callsign:"OLD1",on_ground:false,time_position:now-125,last_contact:now},

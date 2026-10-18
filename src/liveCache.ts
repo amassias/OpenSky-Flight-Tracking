@@ -50,3 +50,16 @@ export function writeViewportCache(cache: Map<string, ViewportCacheEntry>, key: 
     cache.delete(oldestKey);
   }
 }
+
+/** Preserve only stable airframe facts for the same hex, never old flight or position data. */
+export function preserveAirframeAppearance(incoming: LiveAircraft, known?: LiveAircraft): LiveAircraft {
+  if (!known || known.icao24 !== incoming.icao24) return incoming;
+  return {
+    ...incoming,
+    aircraft_type: incoming.aircraft_type || known.aircraft_type,
+    aircraft_description: incoming.aircraft_description || known.aircraft_description,
+    registration: incoming.registration || known.registration,
+    category: incoming.category ?? known.category,
+    aircraft_category: incoming.aircraft_category ?? known.aircraft_category,
+  };
+}

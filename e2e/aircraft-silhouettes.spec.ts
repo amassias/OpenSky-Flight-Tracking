@@ -84,3 +84,37 @@ test('retains one detailed selected model among 900 canvas aircraft', async ({ p
   await expect(page.locator('.aircraft-marker')).toHaveCount(1);
   await expect(page.locator('.aircraft-marker[data-aircraft-model="a320"]')).toHaveCount(1);
 });
+
+test('preserves silhouettes through dense zoom and a less detailed feed', async ({ page }) => {
+  let wide = false;
+  await mockFeed(page);
+  await page.route('**/api/live-flights**', route => {
+    const known = aircraft.map(({ aircraft_type: type, ...item }) => wide ? item : { ...item, aircraft_type: type });
+    const extra = wide ? Array.from({ length: 1000 }, (_, i) => ({ ...aircraft[0], icao24: (0xbb0000 + i).toString(16), latitude: 47.8 + (i % 32) * .045, longitude: 1 + Math.floor(i / 32) * .075 })) : [];
+    return route.fulfill({ json: { time: now, states: [...known, ...extra], count: known.length + extra.length } });
+  });
+  await page.goto('/?at=48.46,2.2,10');
+  await expect(page.locator('[data-icao24="aa0001"]')).toHaveAttribute('data-aircraft-model', 'a320');
+  await page.getByRole('button', { name: 'Hide panels', exact: true }).click();
+  wide = true;
+  for (const zoom of [9, 8, 7]) {
+    await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe(String(zoom));
+  }
+  const canvas = page.locator('canvas[data-aircraft-renderer="silhouettes"]');
+  await expect(canvas).toHaveCount(1);
+  await expect.poll(() => canvas.evaluate(el => {
+    const canvas = el as HTMLCanvasElement;
+    const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let painted = 0;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) painted++;
+    return painted;
+  })).toBeGreaterThan(500);
+  for (const zoom of [8, 9, 10]) {
+    await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe(String(zoom));
+  }
+  const restored = page.locator('[data-icao24="aa0001"]');
+  await expect(restored).toHaveAttribute('data-aircraft-model', 'a320');
+  expect(await restored.locator('use').first().evaluate(el => (el as SVGGraphicsElement).getBBox().width)).toBeGreaterThan(20);
+});

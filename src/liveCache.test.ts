@@ -47,3 +47,15 @@ describe("live viewport cache", () => {
     expect(cache.has(`viewport-${MAX_VIEWPORT_CACHE_ENTRIES}`)).toBe(true);
   });
 });
+
+describe("stable aircraft appearance", () => {
+  it("keeps known airframe metadata when a wider feed omits it, without retaining old telemetry or flight identity", async () => {
+    const { preserveAirframeAppearance } = await import("./liveCache");
+    const known = { ...aircraft("abc123"), aircraft_type: "A320", registration: "F-TEST", aircraft_description: "AIRBUS A320", callsign: "AFR123", airline_code: "AFR", baro_altitude: 10000 };
+    const incoming = { ...aircraft("abc123", 50, 4), callsign: "EZY456", baro_altitude: null };
+    expect(preserveAirframeAppearance(incoming, known)).toMatchObject({ aircraft_type: "A320", registration: "F-TEST", callsign: "EZY456", latitude: 50, baro_altitude: null });
+    expect(preserveAirframeAppearance(incoming, known).airline_code).toBeUndefined();
+    expect(preserveAirframeAppearance({ ...incoming, aircraft_type: "B738" }, known).aircraft_type).toBe("B738");
+    expect(preserveAirframeAppearance(incoming, { ...known, icao24: "def456" }).aircraft_type).toBeUndefined();
+  });
+});

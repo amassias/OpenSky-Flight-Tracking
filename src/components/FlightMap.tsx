@@ -1,4 +1,5 @@
 import { airlineBadge, airlineLogo, type AirlineBadge } from "../aircraftIdentity";
+import { AircraftCanvasRenderer, type AircraftCanvasStyle } from "../aircraftCanvas";
 import { aircraftSilhouette } from "../aircraftSilhouette";
 import { AircraftHoverStore } from "../aircraftHover";
 import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
@@ -14,7 +15,7 @@ import { Minus, Plus, Route } from "./customIcons";
 import { groupAirports, nearestAirports } from "../airportMap";
 import { api } from "../api";
 import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapTheme, MapView, TrackPoint, TrackResponse } from "../types";
-import { isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
+import { preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { isPositionEstimated, projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
@@ -28,7 +29,7 @@ const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
 
-// Leaflet paths and canvas dots cannot read CSS custom properties, so the
+// Leaflet paths and canvas glyphs cannot read CSS custom properties, so the
 // theme tokens they need are mirrored here (see --aircraft / --accent).
 const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: string; halo: string; danger: string }> = {
   dark: { aircraft: "#f5f5f7", ground: "#8e8e93", accent: "#2997ff", halo: "#0b0b0c", danger: "#ff453a" },
@@ -101,12 +102,18 @@ function swapLogoForBadge(logo?: HTMLImageElement | null) {
   logo.remove();
 }
 
-function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", aircraftType, emergency = false, label, airborne = false }: PlaneIconOptions) {
+function aircraftGlyph(kind: AircraftIconKind, aircraftType?: string | null) {
   const model = aircraftSilhouette(aircraftType);
   kind = model?.kind ?? kind;
   const glyph = model
     ? `<svg viewBox="0 0 64 64" aria-hidden="true"><use href="${model.symbol}"/>${model.rotor ? `<use href="${model.rotor.symbol}" class="aircraft-model-rotor" style="transform-origin:${model.rotor.cx}px ${model.rotor.cy}px"/>` : ""}</svg>`
     : `<svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg>`;
+  return { model, glyph, kind };
+}
+
+function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", aircraftType, emergency = false, label, airborne = false }: PlaneIconOptions) {
+  const { model, glyph, kind: resolvedKind } = aircraftGlyph(kind, aircraftType);
+  kind = resolvedKind;
   const labelHtml = label
     ? `<span class="aircraft-label label-level-${label.level ?? 3}">${label.logo ? `<img class="airline-logo" src="${escapeHtml(label.logo)}" alt="" width="20" height="20" referrerpolicy="no-referrer"${label.badge ? ` data-badge-text="${escapeHtml(label.badge.text)}" data-badge-color="${escapeHtml(label.badge.color)}"` : ""} />` : label.badge ? airlineBadgeHtml(label.badge) : ""}<b>${escapeHtml(label.primary)}</b><i>${escapeHtml(label.secondary)}</i></span>`
     : "";
@@ -230,6 +237,7 @@ interface AircraftMarkerProps {
   onHover?: (aircraft: LiveAircraft, pointer: { x: number; y: number }) => void;
   onLeave?: (icao24: string) => void;
   theme?: MapTheme;
+  renderer?: L.Renderer;
 }
 
 function areMarkersEqual(
@@ -347,6 +355,7 @@ function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense
   dense: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; hoverStore: AircraftHoverStore;
 }) {
   const map = useMap();
+  const canvasRenderer = useMemo(() => new AircraftCanvasRenderer(), []);
   const showHover = useCallback((item: LiveAircraft, pointer: { x: number; y: number }) => {
     const rect = map.getContainer().getBoundingClientRect();
     const point = { x: pointer.x - rect.left, y: pointer.y - rect.top };
@@ -381,24 +390,24 @@ function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense
     }), selectedId);
   }, [aircraft, level, map, selectedId, view]);
   return <>{aircraft.map(item => dense && item.icao24 !== selectedId
-    ? <AircraftDot key={item.icao24} aircraft={item} active={item.icao24 === previewId} theme={theme} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />
+    ? <AircraftCanvasMarker renderer={canvasRenderer} key={item.icao24} aircraft={item} active={item.icao24 === previewId} theme={theme} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />
     : <AircraftMarker key={item.icao24} aircraft={item} active={item.icao24 === selectedId || item.icao24 === previewId}
       selected={item.icao24 === selectedId} labelLevel={shown.has(item.icao24) ? level : 0} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}</>;
 }
 
-const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, onHover, onLeave, theme = "dark" }: AircraftMarkerProps) {
-  const dotRef = useRef<L.CircleMarker | null>(null);
+const AircraftCanvasMarker = memo(function AircraftCanvasMarker({ aircraft, active, onSelect, onHover, onLeave, renderer, theme = "dark" }: AircraftMarkerProps) {
+  const canvasMarkerRef = useRef<L.CircleMarker | null>(null);
   const position = useMemo<[number, number]>(() => [aircraft.latitude ?? 0, aircraft.longitude ?? 0], [aircraft.latitude, aircraft.longitude]);
   // Same encoding as the DOM markers: neutral ink, grey on the ground, blue when selected.
   const color = active ? MAP_COLORS[theme].accent : emergencyInfo(aircraft) ? MAP_COLORS[theme].danger : aircraft.on_ground ? MAP_COLORS[theme].ground : MAP_COLORS[theme].aircraft;
   const old = (positionAge(aircraft, Date.now() / 1000) ?? Infinity) > 60;
-  const pathOptions = useMemo(() => ({
-    color,
-    fillColor: color,
-    fillOpacity: old ? 0 : active ? 1 : 0.78,
-    opacity: old ? 0.55 : active ? 1 : 0.9,
-    weight: active ? 2 : 1,
-  }), [active, color, old]);
+  const glyph = aircraftGlyph(aircraftIconKind(aircraft), aircraft.aircraft_type);
+  const size = glyph.model ? (glyph.kind === "heavy" || glyph.kind === "glider" ? 27 : glyph.kind === "small" ? 21 : 25) : 20;
+  const pathOptions = useMemo<AircraftCanvasStyle>(() => ({
+    color, opacity: old ? 0.55 : 1, weight: 1,
+    aircraftGlyph: glyph.glyph, aircraftHeading: aircraft.true_track ?? 0,
+    aircraftSize: size, aircraftHollow: old,
+  }), [aircraft.true_track, color, glyph.glyph, old, size]);
   const aircraftRef = useRef(aircraft);
   aircraftRef.current = aircraft;
   const eventHandlers = useMemo(() => ({
@@ -416,11 +425,11 @@ const AircraftDot = memo(function AircraftDot({ aircraft, active, onSelect, onHo
       const nextOld = (positionAge(aircraftRef.current, now) ?? Infinity) > 60;
       if (nextOld === wasOld) return;
       wasOld = nextOld;
-      dotRef.current?.setStyle({ fillOpacity: nextOld ? 0 : active ? 1 : 0.78, opacity: nextOld ? 0.55 : active ? 1 : 0.9 });
+      canvasMarkerRef.current?.setStyle({ aircraftHollow: nextOld, opacity: nextOld ? 0.55 : 1 } as AircraftCanvasStyle);
     });
   }, [active, old]);
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <CircleMarker ref={dotRef} center={position} radius={active ? 5 : 3} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
+  return <CircleMarker ref={canvasMarkerRef} renderer={renderer} center={position} radius={size / 2 + 2} pathOptions={pathOptions} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
 interface BoundsReporterProps { onBounds: (bounds: Bounds, visible: Bounds) => void }
@@ -1244,7 +1253,9 @@ export function FlightMap({
 
     const rememberAircraft = (states: LiveAircraft[]) => {
       const seenAt = Date.now();
-      for (const aircraft of states) {
+      for (let index = 0; index < states.length; index++) {
+        const aircraft = preserveAirframeAppearance(states[index], aircraftCacheRef.current.get(states[index].icao24));
+        states[index] = aircraft;
         if (!aircraft.icao24) continue;
         aircraftCacheRef.current.set(aircraft.icao24, aircraft);
         aircraftCacheSeenAtRef.current.set(aircraft.icao24, seenAt);
@@ -1547,7 +1558,7 @@ export function FlightMap({
       <div className="map-overlay-stack">
       {!guideDismissed && <div className="map-data-guide" onAnimationEnd={(event) => { if (event.target === event.currentTarget.lastElementChild) setGuideDismissed(true); }}>
         <button type="button" className="map-data-guide-close" onClick={dismissGuide} aria-label="Dismiss map hints" title="Dismiss">×</button>
-        {denseTraffic ? <span>Dense view · dots show reported positions. Zoom in for aircraft and labels.</span> : !labelsEnabled ? <span>Labels are off · enable them in Display.</span> : <span>Zoom in for more aircraft labels.</span>}
+        {denseTraffic ? <span>Dense view · aircraft silhouettes show reported positions. Zoom in for labels.</span> : !labelsEnabled ? <span>Labels are off · enable them in Display.</span> : <span>Zoom in for more aircraft labels.</span>}
         <span>Outlined aircraft = estimated position · faded / hollow = fix older than 60s or age unknown.</span>
         <span className="map-data-guide-timer" aria-hidden="true" />
       </div>}
