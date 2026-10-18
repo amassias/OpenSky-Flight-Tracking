@@ -371,6 +371,7 @@ input { caret-color: var(--accent); }
 /* Bottom-left overlays stop short of the map-control column on the right. */
 .workspace { --controls-room: 56px; }
 .map-status { position: absolute; z-index: 500; left: var(--inset-left); bottom: var(--edge); display: flex; align-items: center; gap: 8px; min-height: 32px; max-width: min(520px, calc(100% - var(--inset-left) - var(--inset-right) - var(--controls-room))); padding: 6px 12px; color: var(--muted); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); box-shadow: var(--shadow-float); font-size: .8125rem; font-variant-numeric: tabular-nums; transition: left .3s var(--ease-out); }
+.map-hint { position: fixed; z-index: 520; left: var(--edge); bottom: 96px; display: flex; align-items: center; gap: 8px; max-width: min(360px, calc(100% - 2 * var(--edge))); padding: 4px 4px 4px 14px; color: var(--text); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-solid); box-shadow: var(--shadow-float); font-size: .875rem; }
 .map-status strong { flex: 0 0 auto; color: var(--text); font-weight: 600; }
 .map-status.paused strong, .map-status.offline strong { color: var(--warn); }
 .map-status-copy { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -623,6 +624,8 @@ input { caret-color: var(--accent); }
   .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .leaflet-bottom { bottom: 50%; }
   .app:not(.map-expanded) .workspace:is(.has-dock, .traffic-open) .location-status { bottom: calc(50% + 160px); }
   .map-altitude-legend { display: none; }
+  /* Bottom-left, clear of the controls and the Traffic button on the right. */
+  .map-hint { bottom: 40px; max-width: calc(100% - 150px); }
   .map-status { left: var(--edge); top: 48px; bottom: auto; max-width: calc(100% - var(--edge) * 2); }
   .emergency-banner { top: 128px; left: var(--edge); right: var(--edge); }
   .traffic-reopen { top: auto; bottom: 12px; right: 12px; }
