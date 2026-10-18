@@ -21,10 +21,11 @@ load_local_env()
 # Local feed (ADR 0008): one or two 250 NM cells, refreshed every 5 to 10 s.
 LOCAL_FEED_MAX_CELLS = 2
 # Vercel cannot connect to opensky-network.org (measured 18 Oct 2026), while GitHub
-# runners can. A scheduled workflow publishes the world here; see
+# runners can. A scheduled workflow publishes the world here (the full refs/heads/
+# path is needed because the branch name contains a slash); see
 # .github/workflows/global-snapshot.yml.
 PUBLISHED_SNAPSHOT_URL = (
-    "https://raw.githubusercontent.com/amassias/OpenSky-Flight-Tracking/data/global-snapshot/snapshot.json"
+    "https://raw.githubusercontent.com/amassias/OpenSky-Flight-Tracking/refs/heads/data/global-snapshot/snapshot.json"
 )
 # A published snapshot older than this is refused rather than shown as current.
 PUBLISHED_SNAPSHOT_MAX_AGE_SECONDS = 45 * 60

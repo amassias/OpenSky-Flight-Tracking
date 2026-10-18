@@ -804,7 +804,7 @@ def test_the_published_snapshot_is_used_on_vercel_without_any_configuration(monk
 
     client.get_global_states()
 
-    assert "raw.githubusercontent.com/amassias/OpenSky-Flight-Tracking/data/global-snapshot/" in client.session.get.call_args.args[0]
+    assert "raw.githubusercontent.com/amassias/OpenSky-Flight-Tracking/refs/heads/data/global-snapshot/" in client.session.get.call_args.args[0]
 
 
 def test_off_vercel_the_world_is_fetched_from_opensky_directly(monkeypatch):
