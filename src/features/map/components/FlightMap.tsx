@@ -1041,7 +1041,10 @@ interface ProgressiveLiveState {
 /** The last Global snapshot: never erased, replaced only by a newer one. */
 interface KeptSnapshot {
   states: LiveAircraft[];
-  /** Age of the snapshot when it reached the browser, and when that was. */
+}
+
+/** How old the positions on the map were when the last answer reached the browser. */
+interface LastAnswer {
   ageSeconds: number;
   receivedAt: number;
 }
@@ -1173,6 +1176,7 @@ export function FlightMap({
   const coverageRef = useRef<{ bounds: Bounds; until: number } | null>(null);
   const handledRefreshRef = useRef(0);
   const keptSnapshotRef = useRef<KeptSnapshot | null>(null);
+  const lastAnswerRef = useRef<LastAnswer | null>(null);
   const degradationRef = useRef<{ cause: LiveCause | null; reducedCoverage: boolean }>({ cause: null, reducedCoverage: false });
   useEffect(() => {
     airportIcaoRef.current = airport?.icao ?? null;
@@ -1327,7 +1331,7 @@ export function FlightMap({
             // A degraded answer is the last snapshot, labelled with its real age.
             cause = response.degraded ? causeFromReason(response.degraded_reason) : null;
             reducedCoverage = false;
-            keptSnapshotRef.current = { states: response.states, ageSeconds: response.degraded ? response.age_seconds ?? 0 : 0, receivedAt: Date.now() };
+            keptSnapshotRef.current = { states: response.states };
           } catch (error) {
             if (controller.signal.aborted) throw error;
             // No snapshot: fall back to a few Local feed cells around the centre.
@@ -1344,6 +1348,7 @@ export function FlightMap({
           response = await localCell(tile);
         }
         if (controller.signal.aborted) return;
+        lastAnswerRef.current = { ageSeconds: wideView && response.degraded ? response.age_seconds ?? 0 : 0, receivedAt: Date.now() };
         rememberAircraft(response.states);
         for (const aircraft of response.states) {
           retained.set(aircraft.icao24, aircraft);
@@ -1492,8 +1497,8 @@ export function FlightMap({
     const timer = setInterval(() => setStatusNow(Date.now()), 5_000);
     return () => clearInterval(timer);
   }, [liveState.cause]);
-  const kept = keptSnapshotRef.current;
-  const snapshotAge = kept ? kept.ageSeconds + Math.max(0, statusNow - kept.receivedAt) / 1000 : null;
+  const lastAnswer = lastAnswerRef.current;
+  const snapshotAge = lastAnswer ? lastAnswer.ageSeconds + Math.max(0, statusNow - lastAnswer.receivedAt) / 1000 : null;
   const liveStatus = liveState.cause && !(liveState.fetching && liveState.loadedTiles === 0 && !hasLiveSnapshot)
     ? describeLiveStatus({ count: filteredCount, cause: liveState.cause, ageSeconds: snapshotAge, reducedCoverage: Boolean(liveState.reducedCoverage) })
     : liveState.error || liveState.failedTiles > 0
