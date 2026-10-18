@@ -31,8 +31,9 @@ function aircraftIconSvg(kind: AircraftIconKind): string {
       return '<g transform="rotate(90 12 12)"><path d="M12 1l1 3v6l7 5v2l-7-3v5l3 2v1l-4-1-4 1v-1l3-2v-5l-7 3v-2l7-5V4z"/><path d="M8 16h2v4H8zm6 0h2v4h-2z"/></g>';
     case "heavy":
       return '<g transform="rotate(90 12 12)"><path d="M12 1c1 0 2 1 2 3v5l9 6v2l-9-3v4l3 3v2l-5-2-5 2v-2l3-3v-4l-9 3v-2l9-6V4c0-2 1-3 2-3z"/><path d="M5 11h2v5H5zm12 0h2v5h-2z"/></g>';
+    // Missing type metadata is common in the global snapshot. Keep the
+    // standard plane silhouette at every zoom without claiming a model.
     case "unknown":
-      return '<path d="m21 12-17 6 4-6-4-6z"/>';
     default:
       return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${AIRLINER_PATH}"/>`;
   }
