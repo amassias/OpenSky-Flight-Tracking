@@ -112,15 +112,39 @@ describe("FlightList exploration and recovery", () => {
   });
 });
 
-it("shows fix age and distinguishes an old fix from a recent contact", () => {
+it("shows fix age only when the fix is older than 60 s", () => {
   const now = Math.floor(Date.now() / 1000);
   vi.spyOn(Date, "now").mockReturnValue(now * 1000);
   render(<FlightList variant="live" flights={[
     {icao24:"new001",callsign:"NEW1",on_ground:false,time_position:now-4,last_contact:now},
+    {icao24:"edge01",callsign:"EDGE1",on_ground:false,time_position:now-60,last_contact:now},
     {icao24:"old001",callsign:"OLD1",on_ground:false,time_position:now-125,last_contact:now},
     {icao24:"unk001",callsign:"UNKNOWN1",on_ground:false,last_contact:now},
   ]} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
-  expect(screen.getByText("Seen 4s ago")).toBeInTheDocument();
+  expect(screen.queryByText("Seen 4s ago")).not.toBeInTheDocument();
+  expect(screen.queryByText("Seen 1m 0s ago")).not.toBeInTheDocument();
   expect(screen.getByText("Seen 2m 5s ago")).toHaveClass("freshness-delayed");
   expect(screen.getByText("Position age unknown")).toHaveClass("freshness-unknown");
+});
+
+describe("FlightList row layout", () => {
+  it("puts altitude, trend and speed in fixed tabular columns, even when a value is missing", () => {
+    render(<FlightList flights={[
+      { icao24: "a1", callsign: "FULL", baro_altitude: 10000, velocity: 200, vertical_rate: 5, on_ground: false },
+      { icao24: "a2", callsign: "BARE" },
+    ] as Flight[]} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
+    for (const card of document.querySelectorAll(".flight-card")) {
+      expect(card.querySelectorAll(".flight-altitude, .flight-trend, .flight-speed")).toHaveLength(3);
+    }
+  });
+
+  it("leaves no separator characters in the row text", () => {
+    render(<FlightList flights={[
+      { icao24: "a1", callsign: "NOTIME", registration: "F-HABC", aircraft_type: "A359", status: "airborne" },
+      { icao24: "a2", callsign: "TIMED", airline_name: "Air France", registration: "F-HXYZ", status: "airborne", first_seen: 1700000000 },
+    ] as Flight[]} selectedFlight={null} loading={false} hasSearched onSelect={vi.fn()} onRetry={vi.fn()} />);
+    for (const meta of document.querySelectorAll(".flight-meta")) {
+      expect([...meta.querySelectorAll(":scope > span")].every((span) => span.textContent?.trim() !== "·")).toBe(true);
+    }
+  });
 });
