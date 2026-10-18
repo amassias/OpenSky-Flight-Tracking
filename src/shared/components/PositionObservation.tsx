@@ -12,6 +12,6 @@ export function PositionObservation({ flight }: { flight: Flight }) {
   const time = new Date(observation.time * 1000).toISOString().slice(11, 19);
   return <div className={`position-observation ${observation.state === "delayed" ? "is-delayed" : ""}`}>
     <span>{observation.state === "delayed" ? "Position delayed" : "Position"} · <time dateTime={new Date(observation.time * 1000).toISOString()}>{time} UTC</time> · {age}</span>
-    {isPositionEstimated(flight, now) && <span className="position-estimate" title="Projected from the last reported speed and heading, up to 90 seconds">Estimated map position</span>}
+    {isPositionEstimated(flight, now) && <span className="position-estimate" title="Projected from the last reported speed and heading, up to 150 seconds">Estimated map position</span>}
   </div>;
 }

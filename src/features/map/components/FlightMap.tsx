@@ -18,7 +18,7 @@ import type { Airport, Bounds, Flight, LiveAircraft, LiveFlightsResponse, MapThe
 import { preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAFT_CACHE_TTL_MS, pruneExpiredViewportCache, viewportCacheKey, writeViewportCache, type ViewportCacheEntry } from "../../flights/liveCache";
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
-import { isPositionEstimated, projectPosition, subscribeToTick, useNowSeconds } from "../aircraftMotion";
+import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
 import { distanceText, flightLevelText, speedText, useUnits } from "../../../shared/units";
 import { AltitudeLegend } from "./AltitudeLegend";
 import { AircraftHoverPreview } from "./AircraftHoverPreview";
@@ -287,11 +287,10 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   );
   // A fresh fix is already some seconds old when it arrives, so start from
   // where the aircraft is now rather than where it was reported.
-  const position = useMemo<[number, number]>(
-    () => projectPosition(aircraft, Date.now() / 1000) ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [aircraft.latitude, aircraft.longitude, aircraft.time_position],
-  );
+  // Only the first position is passed to Leaflet; every later move is made
+  // imperatively below so a new fix eases in instead of jumping.
+  const initialPosition = useRef<[number, number]>(projectPosition(aircraft, Date.now() / 1000) ?? [aircraft.latitude ?? 0, aircraft.longitude ?? 0]);
+  const catchUp = useRef<{ from: [number, number]; startedAt: number } | null>(null);
   // Read through a ref so the handler identity never changes, which keeps
   // Leaflet from detaching and re-attaching listeners on every refresh.
   const aircraftRef = useRef(aircraft);
@@ -329,25 +328,33 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
     if (markerRef.current) updateMarkerObservation(markerRef.current, aircraft, Date.now() / 1000);
   }, [aircraft, icon]);
 
-  // Only dead-reckoning ticks glide. Leaflet's own camera animations must
-  // position markers immediately or they visibly lag behind their map point.
-  useEffect(() => subscribeToTick((now) => {
+  // A new fix pulls the marker from where it is shown to the new estimate over
+  // about 1.5 s.
+  useEffect(() => {
+    const shown = markerRef.current?.getLatLng();
+    if (shown) catchUp.current = { from: [shown.lat, shown.lng], startedAt: Date.now() / 1000 };
+  }, [aircraft.latitude, aircraft.longitude, aircraft.time_position]);
+
+  // Movement runs on the 10 to 30 fps frame clock and pauses while the page is
+  // hidden. Leaflet's own camera animations position markers immediately.
+  useEffect(() => subscribeToFrame((now) => {
     const current = aircraftRef.current;
     const marker = markerRef.current;
-    if (!marker) return;
-    updateMarkerObservation(marker, current, now);
-    if (current.on_ground) return;
-    const next = projectPosition(current, now);
+    if (!marker || current.on_ground) return;
+    const projected = projectPosition(current, now);
+    const pull = catchUp.current;
+    const next = projected && pull ? catchUpPosition(pull.from, projected, now - pull.startedAt) : projected;
     const shown = marker.getLatLng();
-    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) {
-      const element = marker.getElement();
-      if (!element?.closest(".map-camera-moving")) element?.classList.add("aircraft-gliding");
-      marker.setLatLng(next);
-    }
+    if (next && (next[0] !== shown.lat || next[1] !== shown.lng)) marker.setLatLng(next);
+  }), []);
+
+  useEffect(() => subscribeToTick((now) => {
+    const marker = markerRef.current;
+    if (marker) updateMarkerObservation(marker, aircraftRef.current, now);
   }), []);
 
   if (aircraft.latitude == null || aircraft.longitude == null) return null;
-  return <Marker ref={markerRef} position={position} icon={icon} title={`View ${labelPrimary}`} alt={`View ${labelPrimary}`} eventHandlers={eventHandlers} />;
+  return <Marker ref={markerRef} position={initialPosition.current} icon={icon} title={`View ${labelPrimary}`} alt={`View ${labelPrimary}`} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
 function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense, theme, onSelect, hoverStore }: {
