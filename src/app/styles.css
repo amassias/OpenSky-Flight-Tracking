@@ -386,6 +386,9 @@ input { caret-color: var(--accent); }
 .map-controls { position: absolute; z-index: 500; right: var(--inset-right); bottom: 34px; display: grid; gap: 8px; justify-items: end; transition: right .3s var(--ease-out); }
 .map-control-group { display: grid; padding: 3px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); box-shadow: var(--shadow-float); }
 .map-controls button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--muted); border: 0; border-radius: var(--r-sm); background: transparent; cursor: pointer; transition: color .15s var(--ease-out), background .15s var(--ease-out), transform .12s var(--ease-out); }
+/* Icon-only map buttons name themselves while focused; the title attribute covers hover. */
+.map-controls button { position: relative; }
+.map-controls button:focus-visible::after { content: attr(aria-label); position: absolute; z-index: 1; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); padding: 5px 10px; color: var(--text); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-solid); box-shadow: var(--shadow-float); font-size: .8125rem; white-space: nowrap; pointer-events: none; }
 .map-controls button:hover:not(:disabled) { color: var(--text); background: var(--fill-strong); }
 .map-controls button:active:not(:disabled) { transform: scale(.94); }
 .map-controls button:disabled { opacity: .35; cursor: not-allowed; }
@@ -965,14 +968,13 @@ input { caret-color: var(--accent); }
 .board-clock-note { color: var(--muted); margin: 6px 0 12px; font-size: var(--type-meta); line-height: 1.45; }
 @media (max-width: 900px) {
   .workspace.has-dock .traffic-slot { visibility: hidden; pointer-events: none; }
-  .mobile-back { display: block; margin: -4px 0 4px -10px; min-height: 44px; }
+  .mobile-back { display: block; margin: -4px 0 4px -10px; }
   .icon-button, .airport-identity .icon-button { width: 44px; height: 44px; flex-shrink: 0; }
   .topbar-shortcuts { display: none; }
   .topbar .icon-button { width: 44px; height: 44px; }
   .topbar-actions { gap: 0; }
   .topbar-search, .omni-input { min-width: 0; }
   .omni-input { height: 40px; }
-  .map-toolbar button, .map-controls button, .tabs button { min-height: 44px; }
   .tabs button { padding: 0 10px; }
   .details-heading { top: -14px; }
   .details-drawer .live-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -1007,7 +1009,6 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .altitude-hover-readout { color: var(--text); font-size: var(--type-body); font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) {
   .mobile-sheet-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .mobile-sheet-toolbar .text-button { min-height: 44px; }
   .workspace.sheet-expanded .details-drawer { height: 85%; }
   .app:not(.map-expanded) .workspace.sheet-expanded :is(.map-controls,.map-toolbar,.nearby-airports-control,.map-status,.emergency-banner,.location-status) { display: none; }
   .app:not(.map-expanded) .workspace.sheet-expanded .leaflet-bottom { bottom: 85%; }
@@ -1151,3 +1152,12 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
   .map-overlay-stack > * { position: static; max-width: 100%; box-sizing: border-box; }
 }
 @media (max-width: 900px) { .map-overlay-stack { display: contents; } }
+
+/* One minimum hit area for every control on a touch screen. */
+:root { --hit-min: 44px; }
+@media (max-width: 900px), (pointer: coarse) {
+  .map-toolbar button, .map-controls button, .tabs button, .mobile-back, .mobile-sheet-toolbar .text-button,
+  .secondary-button, .segmented button, .omni-clear, .clear-button, .map-data-guide-close { min-width: var(--hit-min); min-height: var(--hit-min); }
+  .map-data-guide { padding-right: calc(var(--hit-min) + 8px); }
+  .map-data-guide-close { top: 0; right: 0; }
+}
