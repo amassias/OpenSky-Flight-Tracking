@@ -292,3 +292,10 @@ def test_reading_the_published_snapshot_spends_no_opensky_credits(client_with):
         clock.now += 61
 
     assert fake.calls == 3
+
+
+def test_the_payload_reports_what_the_call_really_cost(client_with):
+    published = {"time": NOW, "states": [opensky_row()], "provider": "opensky-published", "credit_cost": 0}
+    client = client_with(FakeUpstream(published))
+
+    assert client.get("/api/global-snapshot").json()["credit_cost"] == 0

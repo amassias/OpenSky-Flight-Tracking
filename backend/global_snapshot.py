@@ -180,7 +180,7 @@ class GlobalSnapshot:
             self._snapshot = {
                 "success": True,
                 "provider": result.get("provider") or "opensky",
-                "credit_cost": GLOBAL_CALL_CREDITS,
+                "credit_cost": result.get("credit_cost", GLOBAL_CALL_CREDITS),
                 "time": snapshot_time,
                 "count": len(aircraft),
                 "fields": FIELDS,
