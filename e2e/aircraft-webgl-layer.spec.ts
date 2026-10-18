@@ -5,6 +5,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 const FIELDS = ['icao24', 'callsign', 'latitude', 'longitude', 'baro_altitude', 'geo_altitude', 'velocity', 'true_track', 'vertical_rate', 'on_ground', 'squawk', 'category', 'source', 'fix_age'];
 const now = Math.floor(Date.now() / 1000);
+/** A 1 x 1 white PNG. */
+const BLANK_TILE = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 /** 800 aircraft stacked at the view centre, so they stay in view through the pan and zoom below. */
 function closeFeed() {
@@ -32,6 +34,9 @@ async function mockApi(page: Page) {
     if (path === '/api/flight-info') return route.fulfill({ json: { success: true, icao24: 'c00000', callsign: 'STACK0' } });
     return route.fulfill({ json: path.endsWith('airports') ? [] : { success: true, flights: [], count: 0 } });
   });
+  // Map tiles arriving between the two screenshots of paintedCentroid would read as painted aircraft:
+  // serve one blank tile at once instead of the network's.
+  await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({ contentType: 'image/png', body: BLANK_TILE }));
   await page.route('https://api.planespotters.net/**', route => route.fulfill({ json: { photos: [] } }));
 }
 

@@ -83,9 +83,11 @@ test('the last snapshot is never erased when the backend becomes unreachable', a
   await expect(status).toContainText('300 aircraft');
 });
 
-test('the empty list names the real cause instead of telling the visitor to zoom out', async ({ page }) => {
+test('the empty list names the real cause instead of telling the visitor to zoom out', async ({ page, isMobile }) => {
   await mockApi(page, { snapshot: () => ({ status: 429, json: { success: false, error: 'OpenSky daily credit budget used up.' } }), cells: 'fail' });
   await page.goto('/?at=48,5,5');
+  // A phone starts with the traffic panel collapsed.
+  if (isMobile) await page.getByRole('button', { name: /open traffic panel/i }).click();
   const panel = page.locator('#flight-results');
   await expect(panel).toContainText('OpenSky credit budget reached', { timeout: 10_000 });
   await expect(panel).not.toContainText('Zoom out or move the map');

@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test';
 
 const airport = { icao: 'LFPG', iata: 'CDG', name: 'Paris Charles de Gaulle', latitude: 49, longitude: 2.5 };
 
-test('restores a visited viewport while its refresh is in flight', async ({ page, isMobile }) => {
-  test.skip(isMobile, 'A phone shows too narrow a view for the second aircraft to come into view after one zoom step.');
+test('restores a visited viewport while its refresh is in flight', async ({ page }) => {
+  // The app opens at zoom 8 on the airport. WIDE sits 1.8 degrees north: some 500 px away, off any screen
+  // there (about 330 px to the edge, desktop or phone), and about 250 px away one zoom step out.
   let phase: 'initial' | 'wide' | 'return' = 'initial';
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
@@ -13,7 +14,7 @@ test('restores a visited viewport while its refresh is in flight', async ({ page
       const states = phase === 'initial'
         ? Array.from({ length: 50 }, (_, i) => ({ icao24: i.toString(16).padStart(6, '0'), callsign: `TEST${i}`, latitude: 48.8 + i / 1000, longitude: 2.3 + i / 1000, true_track: 90 }))
         : phase === 'wide'
-          ? [{ icao24: 'ffffff', callsign: 'WIDE', latitude: 51, longitude: 5, true_track: 90 }]
+          ? [{ icao24: 'ffffff', callsign: 'WIDE', latitude: 50.8, longitude: 2.3, true_track: 90 }]
           : [];
       return route.fulfill({ json: { count: states.length, states, time: 1, provider: 'fixture' } });
     }
