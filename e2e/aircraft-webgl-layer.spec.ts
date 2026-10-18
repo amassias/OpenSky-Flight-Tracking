@@ -150,17 +150,17 @@ test('selecting an aircraft on the WebGL layer opens its details', async ({ page
 test('hovering an aircraft on the WebGL layer previews it, and leaving hides the preview', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Hover needs a mouse.');
   await mockApi(page);
-  // Zoomed out, no aircraft is labelled: every one is a silhouette of the layer.
-  await page.goto('/?at=48,5,7');
+  // Zoomed out, no aircraft is labelled and the view is dense: every aircraft is a silhouette of the layer.
+  await page.goto('/?at=58,5,6');
   await expect.poll(() => drawn(page), { timeout: 15_000 }).toBeGreaterThan(100);
   const box = (await page.locator('.flight-map').boundingBox())!;
-  // SNAP4650 is at 48 N, 4.88 E.
-  const at = await page.evaluate(() => (window as unknown as { __skytraceMap: { project(lngLat: [number, number]): { x: number; y: number } } }).__skytraceMap.project([4.88, 48]));
-  await page.mouse.move(box.x + 40, box.y + 200);
+  // The snapshot ends at 55.8 N, so the upper part of this view is empty sea; SNAP4693 is at 54.88 N, 4.88 E.
+  const at = await page.evaluate(() => (window as unknown as { __skytraceMap: { project(lngLat: [number, number]): { x: number; y: number } } }).__skytraceMap.project([4.88, 54.88]));
+  await page.mouse.move(box.x + 40, box.y + 120);
   await expect(page.locator('.aircraft-hover-preview')).toHaveCount(0);
   await page.mouse.move(box.x + at.x, box.y + at.y, { steps: 6 });
   await expect(page.locator('.aircraft-hover-preview')).toBeVisible();
-  await page.mouse.move(box.x + 40, box.y + 200, { steps: 6 });
+  await page.mouse.move(box.x + 40, box.y + 120, { steps: 6 });
   await expect(page.locator('.aircraft-hover-preview')).toHaveCount(0);
 });
 
