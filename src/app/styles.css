@@ -120,7 +120,7 @@ input { caret-color: var(--accent); }
 .icon-button:active, .primary-button:active:not(:disabled), .secondary-button:active, .map-controls button:active:not(:disabled) { transform: scale(0.95); }
 /* Map ------------------------------------------------------------------- */
 .map-surface { position: absolute; inset: 0; background: var(--bg); }
-.flight-map { position: relative; width: 100%; height: 100%; background: var(--bg); font-family: var(--body); }
+.flight-map { position: relative; isolation: isolate; width: 100%; height: 100%; background: var(--bg); font-family: var(--body); }
 .flight-map .maplibregl-ctrl.maplibregl-ctrl-attrib { margin: 0; padding: 2px 8px; border-radius: var(--r-pill) 0 0 0; background: var(--panel); color: var(--quiet); font: 400 12px/1.3 var(--body); -webkit-backdrop-filter: var(--material); backdrop-filter: var(--material); }
 .flight-map .maplibregl-ctrl-attrib a { color: var(--muted); }
 .pulse-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--quiet); }

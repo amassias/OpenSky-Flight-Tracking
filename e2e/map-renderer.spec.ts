@@ -91,3 +91,30 @@ test('the dashed heading line explains itself when hovered', async ({ page, isMo
   await page.mouse.move(box.x + point.x + 60, box.y + point.y - 20, { steps: 8 });
   await expect(page.locator('.map-tooltip')).toContainText(/Estimated (heading|direct line)/);
 });
+
+test('map controls stay above airport clusters and other map markers', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/?at=49,2.5,9');
+  await expect(page.locator('.flight-map.maplibregl-map')).toHaveCount(1);
+  const buttons = page.locator('.map-controls button');
+  await expect(buttons.first()).toBeVisible();
+
+  // Put a marker (airport clusters are z-index 600) exactly on every control.
+  await page.evaluate(() => {
+    const container = document.querySelector('.maplibregl-canvas-container')!;
+    document.querySelectorAll('.map-controls button').forEach(button => {
+      const box = button.getBoundingClientRect();
+      const marker = document.createElement('div');
+      marker.className = 'maplibregl-marker airport-cluster-wrap probe-marker';
+      marker.style.cssText = `position:fixed;left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;z-index:600`;
+      container.appendChild(marker);
+    });
+  });
+
+  const covered = await page.evaluate(() => [...document.querySelectorAll('.map-controls button')].filter(button => {
+    const box = button.getBoundingClientRect();
+    const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    return !(top === button || button.contains(top));
+  }).map(button => button.getAttribute('aria-label')));
+  expect(covered).toEqual([]);
+});
