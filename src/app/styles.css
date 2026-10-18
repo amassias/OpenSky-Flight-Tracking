@@ -1161,3 +1161,8 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
   .map-data-guide { padding-right: calc(var(--hit-min) + 8px); }
   .map-data-guide-close { top: 0; right: 0; }
 }
+
+/* WebGL aircraft layer (MapLibre GL) pinned to the viewport inside a Leaflet pane. */
+.aircraft-gl { position: absolute; top: 0; left: 0; overflow: hidden; pointer-events: none; }
+.aircraft-gl canvas { position: absolute; top: 0; left: 0; }
+.leaflet-container.aircraft-gl-hover { cursor: pointer !important; }

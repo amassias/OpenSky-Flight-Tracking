@@ -1,7 +1,9 @@
 import { airlineBadge, airlineLogo, type AirlineBadge } from "../../../shared/aircraftIdentity";
 import { AircraftCanvasRenderer, type AircraftCanvasStyle } from "../aircraftCanvas";
-import { aircraftSilhouette } from "../aircraftSilhouette";
+import { aircraftGlyph } from "../aircraftGlyph";
 import { AircraftHoverStore } from "../aircraftHover";
+import { MAP_COLORS } from "../aircraftLayer";
+import { AircraftGlLayer } from "./AircraftGlLayer";
 import { labelLevelForZoom, placeLabels, type LabelLevel } from "../mapLabels";
 import { headingProjection } from "../headingProjection";
 import { destinationGuide } from "../futurePath";
@@ -26,7 +28,7 @@ import { AircraftHoverPreview } from "./AircraftHoverPreview";
 
 /** Recent positions kept per aircraft for its trail. */
 const TRAIL_POINTS = 8;
-/** The Leaflet renderer draws at most about this many aircraft; more are thinned by density. */
+/** Only the Leaflet canvas fallback (no WebGL) draws at most about this many aircraft; more are thinned by density. */
 const MAX_DRAWN_AIRCRAFT = 3_000;
 /** Local feed cells asked for around the centre when the Global snapshot is unavailable. */
 const REDUCED_COVERAGE_CELLS = 4;
@@ -35,50 +37,6 @@ const LOCAL_FEED_REFRESH_SECONDS = 8;
 const DEFAULT_CENTER: [number, number] = [48.5, 2.2];
 const NO_AIRCRAFT: LiveAircraft[] = [];
 const AIRPORT_CLUSTER_MAX_ZOOM = 9;
-
-// Leaflet paths and canvas glyphs cannot read CSS custom properties, so the
-// theme tokens they need are mirrored here (see --aircraft / --accent).
-const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: string; halo: string; danger: string }> = {
-  dark: { aircraft: "#f5f5f7", ground: "#8e8e93", accent: "#2997ff", halo: "#0b0b0c", danger: "#ff453a" },
-  light: { aircraft: "#1d1d1f", ground: "#86868b", accent: "#0066cc", halo: "#ffffff", danger: "#d70015" },
-};
-
-// Solid top-down silhouettes, drawn nose-up and turned to the nose-east
-// convention the shared heading rotation expects.
-const AIRLINER_PATH = "M12 1.4c.9 0 1.5.9 1.5 2.3v5.3l8.5 5.1v2.2l-8.5-2.5v4.5l2.2 1.7v1.8L12 20.7l-3.7 1.1v-1.8l2.2-1.7v-4.5L2 16.3v-2.2L10.5 9V3.7c0-1.4.6-2.3 1.5-2.3z";
-const LIGHT_PLANE_PATH = "M12 2.2c.7 0 1.2.9 1.2 2.1v5.4l9 1.5v2.1l-9-.9v4.7l1.9 1.4v1.5L12 19.8l-3.1.9v-1.5l1.9-1.4v-4.7l-9 .9v-2.1l9-1.5V4.3c0-1.2.5-2.1 1.2-2.1z";
-// Top-down rotorcraft, drawn nose-east like the plane glyph so the shared
-// heading rotation points it where it is flying: main rotor blades, cabin,
-// tail boom and tail rotor.
-const HELICOPTER_SVG = [
-  '<ellipse class="aircraft-svg-fill" cx="13.4" cy="12" rx="4.6" ry="3.1"/>',
-  '<path class="aircraft-svg-fill" d="M2.6 11.2h7v1.6h-7z"/>',
-  '<path class="aircraft-svg-fill" d="M2 8.8h1.5v6.4H2z"/>',
-  '<path class="aircraft-svg-rotor" d="M6.2 5.2 19.8 18.8M6.2 18.8 19.8 5.2"/>',
-].join("");
-
-function aircraftIconSvg(kind: AircraftIconKind): string {
-  switch (kind) {
-    case "helicopter":
-      return HELICOPTER_SVG;
-    case "glider":
-      return '<path d="M2 11.2h20v1.6H2zM11.2 12.8h1.6l1.9 8.2h-1.9l-.8-3.2-.8 3.2H9.3z"/>';
-    case "balloon":
-      return '<path d="M12 2a6.2 6.2 0 0 1 6.2 6.2c0 3.2-2 5.4-4.2 7.1l-.8.6h-2.4l-.8-.6c-2.2-1.7-4.2-3.9-4.2-7.1A6.2 6.2 0 0 1 12 2Zm-1.2 14h2.4v2.1h-2.4zM9.8 20h4.4v2H9.8z"/>';
-    case "small":
-      return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${LIGHT_PLANE_PATH}"/>`;
-    case "turboprop":
-      return '<g transform="rotate(90 12 12)"><path d="M11 2h2v7l9 3v2l-9-1v6l3 1v2l-4-1-4 1v-2l3-1v-6l-9 1v-2l9-3z"/><path d="M6 7h1v8H6zM17 7h1v8h-1z"/><path class="aircraft-svg-stroke" d="M4 8h5m6 0h5"/></g>';
-    case "regional":
-      return '<g transform="rotate(90 12 12)"><path d="M12 1l1 3v6l7 5v2l-7-3v5l3 2v1l-4-1-4 1v-1l3-2v-5l-7 3v-2l7-5V4z"/><path d="M8 16h2v4H8zm6 0h2v4h-2z"/></g>';
-    case "heavy":
-      return '<g transform="rotate(90 12 12)"><path d="M12 1c1 0 2 1 2 3v5l9 6v2l-9-3v4l3 3v2l-5-2-5 2v-2l3-3v-4l-9 3v-2l9-6V4c0-2 1-3 2-3z"/><path d="M5 11h2v5H5zm12 0h2v5h-2z"/></g>';
-    case "unknown":
-      return '<path d="m21 12-17 6 4-6-4-6z"/>';
-    default:
-      return `<path class="aircraft-svg-fill" transform="rotate(90 12 12)" d="${AIRLINER_PATH}"/>`;
-  }
-}
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
@@ -107,15 +65,6 @@ function swapLogoForBadge(logo?: HTMLImageElement | null) {
   if (!badgeText || !badgeColor) { logo.remove(); return; }
   logo.insertAdjacentHTML("afterend", airlineBadgeHtml({ text: badgeText, color: badgeColor }));
   logo.remove();
-}
-
-function aircraftGlyph(kind: AircraftIconKind, aircraftType?: string | null) {
-  const model = aircraftSilhouette(aircraftType);
-  kind = model?.kind ?? kind;
-  const glyph = model
-    ? `<svg viewBox="0 0 64 64" aria-hidden="true"><use href="${model.symbol}"/>${model.rotor ? `<use href="${model.rotor.symbol}" class="aircraft-model-rotor" style="transform-origin:${model.rotor.cx}px ${model.rotor.cy}px"/>` : ""}</svg>`
-    : `<svg viewBox="0 0 24 24" aria-hidden="true">${aircraftIconSvg(kind)}</svg>`;
-  return { model, glyph, kind };
 }
 
 function planeIcon({ heading = 0, active = false, onGround = false, icao24, kind = "airliner", aircraftType, emergency = false, label, airborne = false }: PlaneIconOptions) {
@@ -364,9 +313,9 @@ const AircraftMarker = memo(function AircraftMarker({ aircraft, active, selected
   return <Marker ref={markerRef} position={initialPosition.current} icon={icon} title={`View ${labelPrimary}`} alt={`View ${labelPrimary}`} eventHandlers={eventHandlers} />;
 }, areMarkersEqual);
 
-function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense, theme, onSelect, hoverStore }: {
+function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense, webgl, theme, onSelect, onWebglUnavailable, hoverStore }: {
   aircraft: readonly LiveAircraft[]; selectedId: string | null; previewId?: string; labelsEnabled: boolean;
-  dense: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; hoverStore: AircraftHoverStore;
+  dense: boolean; webgl: boolean; theme: MapTheme; onSelect: (flight: Flight) => void; onWebglUnavailable: () => void; hoverStore: AircraftHoverStore;
 }) {
   const map = useMap();
   const canvasRenderer = useMemo(() => new AircraftCanvasRenderer(), []);
@@ -403,7 +352,10 @@ function TrafficAircraft({ aircraft, selectedId, previewId, labelsEnabled, dense
         width: detail ? 172 : Math.max(85, (item.callsign || item.registration || item.icao24).length * 8 + (level >= 2 ? 38 : 16)), height: detail ? 44 : 30 }];
     }), selectedId);
   }, [aircraft, level, map, selectedId, view]);
-  return <>{aircraft.map(item => dense && item.icao24 !== selectedId
+  const detailed = dense && webgl ? aircraft.filter(item => item.icao24 === selectedId) : aircraft;
+  return <>{dense && webgl && <AircraftGlLayer aircraft={aircraft} theme={theme} previewId={previewId ?? null} excludeId={selectedId}
+    onSelect={onSelect} onHover={showHover} onLeave={leaveHover} onUnavailable={onWebglUnavailable} />}
+    {detailed.map(item => dense && item.icao24 !== selectedId
     ? <AircraftCanvasMarker renderer={canvasRenderer} key={item.icao24} aircraft={item} active={item.icao24 === previewId} theme={theme} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />
     : <AircraftMarker key={item.icao24} aircraft={item} active={item.icao24 === selectedId || item.icao24 === previewId}
       selected={item.icao24 === selectedId} labelLevel={shown.has(item.icao24) ? level : 0} onSelect={onSelect} onHover={showHover} onLeave={leaveHover} />)}</>;
@@ -1118,6 +1070,8 @@ export function FlightMap({
   useEffect(() => {
     if (bounds) onViewportCenter?.([(bounds.lamin + bounds.lamax) / 2, (bounds.lomin + bounds.lomax) / 2]);
   }, [bounds, onViewportCenter]);
+  const [webglFailed, setWebglFailed] = useState(false);
+  const handleWebglUnavailable = useCallback(() => setWebglFailed(true), []);
   const [locateRequest, setLocateRequest] = useState(0);
   const [fitRequest, setFitRequest] = useState(0);
   // Follow keeps the selected aircraft centred as it moves, like FR24's
@@ -1456,10 +1410,11 @@ export function FlightMap({
   const visibleStates = useMemo(() => {
     const kept = filterAircraft(displayedLiveStates, filters);
     const withSelected = selectedLive && !kept.includes(selectedLive) ? [...kept, selectedLive] : kept;
-    // Until the renderer migration, Leaflet draws a density sample above
-    // MAX_DRAWN_AIRCRAFT. The selected, followed and emergency aircraft stay.
-    return sampleByDensity(withSelected, MAX_DRAWN_AIRCRAFT, (item) => item === selectedLive || item.icao24 === followingIcao24 || Boolean(emergencyInfo(item)));
-  }, [displayedLiveStates, filters, followingIcao24, selectedLive]);
+    // WebGL draws every aircraft. Without WebGL the Leaflet canvas draws a
+    // density sample above MAX_DRAWN_AIRCRAFT; the selected, followed and
+    // emergency aircraft stay.
+    return webglFailed ? sampleByDensity(withSelected, MAX_DRAWN_AIRCRAFT, (item) => item === selectedLive || item.icao24 === followingIcao24 || Boolean(emergencyInfo(item))) : withSelected;
+  }, [displayedLiveStates, filters, followingIcao24, selectedLive, webglFailed]);
   // A broad viewport can contain thousands of aircraft. Keep the detailed
   // plane icons for normal views, then switch to a lightweight canvas layer so
   // zooming out does not turn every aircraft into a DOM subtree.
@@ -1578,7 +1533,7 @@ export function FlightMap({
           <Polyline key={`trail-${trail.icao24}`} positions={trail.positions} interactive={false} pathOptions={{ color: trail.color, weight: 1.5, opacity: 0.5, lineCap: "round" }} />
         ))}
         <TrafficAircraft aircraft={visibleStates} selectedId={selectedIcao24} previewId={previewFlight?.icao24}
-          labelsEnabled={labelsEnabled} dense={denseTraffic} theme={theme} onSelect={selectFlightAndCloseHover} hoverStore={hoverStore} />
+          labelsEnabled={labelsEnabled} dense={denseTraffic} webgl={!webglFailed} theme={theme} onSelect={selectFlightAndCloseHover} onWebglUnavailable={handleWebglUnavailable} hoverStore={hoverStore} />
         {userLocation && (
           <>
             <Circle

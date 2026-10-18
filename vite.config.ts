@@ -27,14 +27,20 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       sourcemap: true,
-      chunkSizeWarningLimit: 600,
+      chunkSizeWarningLimit: 1000, // the on-demand maplibre chunk is about 940 kB raw (ADR 0009)
       rollupOptions: {
         output: {
           // Libraries change far less often than the app, so they ship in one
           // chunk that stays cached across deploys. A single vendor chunk
           // cannot form an import cycle between library chunks (splitting
           // React from its consumers broke module initialisation order).
+          //
+          // MapLibre GL is the one exception (ADR 0009): it is about as large
+          // as everything else together, imports nothing from the other
+          // libraries, and is only needed once a view holds more than 750
+          // aircraft, so it loads on demand instead of in the first paint.
           manualChunks(id) {
+            if (id.includes("/node_modules/maplibre-gl/") || id.includes("/node_modules/@mapbox/") || id.includes("/node_modules/@maplibre/")) return "maplibre";
             return id.includes("/node_modules/") ? "vendor" : undefined;
           },
         },
