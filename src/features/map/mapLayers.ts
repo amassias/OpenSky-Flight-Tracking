@@ -2,13 +2,16 @@ import { useEffect } from "react";
 import type { GeoJSONSource, LayerSpecification, Map as GlMap } from "maplibre-gl";
 import type { MapHandle } from "./mapHandle";
 
-/** Bottom to top. A layer is inserted below the first layer already drawn that is listed after it. */
-const LAYER_ORDER = [
-  "accuracy-fill", "accuracy-line", "trails",
-  "trace-halo", "trace-line", "trace-head",
-  "projection-hit", "projection-future", "projection-heading",
-  "aircraft",
-];
+/** Layer ids, bottom to top: the one stacking order of everything the map draws. */
+export const LAYERS = {
+  accuracyFill: "accuracy-fill", accuracyLine: "accuracy-line", trails: "trails",
+  traceHalo: "trace-halo", traceLine: "trace-line", traceHead: "trace-head",
+  projectionHit: "projection-hit", projectionFuture: "projection-future", projectionHeading: "projection-heading",
+  aircraft: "aircraft",
+} as const;
+
+/** A layer is inserted below the first layer already drawn that is listed after it. */
+const LAYER_ORDER: string[] = Object.values(LAYERS);
 
 export function addLayerInOrder(map: GlMap, layer: LayerSpecification) {
   const later = LAYER_ORDER.slice(LAYER_ORDER.indexOf(layer.id) + 1);

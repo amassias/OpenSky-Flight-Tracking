@@ -54,6 +54,8 @@ test('an aircraft is selected from the In view list with the keyboard only', asy
   await expect(page.locator('.map-status')).toContainText('1200 aircraft', { timeout: 10_000 });
   await page.getByRole('link', { name: /skip to the list of/i }).focus();
   await page.keyboard.press('Enter');
+  // The skip link moves focus on the next frame; arrow keys only mean something once it has landed.
+  await expect(page.locator('.flight-list .flight-card').first()).toBeFocused();
   await page.keyboard.press('ArrowDown');
   const second = page.locator('.flight-list .flight-card').nth(1);
   await expect(second).toBeFocused();
@@ -61,9 +63,11 @@ test('an aircraft is selected from the In view list with the keyboard only', asy
   await expect(second).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('the list follows the visible area when the map moves away', async ({ page }) => {
+test('the list follows the visible area when the map moves away', async ({ page, isMobile }) => {
   await mockApi(page);
   await page.goto('/?at=-30,150,6');
+  // A phone starts with the traffic panel collapsed.
+  if (isMobile) await page.getByRole('button', { name: /open traffic panel/i }).click();
   await expect(page.locator('.stats-row')).toContainText('100', { timeout: 10_000 });
   await expect(page.locator('.flight-list .flight-card').first()).toContainText('FAR');
 });

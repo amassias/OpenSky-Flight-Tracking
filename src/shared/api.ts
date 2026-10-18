@@ -13,6 +13,7 @@ import type {
   Bounds,
   FlightMode,
   FlightInfoResponse,
+  DegradedReason,
   FlightsResponse,
   HealthResponse,
   LiveAircraft,
@@ -27,7 +28,7 @@ interface GlobalSnapshotBody {
   notice?: string;
   refresh_after_seconds?: number;
   age_seconds?: number;
-  degraded_reason?: string;
+  degraded_reason?: DegradedReason;
   fields?: string[];
   aircraft?: Array<Array<string | number | null>>;
 }

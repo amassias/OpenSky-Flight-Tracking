@@ -173,6 +173,9 @@ export interface LiveAircraft extends Flight {
   origin_country?: string;
 }
 
+/** Why the Global snapshot is stale: the OpenSky credit budget or rate limit (quota), or OpenSky failing (provider). */
+export type DegradedReason = "quota" | "provider";
+
 export interface LiveFlightsResponse {
   success: boolean;
   time: number | null;
@@ -184,10 +187,13 @@ export interface LiveFlightsResponse {
   provider?: "opensky" | "adsb.fi" | "adsb.lol" | string;
   credit_cost?: number;
   refresh_after_seconds?: number;
-  /** Global snapshot only: seconds since OpenSky last answered. */
+  /**
+   * Global snapshot only: seconds since OpenSky last answered, as of when the server built the answer.
+   * A CDN may serve the answer later, so show ages from `time`, never from this field.
+   */
   age_seconds?: number;
-  /** Global snapshot only: "quota" or "provider" when degraded. */
-  degraded_reason?: string;
+  /** Global snapshot only: why it is degraded. */
+  degraded_reason?: DegradedReason;
   coverage_tiles?: number;
   coverage_complete?: boolean;
 }

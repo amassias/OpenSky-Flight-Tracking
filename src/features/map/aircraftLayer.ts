@@ -1,9 +1,21 @@
 import type { LiveAircraft, MapTheme } from "../../shared/types";
-import { aircraftIconKind, emergencyInfo } from "../../shared/utils";
+import { aircraftIconKind, emergencyInfo, type AircraftIconKind } from "../../shared/utils";
 import { positionAge } from "../flights/flightTelemetry";
 import { aircraftGlyph } from "./aircraftGlyph";
 import { mapColors } from "./mapColors";
-import { catchUpPosition, isPositionEstimated, projectPosition } from "./aircraftMotion";
+import { CATCH_UP_SECONDS, catchUpPosition, isPositionEstimated, projectPosition } from "./aircraftMotion";
+
+/**
+ * Above this many aircraft in view the map stops giving each one a detailed DOM marker
+ * (label, focus, keyboard) and draws them all in the WebGL layer (ADR 0009).
+ */
+export const DENSE_AIRCRAFT_THRESHOLD = 750;
+
+/** Rendered size in CSS pixels of a silhouette with a known model, by kind; other models use 25. */
+const MODEL_SIZE: Partial<Record<AircraftIconKind, number>> = { heavy: 27, glider: 27, small: 21 };
+const DEFAULT_MODEL_SIZE = 25;
+/** The generic category symbol of an unmapped type. */
+const CATEGORY_SIZE = 20;
 
 /** A fix older than this, or of unknown age, is drawn faded. */
 const OLD_FIX_SECONDS = 60;
@@ -42,7 +54,7 @@ const fixKey = (a: LiveAircraft) => `${a.latitude}:${a.longitude}:${a.time_posit
 
 /**
  * Turns the latest live aircraft into drawable frames. It keeps the position
- * each aircraft was last shown at so that a new fix eases in (about 1.5 s)
+ * each aircraft was last shown at so that a new fix eases in (`CATCH_UP_SECONDS`)
  * instead of jumping, and projects between fixes (ADR 0007).
  */
 export class AircraftFrames {
@@ -69,7 +81,7 @@ export class AircraftFrames {
 
   private resolveGlyph(item: LiveAircraft) {
     const glyph = aircraftGlyph(aircraftIconKind(item), item.aircraft_type);
-    const size = glyph.model ? (glyph.kind === "heavy" || glyph.kind === "glider" ? 27 : glyph.kind === "small" ? 21 : 25) : 20;
+    const size = glyph.model ? MODEL_SIZE[glyph.kind] ?? DEFAULT_MODEL_SIZE : CATEGORY_SIZE;
     return { shape: glyph.model?.id ?? glyph.kind, glyph: glyph.glyph, size };
   }
 
@@ -86,7 +98,7 @@ export class AircraftFrames {
       }
       const pull = this.pulls.get(item.icao24);
       const position = pull ? catchUpPosition(pull.from, projected, now - pull.startedAt) : projected;
-      if (pull && now - pull.startedAt >= 1.5) this.pulls.delete(item.icao24);
+      if (pull && now - pull.startedAt >= CATCH_UP_SECONDS) this.pulls.delete(item.icao24);
       this.shown.set(item.icao24, position);
       const age = positionAge(item, now);
       const old = age == null || age > OLD_FIX_SECONDS;

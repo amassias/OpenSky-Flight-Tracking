@@ -1,4 +1,5 @@
 import { ApiError } from "../../shared/api";
+import type { DegradedReason } from "../../shared/types";
 
 /** Why the live feed is degraded: our server, OpenSky, or the OpenSky credit budget. */
 export type LiveCause = "backend" | "provider" | "quota";
@@ -18,8 +19,18 @@ export function causeFromError(error: unknown): LiveCause {
 }
 
 /** Reads the cause the server names on a degraded Global snapshot. */
-export function causeFromReason(reason: unknown): LiveCause {
-  return reason === "quota" ? "quota" : reason === "backend" ? "backend" : "provider";
+export function causeFromReason(reason: DegradedReason | undefined): LiveCause {
+  return reason === "quota" ? "quota" : "provider";
+}
+
+/**
+ * Age of the positions on the map. It counts from the absolute time of the snapshot (unix seconds):
+ * a CDN may hand out an answer long after it was made, so a relative age the server wrote into the
+ * body would be stale on arrival. Without a snapshot time the age counts from the moment of receipt.
+ */
+export function snapshotAgeSeconds({ time, receivedAt }: { time: number | null; receivedAt: number }, nowMs: number): number {
+  const observedAt = time != null ? time * 1000 : receivedAt;
+  return Math.max(0, (nowMs - observedAt) / 1000);
 }
 
 interface LiveStatusInput {

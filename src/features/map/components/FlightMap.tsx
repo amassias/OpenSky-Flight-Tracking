@@ -21,10 +21,11 @@ import { newestFix, preserveAirframeAppearance, isAircraftInBounds, LIVE_AIRCRAF
 import { aircraftIconKind, altitudeColor, emergencyInfo, boundsEqual, expandBounds, formatAltitude, liveAircraftToFlight, quantizeBounds, splitBoundsIntoTiles, viewportTileCount, type AircraftIconKind } from "../../../shared/utils";
 import { filterAircraft, type MapFilters } from "../mapFilters";
 import { catchUpPosition, isPositionEstimated, projectPosition, subscribeToFrame, subscribeToTick, useNowSeconds } from "../aircraftMotion";
-import { causeFromError, causeFromReason, describeLiveStatus, type LiveCause } from "../liveStatus";
+import { causeFromError, causeFromReason, describeLiveStatus, snapshotAgeSeconds, type LiveCause } from "../liveStatus";
 import { distanceText, flightLevelText, speedText, useUnits } from "../../../shared/units";
 import { boundsAround, circlePolygon, fromGlZoom, mercatorPixel, placementCenter, toGlZoom, visibleBoundsFromEdges, type Insets } from "../mapCamera";
-import { useGeoJsonLayers, useOverlayToken } from "../mapLayers";
+import { DENSE_AIRCRAFT_THRESHOLD } from "../aircraftLayer";
+import { LAYERS, useGeoJsonLayers, useOverlayToken } from "../mapLayers";
 import { sharedTooltip } from "../mapTooltip";
 import { useDomMarker } from "../useDomMarker";
 import { AltitudeLegend } from "./AltitudeLegend";
@@ -799,20 +800,20 @@ const lineString = (positions: [number, number][], properties: GeoJSON.GeoJsonPr
 
 const ROUND_LINE = { "line-cap": "round", "line-join": "round" } as const;
 const TRACE_LAYERS: LayerSpecification[] = [
-  { id: "trace-halo", type: "line", source: "trace", filter: ["==", ["get", "kind"], "halo"], layout: ROUND_LINE,
+  { id: LAYERS.traceHalo, type: "line", source: "trace", filter: ["==", ["get", "kind"], "halo"], layout: ROUND_LINE,
     paint: { "line-color": ["get", "color"], "line-width": 8, "line-opacity": ["get", "opacity"] } },
-  { id: "trace-line", type: "line", source: "trace", filter: ["==", ["get", "kind"], "line"], layout: ROUND_LINE,
+  { id: LAYERS.traceLine, type: "line", source: "trace", filter: ["==", ["get", "kind"], "line"], layout: ROUND_LINE,
     paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": ["get", "opacity"] } },
   // The stretch from the end of the trace to the estimated position is dashed: it is not a recorded fix.
-  { id: "trace-head", type: "line", source: "trace", filter: ["==", ["get", "kind"], "head"], layout: { "line-join": "round" },
+  { id: LAYERS.traceHead, type: "line", source: "trace", filter: ["==", ["get", "kind"], "head"], layout: { "line-join": "round" },
     paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": ["get", "opacity"], "line-dasharray": [1.4, 2] } },
 ];
 const PROJECTION_LAYERS: LayerSpecification[] = [
   // A wide invisible line makes the thin projection easy to hover.
-  { id: "projection-hit", type: "line", source: "projection", paint: { "line-color": "#000", "line-width": 18, "line-opacity": 0 } },
-  { id: "projection-future", type: "line", source: "projection", filter: ["==", ["get", "kind"], "future"],
+  { id: LAYERS.projectionHit, type: "line", source: "projection", paint: { "line-color": "#000", "line-width": 18, "line-opacity": 0 } },
+  { id: LAYERS.projectionFuture, type: "line", source: "projection", filter: ["==", ["get", "kind"], "future"],
     paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.8, "line-dasharray": [5, 6] } },
-  { id: "projection-heading", type: "line", source: "projection", filter: ["==", ["get", "kind"], "heading"],
+  { id: LAYERS.projectionHeading, type: "line", source: "projection", filter: ["==", ["get", "kind"], "heading"],
     paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.8, "line-dasharray": [2.5, 3.5] } },
 ];
 const PROJECTION_TIPS: Record<string, string> = {
@@ -907,9 +908,9 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
       if (PROJECTION_TIPS[kind]) { tooltip.show(PROJECTION_TIPS[kind], event.point.x, event.point.y); map.getCanvas().style.cursor = "help"; }
     };
     const leave = () => { tooltip.hide(); map.getCanvas().style.cursor = ""; };
-    map.on("mousemove", "projection-hit", move);
-    map.on("mouseleave", "projection-hit", leave);
-    return () => { map.off("mousemove", "projection-hit", move); map.off("mouseleave", "projection-hit", leave); tooltip.hide(); map.getCanvas().style.cursor = ""; };
+    map.on("mousemove", LAYERS.projectionHit, move);
+    map.on("mouseleave", LAYERS.projectionHit, leave);
+    return () => { map.off("mousemove", LAYERS.projectionHit, move); map.off("mouseleave", LAYERS.projectionHit, leave); tooltip.hide(); map.getCanvas().style.cursor = ""; };
   }, [map]);
 
   const heading = (live?.true_track ?? flight.true_track ?? 0) - 90;
@@ -990,7 +991,7 @@ function FallbackAircraft({ position, look }: { position: [number, number]; look
 
 /** Faint lines through the positions this page has seen for each aircraft. */
 const TRAIL_LAYERS: LayerSpecification[] = [
-  { id: "trails", type: "line", source: "trails", layout: { "line-cap": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-opacity": 0.5 } },
+  { id: LAYERS.trails, type: "line", source: "trails", layout: { "line-cap": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-opacity": 0.5 } },
 ];
 
 function Trails({ trails }: { trails: Array<{ icao24: string; positions: [number, number][]; color: string }> }) {
@@ -1005,8 +1006,8 @@ function Trails({ trails }: { trails: Array<{ icao24: string; positions: [number
 }
 
 const ACCURACY_LAYERS: LayerSpecification[] = [
-  { id: "accuracy-fill", type: "fill", source: "accuracy", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } },
-  { id: "accuracy-line", type: "line", source: "accuracy", paint: { "line-color": ["get", "color"], "line-width": 1, "line-opacity": 0.5 } },
+  { id: LAYERS.accuracyFill, type: "fill", source: "accuracy", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } },
+  { id: LAYERS.accuracyLine, type: "line", source: "accuracy", paint: { "line-color": ["get", "color"], "line-width": 1, "line-opacity": 0.5 } },
 ];
 
 /** The visitor's position: an accuracy circle and a pulsing dot. */
@@ -1079,9 +1080,9 @@ interface KeptSnapshot {
   states: LiveAircraft[];
 }
 
-/** How old the positions on the map were when the last answer reached the browser. */
+/** When the positions on the map were taken (unix seconds, null when unknown) and when the last answer reached the browser. */
 interface LastAnswer {
-  ageSeconds: number;
+  time: number | null;
   receivedAt: number;
 }
 
@@ -1393,7 +1394,7 @@ export function FlightMap({
           response = await localCell(tile);
         }
         if (controller.signal.aborted) return;
-        lastAnswerRef.current = { ageSeconds: wideView && response.degraded ? response.age_seconds ?? 0 : 0, receivedAt: Date.now() };
+        lastAnswerRef.current = { time: response.time, receivedAt: Date.now() };
         rememberAircraft(response.states);
         for (const aircraft of response.states) {
           retained.set(aircraft.icao24, aircraft);
@@ -1501,7 +1502,7 @@ export function FlightMap({
   // A broad viewport can contain thousands of aircraft. Keep the detailed
   // plane icons for normal views, then switch to the map's WebGL layer so
   // zooming out does not turn every aircraft into a DOM subtree.
-  const denseTraffic = visibleStates.length > 750;
+  const denseTraffic = visibleStates.length > DENSE_AIRCRAFT_THRESHOLD;
   // Trails come from successive live snapshots, so they cost no request and
   // start when the page opens. Only airborne aircraft keep one.
   const trailPointsRef = useRef(new Map<string, [number, number][]>());
@@ -1541,7 +1542,7 @@ export function FlightMap({
     return () => clearInterval(timer);
   }, [liveState.cause]);
   const lastAnswer = lastAnswerRef.current;
-  const snapshotAge = lastAnswer ? lastAnswer.ageSeconds + Math.max(0, statusNow - lastAnswer.receivedAt) / 1000 : null;
+  const snapshotAge = lastAnswer ? snapshotAgeSeconds(lastAnswer, statusNow) : null;
   const liveStatus = liveState.cause && !(liveState.fetching && liveState.loadedTiles === 0 && !hasLiveSnapshot)
     ? describeLiveStatus({ count: filteredCount, cause: liveState.cause, ageSeconds: snapshotAge, reducedCoverage: Boolean(liveState.reducedCoverage) })
     : liveState.error || liveState.failedTiles > 0

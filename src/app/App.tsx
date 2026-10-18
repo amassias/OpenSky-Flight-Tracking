@@ -25,6 +25,7 @@ import { getUnits, setUnits } from "../shared/units";
 import { NO_FILTERS, activeFilterCount, filterAircraft, type MapFilters } from "../features/map/mapFilters";
 import type { Airport, Flight, FlightMode, LiveAircraft, LiveFlightsResponse, MapTheme, MapView } from "../shared/types";
 import { matchingFlightTrack, emergencyInfo, liveAircraftToFlight, parseMapView, todayUtc } from "../shared/utils";
+import { MapHint } from "./components/MapHint";
 
 // Panels that only appear after an interaction load on demand, keeping them out of the entry chunk.
 const AirportTab = lazy(() => import("../features/airports/components/AirportTab").then(module => ({ default: module.AirportTab })));
@@ -34,7 +35,6 @@ if (typeof window !== "undefined") {
   if ("requestIdleCallback" in window) window.requestIdleCallback(prefetch, { timeout: 4000 });
   else setTimeout(prefetch, 2000);
 }
-import { MapHint } from "./components/MapHint";
 const Onboarding = lazy(() => import("./components/Onboarding").then(module => ({ default: module.Onboarding })));
 const ShortcutsDialog = lazy(() => import("./components/ShortcutsDialog").then(module => ({ default: module.ShortcutsDialog })));
 

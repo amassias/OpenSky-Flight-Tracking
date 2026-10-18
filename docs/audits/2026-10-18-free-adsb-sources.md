@@ -93,3 +93,12 @@ Respecter le principe du projet : une position projetée reste une estimation, s
 - Performance de `IconLayer` / MapLibre `updateData` à 10 000+ icônes animées (aucun benchmark primaire trouvé ni exécuté).
 - Couverture géographique réelle d'OpenSky ; la production de SkyTrace dispose-t-elle d'identifiants OpenSky valides (non vérifié, `.env` volontairement non lu).
 - OpenSky depuis une IP de datacenter : le test global anonyme a été fait depuis une IP résidentielle ; un blocage ou une limitation côté Vercel n'est pas exclu.
+
+## Not verified, needs a deploy
+
+Nothing below could be measured from a development machine. None of it is assumed to work; check each after the first deploy (spec #11, ticket #13).
+
+- **Vercel Hobby limits.** Function duration, fair use and the real behaviour of the CDN cache (`s-maxage=60`, `stale-while-revalidate`) for `/api/global-snapshot` were not observed. Check on the deployed URL: the `x-vercel-cache` header goes from MISS to HIT on a second request, and the function logs show one OpenSky call per 115 s, not per visitor.
+- **OpenSky from a datacenter IP.** The anonymous worldwide call was made from a residential IP. Whether OpenSky answers, throttles or blocks Vercel's IP ranges, with or without OAuth credentials, is unknown. Check the function logs for a 403 or 429 on the first calls.
+- **Credentials in production.** Whether production holds valid OpenSky credentials was not checked (`.env` deliberately not read).
+- **Credit spend across instances.** The daily budget counter is per function instance (ADR 0008). Compare OpenSky's own credit usage with 3,000 a day after a few days of traffic.

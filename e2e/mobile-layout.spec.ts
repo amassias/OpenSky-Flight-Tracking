@@ -75,6 +75,13 @@ test("map icons name themselves on keyboard focus", async ({ page }) => {
     const button = page.getByRole("button", { name }).first();
     await button.focus();
     const tip = await button.evaluate((element) => getComputedStyle(element, "::after").content);
-    expect(tip, name).toContain(name);
+    // Firefox reports the unresolved attr(aria-label) as the computed content; the rule is the same,
+    // so there the tip is proven by the label it reads from.
+    if (tip.includes("attr(")) {
+      expect(tip, name).toBe("attr(aria-label)");
+      await expect(button, name).toHaveAttribute("aria-label", name);
+    } else {
+      expect(tip, name).toContain(name);
+    }
   }
 });
