@@ -32,4 +32,5 @@ export function mapColors(theme: MapTheme): MapColors {
   return colors;
 }
 
+/** Test seam: forget the colours read from the page, so the next read sees a new stylesheet. */
 export function resetMapColors() { cache.clear(); }

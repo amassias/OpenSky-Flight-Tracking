@@ -15,7 +15,7 @@ npx playwright test --project=chromium   # when the UI changed
 ## Rules
 
 - Write the failing test first for behaviour changes; fix flaky tests, never retry them away.
-- Prefer deep modules: small interfaces, logic behind them. `src/app/App.tsx`, `backend/server.py` and `backend/api_client.py` are the known shallow, oversized files (see migrated tasks B66–B68 in GitHub Issues).
+- Prefer deep modules: small interfaces, logic behind them. `src/app/App.tsx`, `src/features/map/components/FlightMap.tsx` (about 1,700 lines: camera, layers, live fetching and status in one file; split along those seams when next changed), `backend/server.py` and `backend/api_client.py` are the known shallow, oversized files (see migrated tasks B66–B68 in GitHub Issues).
 - Do not add a dependency without a measured reason in the commit message.
 - Keep labels honest: source and age on every data point.
 - Record a decision in `docs/adr/` when it is hard to reverse, surprising, or the result of a real trade-off.

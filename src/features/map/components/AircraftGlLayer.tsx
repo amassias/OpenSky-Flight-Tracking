@@ -6,7 +6,7 @@ import { subscribeToFrame } from "../aircraftMotion";
 import { glyphImageUrl } from "../aircraftGlyph";
 import { AircraftFrames, updateIntervalMs, type DrawnAircraft } from "../aircraftLayer";
 import { fromGlZoom } from "../mapCamera";
-import { addLayerInOrder, emptyCollection } from "../mapLayers";
+import { LAYERS, addLayerInOrder, emptyCollection } from "../mapLayers";
 import { useMapHandle } from "../mapHandle";
 
 /** Texture size of one silhouette; displayed scaled to its `size` in CSS pixels. */
@@ -75,7 +75,7 @@ export function AircraftGlLayer({ aircraft, theme, previewId, excludeId, exclude
 
     map.addSource("aircraft", { type: "geojson", data: emptyCollection() });
     addLayerInOrder(map, {
-      id: "aircraft", type: "symbol", source: "aircraft",
+      id: LAYERS.aircraft, type: "symbol", source: "aircraft",
       layout: {
         "icon-image": ["get", "icon"], "icon-size": ["get", "scale"], "icon-rotate": ["get", "rot"],
         "icon-rotation-alignment": "map", "icon-allow-overlap": true, "icon-ignore-placement": true,
@@ -173,7 +173,7 @@ export function AircraftGlLayer({ aircraft, theme, previewId, excludeId, exclude
       refresh.current = null;
       for (const cleanup of cleanups.reverse()) cleanup();
       try {
-        if (map.getLayer("aircraft")) map.removeLayer("aircraft");
+        if (map.getLayer(LAYERS.aircraft)) map.removeLayer(LAYERS.aircraft);
         if (map.getSource("aircraft")) map.removeSource("aircraft");
         for (const key of ready) map.removeImage(key);
       } catch { /* the map was removed first */ }

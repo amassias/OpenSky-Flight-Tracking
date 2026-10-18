@@ -176,7 +176,7 @@ SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks a
 
 - **One accent.** `accent` (#2997ff on dark, #0066cc on light) marks every action: primary button, focus ring, links, the selected aircraft and the route end. There is no second brand colour.
 - **Status is semantic, not decorative.** `ok` means airborne or live. `warn` is reserved for a degraded feed (paused, offline, signal alert) and `danger` for errors. Aircraft on the ground are grey, never orange.
-- **Aircraft ink.** Every marker uses `aircraft` ink (white on dark, near-black on light), including the dense canvas silhouettes, so zooming never changes an aircraft's colour.
+- **Aircraft ink.** Every marker uses `aircraft` ink (white on dark, near-black on light), including the dense WebGL silhouettes of the MapLibre aircraft layer, so zooming never changes an aircraft's colour.
 - Known ICAO types use model-specific overhead silhouettes from a shared SVG sprite. Their outlines and proportions distinguish aircraft while retaining the same ink, heading and state colours. Unmapped types use the existing category symbols; a family match is representative, not an exact airframe-variant claim.
 - **Altitude ramp.** A cool, ordered ramp (cyan to blue, indigo, purple, pink) colours the selected track and its legend only.
 - **One source for map colours.** Map layers (paths and silhouettes drawn by MapLibre GL) cannot use CSS variables, so `mapColors(theme)` in `mapColors.ts` reads `--aircraft`, `--aircraft-ground`, `--accent`, `--halo` and `--danger` from the theme once per theme. The stylesheet is the only place those values are written.
@@ -184,11 +184,13 @@ SkyTrace is an operate-mode instrument: a visitor explores live traffic, picks a
 
 ## Typography
 
-System type first: `-apple-system`/SF on Apple platforms, Inter (loaded from Google Fonts in `index.html`) elsewhere. The size ladder is 12 / 13 / 14 / 15 / 16 / 17 / 20 / 22 / 28 / 30 px (`label`, `caption`, `body`, `lead`, `body-strong`, `title`, `readout`, `headline`, `display`, `numeral`). The weight ladder is 400 / 500 / 600 (650 for the route `numeral`), with headlines at 600 and tight negative tracking. Numbers use `font-variant-numeric: tabular-nums` instead of a monospace face, and uppercase tracked labels are not used. The UI floor is 12px.
+System type only: `-apple-system`/SF on Apple platforms, then `Inter`, `Segoe UI` and `system-ui` where the device already has them. No web font is loaded (the Google Fonts request was removed in issue #18), so Inter is used only when installed. The size ladder is 12 / 13 / 14 / 15 / 16 / 17 / 20 / 22 / 28 / 30 px (`label`, `caption`, `body`, `lead`, `body-strong`, `title`, `readout`, `headline`, `display`, `numeral`). The weight ladder is 400 / 500 / 600 (650 for the route `numeral`), with headlines at 600 and tight negative tracking. Numbers use `font-variant-numeric: tabular-nums` instead of a monospace face, and uppercase tracked labels are not used. The UI floor is 12px.
 
 ## Layout
 
 The map fills the workspace beneath the top bar. The desktop flight dock opens on the left, and the traffic/airport panel occupies the right. At 900 px and below, selected-flight details replace the traffic bottom sheet and can expand into reading mode. See the desktop layout below for panel dimensions and anchoring.
+
+**Hit area.** `--hit-min` (44 px, in `styles.css`) is the one minimum size of a touch target. At 900 px and below, or on a coarse pointer, every icon button, tab, segmented control, secondary and clear button gets `min-width` and `min-height` of `var(--hit-min)`; panels that sit beside a close button reserve it in their padding. Desktop pointers keep the compact 32 px controls.
 
 ## Elevation & Depth
 

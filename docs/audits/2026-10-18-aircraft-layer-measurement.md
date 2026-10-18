@@ -25,3 +25,11 @@ The first version updated the source at a fixed 10 Hz. In the real app that gave
 - **No basemap tiles** (the run does not wait for or measure tile loading), so tile decoding and compositing are not in the figures.
 - **Close zoom** (update interval 100 ms to 400 ms) was not benchmarked with 10,000 aircraft, since a close view holds far fewer; the 100 ms interval is the prototype's measured 10 Hz case.
 - No power, thermal or memory measurement; no run longer than 10 s.
+
+## Not verified, needs a real phone
+
+Spec #11, ticket #23 asked for 30 fps on a phone. This was not measured on a phone, so the criterion is open, not met.
+
+- **Real mid-range phone.** Run `scripts/bench-aircraft-layer.mjs` against a mid-range Android phone (Chrome remote debugging) with the real basemap and 10,000 aircraft. The pass line is the one in ADR 0009: average at least 30 fps and p95 frame at most 50 ms over 10 s of pan and zoom, and no main-thread task over 50 ms each second while idle. Below that, switch to deck.gl as ADR 0009 describes.
+- **Real basemap tiles on a phone**, including their decoding and compositing next to the layer.
+- **A run longer than 10 s**, with power, thermal and memory readings.

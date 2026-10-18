@@ -1,7 +1,7 @@
+import { emergencyInfo } from "../../shared/utils";
+
 export type LabelLevel = 0 | 1 | 2 | 3;
 export const labelLevelForZoom = (zoom: number): LabelLevel => zoom >= 12 ? 3 : zoom >= 10 ? 2 : zoom >= 8 ? 1 : 0;
-
-import { emergencyInfo } from "../../shared/utils";
 
 /** Nearest-to-centre labels need at least this zoom (the level at which callsigns start to show). */
 export const NEAREST_LABEL_MIN_ZOOM = 8;
