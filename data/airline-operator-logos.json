@@ -1,0 +1,3701 @@
+{
+  "AAW": {
+    "iata": "8U",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Afriqiyah Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6a118b75c4ed3d11b9026d14583c785cceb86b4e4b41b6121323eb90eee64ce9",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AAW.png",
+    "url": "/airline-logos/operators/AAW.png"
+  },
+  "ACP": {
+    "iata": "8V",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Astral Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "51f3a86129f93d3348da0171d35ec9e521f87f17374220661204740ff1e68e2f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ACP.png",
+    "url": "/airline-logos/operators/ACP.png"
+  },
+  "ADB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Antonov Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ac87abf53310392143c62b25fdf04ff79a3e3d4e21da8d6aa237ff0481d04a87",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ADB.png",
+    "url": "/airline-logos/operators/ADB.png"
+  },
+  "ADO": {
+    "iata": "HD",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Do",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5784d5e9ad7122c53384eeedbd1bfc98f45f8dd5f12e965f7e09536207a287fa",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ADO.png",
+    "url": "/airline-logos/operators/ADO.png"
+  },
+  "AEG": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Airest",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "85ac967fd2053f33f3b6ae867d4547b763f811f049035fe7c7231e5d0c3c5f81",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AEG.png",
+    "url": "/airline-logos/operators/AEG.png"
+  },
+  "AER": {
+    "iata": "KO",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alaska Central Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "546dce973f979f927202e3e85a059074273921a79ee266c7a4b0e5efa0e40807",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AER.png",
+    "url": "/airline-logos/operators/AER.png"
+  },
+  "AFG": {
+    "iata": "FG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ariana Afghan Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "1b16a143d0e94f008fb8049587455a9d0da4519dd5d375e989f89e5d729f067a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AFG.png",
+    "url": "/airline-logos/operators/AFG.png"
+  },
+  "AGU": {
+    "iata": "2G",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Angara Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "cceec57cdd967b39502cc193d35611664d3b3626816ae3b70ee04482be2b8bf7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AGU.png",
+    "url": "/airline-logos/operators/AGU.png"
+  },
+  "AHO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Hamburg",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b32f5b85d4e3335cd897495face7f4c12fec3c801a2d7ab43d102b19bfccfc17",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AHO.png",
+    "url": "/airline-logos/operators/AHO.png"
+  },
+  "AIE": {
+    "iata": "3H",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Inuit",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7cca5dd83764539522680035b3122b3b02112da071d3da183780c0aeb9da7a97",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AIE.png",
+    "url": "/airline-logos/operators/AIE.png"
+  },
+  "AIP": {
+    "iata": "5A",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alpine Air Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "36d0dca45d32c1ba3a61524e9b3f9d1f4e6d3d43d7e42d15cf09e1e85f89d939",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AIP.png",
+    "url": "/airline-logos/operators/AIP.png"
+  },
+  "AJK": {
+    "iata": "4W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Allied Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c6c4ea3c86fdc05a7c4c43b9f78badeaa53e74e187de73ad86e2e61f80305f3d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AJK.png",
+    "url": "/airline-logos/operators/AJK.png"
+  },
+  "AJT": {
+    "iata": "M6",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Amerijet International",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5834e52d5add86972459b5eba0a12c6d2d0ff316fe4418f6ab607ddae7eac36c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AJT.png",
+    "url": "/airline-logos/operators/AJT.png"
+  },
+  "AKN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alkan Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "119a63c29282f144616308d1278554386e485f8e5935dd41e34c0049a00c05ae",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AKN.png",
+    "url": "/airline-logos/operators/AKN.png"
+  },
+  "AMF": {
+    "iata": "A8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ameriflight",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d857cf5780b9e2d63283fc71bd8df623976e83f512f7a7d474241a20bcfcda40",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AMF.png",
+    "url": "/airline-logos/operators/AMF.png"
+  },
+  "AMQ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AMC Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a3e4a38c9f090be78797625d066314fc0dac54000d99b4f5b0788245d691d6fb",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AMQ.png",
+    "url": "/airline-logos/operators/AMQ.png"
+  },
+  "AMV": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AMC Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "37e0c7ff6b1c7829f586afbab811840bcd865079c5defb78677987accbaa227a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AMV.png",
+    "url": "/airline-logos/operators/AMV.png"
+  },
+  "ANS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Andes Lineas Aereas",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6bd416e25b63342ed35917f1e2a5c6ed22bae581b1805a22ab2276097753362c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ANS.png",
+    "url": "/airline-logos/operators/ANS.png"
+  },
+  "ANT": {
+    "iata": "4N",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air North",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c6db04b12d4ae3d77b3f57cc343fc33d46ee98223474a2679694ba5331978983",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ANT.png",
+    "url": "/airline-logos/operators/ANT.png"
+  },
+  "AOJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avcon Jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ae42df8ea03ceaf575e1c5e5d2a6ac78453089d937cf893916825b0e7449658c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AOJ.png",
+    "url": "/airline-logos/operators/AOJ.png"
+  },
+  "APC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Airpac Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "63ae0c1302a1e9438c67986483d1113b1ebb7f7dc65786c71b67631764bd3f81",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/APC.png",
+    "url": "/airline-logos/operators/APC.png"
+  },
+  "APJ": {
+    "iata": "MM",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Peach",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f409ae55e56cee555a46c035c6d9bf6fbf2d90c2cea17d85a387288e4e401c2e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/APJ.png",
+    "url": "/airline-logos/operators/APJ.png"
+  },
+  "AQS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Airstream",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7bb1a824fd2f3cc2ddf2d34c72d579957d6dabd7c2fed34f2723c4617eb95afd",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AQS.png",
+    "url": "/airline-logos/operators/AQS.png"
+  },
+  "ARA": {
+    "iata": "W3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Arik Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d138704274dc2a178a9212df5e701518e2e683460423b705126c4523a4e17d76",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ARA.png",
+    "url": "/airline-logos/operators/ARA.png"
+  },
+  "ART": {
+    "iata": "6Y",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "SmartLynx",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "cfd5d88fcd17c713d1730f7c3b4fe7c7fea6cc02d99317f8a77a504bf4f4306c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ART.png",
+    "url": "/airline-logos/operators/ART.png"
+  },
+  "ARU": {
+    "iata": "AG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aruba Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ee1921226b464c0bd60d79b096b034eb822df5ef82011a44f88f18721c55b748",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ARU.png",
+    "url": "/airline-logos/operators/ARU.png"
+  },
+  "ASH": {
+    "iata": "YV",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Mesa Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "096677168389c1eea3c9e3bed0c48884f1beea14fb663ea322296ac68d832068",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ASH.png",
+    "url": "/airline-logos/operators/ASH.png"
+  },
+  "ASJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Astonjet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8fa10938fcd88b7ed52b536f8cc840652063a40a30e7a54df04012c71bd2596b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ASJ.png",
+    "url": "/airline-logos/operators/ASJ.png"
+  },
+  "ASP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirSprint",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "20fd84df6c6cca0b84922457de98533db5a3d1a3d05994ccd26a155ecbe74048",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ASP.png",
+    "url": "/airline-logos/operators/ASP.png"
+  },
+  "ASV": {
+    "iata": "RS",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Seoul",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "923ce2398cf222bd2e8fb7f3cf7242559be659ade253028a127d83d5e2f0a5ec",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ASV.png",
+    "url": "/airline-logos/operators/ASV.png"
+  },
+  "ATL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Atlas Air Service",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e2659bc8bb32848934b21752fff6fc86b6d73f2a9fb47040903eb007d2dd70bd",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ATL.png",
+    "url": "/airline-logos/operators/ATL.png"
+  },
+  "ATN": {
+    "iata": "8C",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Transport International",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "919bb43562133ce60f7b8225303873e2375caedd0125d205803abe748c476d30",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ATN.png",
+    "url": "/airline-logos/operators/ATN.png"
+  },
+  "ATV": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avanti Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "aa01fe800a7f1dd7ef9d1d95ea69888e861a56bbc86cc4fa54a4ba3264548479",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ATV.png",
+    "url": "/airline-logos/operators/ATV.png"
+  },
+  "ATX": {
+    "iata": "T6",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirSWIFT",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "77f7766b93bf5a344ed7a0caa5ed7286dac62f6222f0ed4eb23752932daa74ff",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ATX.png",
+    "url": "/airline-logos/operators/ATX.png"
+  },
+  "AUI": {
+    "iata": "PS",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ukraine International Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e687600ea912ede674e497e76dbc1975957758b3c85d116d30e986996e36d244",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AUI.png",
+    "url": "/airline-logos/operators/AUI.png"
+  },
+  "AUR": {
+    "iata": "GR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aurigny Air Services",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7c44631ac26d1e513abf68ed2c32ae2fe8787d841c2f91bd465009a9b01f97ad",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AUR.png",
+    "url": "/airline-logos/operators/AUR.png"
+  },
+  "AVJ": {
+    "iata": "YK",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avia Traffic",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a96a1b3685afbe4ab761d93d3f0618399e884ba1b0c1b20415d6e9dca1b690ec",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AVJ.png",
+    "url": "/airline-logos/operators/AVJ.png"
+  },
+  "AWC": {
+    "iata": "ZT",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Titan Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "03261520365de4ffd10db56ba11ac26145165e8e75b8062934482f7477cf0e6a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AWC.png",
+    "url": "/airline-logos/operators/AWC.png"
+  },
+  "AWI": {
+    "iata": "ZW",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Wisconsin",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6f7d021dc20d5da0e94a29731a83c16215336bb72faeb6cfd5fa5c367d53fe34",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AWI.png",
+    "url": "/airline-logos/operators/AWI.png"
+  },
+  "AWU": {
+    "iata": "7E",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sylt Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "1796e52a7b94bce643c15e335079afb185b855ce8a7eabddee2a700f3b2ababa",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AWU.png",
+    "url": "/airline-logos/operators/AWU.png"
+  },
+  "AXK": {
+    "iata": "XU",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "African Express Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c40c6057eb78a2979489e718e2b58188bcc44bdc4338d1f8c249bee605294e60",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AXK.png",
+    "url": "/airline-logos/operators/AXK.png"
+  },
+  "AYY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Alliance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e5c636809903bb6fec5715cac6dd7e5ce02ef217016e8de7b2f65ca9a5147fd3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AYY.png",
+    "url": "/airline-logos/operators/AYY.png"
+  },
+  "AZN": {
+    "iata": "Z8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Amas",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "61dc9253c2f057aefe528f0830002bfbebdb4e55d657b562922601c029070eb0",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AZN.png",
+    "url": "/airline-logos/operators/AZN.png"
+  },
+  "AZS": {
+    "iata": "ZR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aviacon Zitotrans",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ab90b06422a17d997552899352fa7651f208d7e1d420a93d023dc8bff13a007c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AZS.png",
+    "url": "/airline-logos/operators/AZS.png"
+  },
+  "AZV": {
+    "iata": "ZF",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Azur Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fd3bd4eddf05ffdc43f2ca8954cea20e0eeddd26f93b4bf6bfd2d40d841d283b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AZV.png",
+    "url": "/airline-logos/operators/AZV.png"
+  },
+  "AZW": {
+    "iata": "UM",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Zimbabwe",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "03765d9b006458bace201f8b82195c754ac32351fa1bbbadf28a3138eda79352",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/AZW.png",
+    "url": "/airline-logos/operators/AZW.png"
+  },
+  "BAY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bravo Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9acf28c2a5511987918325989279ea7dce89596e6271cf2249070cffba363988",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BAY.png",
+    "url": "/airline-logos/operators/BAY.png"
+  },
+  "BCV": {
+    "iata": "3B",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bestfly Cabo Verde",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8dacde7393c94dcf222bd2dd53508089becc76ac2daa4e14d4e56bdfdd8d30e2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BCV.png",
+    "url": "/airline-logos/operators/BCV.png"
+  },
+  "BFF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Nunavut",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "eabd10c9fcdb291843baf63cc42b7a333583a3c3c4ab26b2d2463456a22fc3df",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BFF.png",
+    "url": "/airline-logos/operators/BFF.png"
+  },
+  "BFY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bestfly Aruba",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8dacde7393c94dcf222bd2dd53508089becc76ac2daa4e14d4e56bdfdd8d30e2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BFY.png",
+    "url": "/airline-logos/operators/BFY.png"
+  },
+  "BHL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bristow Helicopters",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c9150c4a6c980fa0a2283d310635c794552b92b39a6a89047b14325adaec8c4f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BHL.png",
+    "url": "/airline-logos/operators/BHL.png"
+  },
+  "BID": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "BinAir",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "436954292fb0396e6eb79fedd11eea7461f8bb9a3c09f00e18c8fa93e49886de",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BID.png",
+    "url": "/airline-logos/operators/BID.png"
+  },
+  "BIO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bioflight",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a1f30f639449a0c4a4a8772fc993d36b424240e05d105e8067fb36964fd618d3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BIO.png",
+    "url": "/airline-logos/operators/BIO.png"
+  },
+  "BMJ": {
+    "iata": "CH",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bemidji Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b394d4e38aa0ad4f7ce0a6bb26344bbe0cf27d028e8628b6ed570c18b4e45f27",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BMJ.png",
+    "url": "/airline-logos/operators/BMJ.png"
+  },
+  "BNO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Babcock Scandinavian AirAmbulance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ff43d3b6f9904582205da8fc3bad4d190777ebf88c807e6abc6c2b81c6917e37",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BNO.png",
+    "url": "/airline-logos/operators/BNO.png"
+  },
+  "BOE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Boeing",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6541680cd450145e7b8f08fc15d912b525047dd740cca710916fbe2a5d855b46",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BOE.png",
+    "url": "/airline-logos/operators/BOE.png"
+  },
+  "BOX": {
+    "iata": "3S",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AeroLogic",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "76a15cea9b1c857a1770bfa3531a5f46c6769933e135ee82ffa13b0af67a7da8",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BOX.png",
+    "url": "/airline-logos/operators/BOX.png"
+  },
+  "BRG": {
+    "iata": "8E",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bering Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "52647e167a236ff609044cde6822e88bc68c04348c2b76661cea6cd98f6c743c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BRG.png",
+    "url": "/airline-logos/operators/BRG.png"
+  },
+  "BRJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bairline",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3aefc64d57c4e85394ee0eddf6c70b4a8f087c31364863a381c551260f266974",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BRJ.png",
+    "url": "/airline-logos/operators/BRJ.png"
+  },
+  "BRO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "2Excel Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0a16e9519e69381cd708ab898048cf561836eda6f0019d063177a323cc4d27f6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BRO.png",
+    "url": "/airline-logos/operators/BRO.png"
+  },
+  "BRQ": {
+    "iata": "UZ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Buraq Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "759049540b22a69856f232989ce6559361f9ddce375029d3ad2b86b79ccfb223",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BRQ.png",
+    "url": "/airline-logos/operators/BRQ.png"
+  },
+  "BSX": {
+    "iata": "5B",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bassaka Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ffe672f4b0a01bbf61b508eb602e50f04936e1cc173cf8a9b65d7fc67ba2eba5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BSX.png",
+    "url": "/airline-logos/operators/BSX.png"
+  },
+  "BTA": {
+    "iata": "XE",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "ExpressJet Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "340cdd4be24431fbb44d8a29840dab893008d0ee8172400c65c45229218ca74b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BTA.png",
+    "url": "/airline-logos/operators/BTA.png"
+  },
+  "BTQ": {
+    "iata": "4B",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Boutique Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "040542d69ca1efd7ba95030b104aacdbf2e5e59f81dc8679ba3fd5c3f30ccb06",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BTQ.png",
+    "url": "/airline-logos/operators/BTQ.png"
+  },
+  "BTX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "VW Air Service",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0967471036516284247b8c485bbde08af415705854fd3894b9a663aac892052b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BTX.png",
+    "url": "/airline-logos/operators/BTX.png"
+  },
+  "BUR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Bucharest",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fe0b9a0f2ae374a52737e938e8d285c50753b0dfbd35564f71f7ea10569f72c6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BUR.png",
+    "url": "/airline-logos/operators/BUR.png"
+  },
+  "BVL": {
+    "iata": "LB",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Bul Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2e9f52d9c413b34554705d789294ba5125b22df1227ba55b6d8ccefb3ba9247c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BVL.png",
+    "url": "/airline-logos/operators/BVL.png"
+  },
+  "BYA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Berry Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6c44311fe2f54d65a0f003f47586ad597b94ecaac0d098ba1338ab5646bb4563",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/BYA.png",
+    "url": "/airline-logos/operators/BYA.png"
+  },
+  "CAD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cardig Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9f45b9aea104115cf4d0eddd641935c9970ac45170d7d19b1a6326cf47d4515f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CAD.png",
+    "url": "/airline-logos/operators/CAD.png"
+  },
+  "CAO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air China Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "de6b54d171d7c4561fcea87d01b07a1619a1dfc1390245a4762be528c44c429b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CAO.png",
+    "url": "/airline-logos/operators/CAO.png"
+  },
+  "CAT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Copenhagen Airtaxi",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "43346f126099f674424f0a37c799126867c1c657fcb92adc93b8730203cb2677",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CAT.png",
+    "url": "/airline-logos/operators/CAT.png"
+  },
+  "CAY": {
+    "iata": "KX",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cayman Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5961aa626634f445869483f609d61b73b34215c023ba5da4f6a4fa7b94e3a465",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CAY.png",
+    "url": "/airline-logos/operators/CAY.png"
+  },
+  "CCD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Dalian Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6e959ac77331e2ff511d072eed644ed975d5d0b57e9f4c0ed006e7910b63eb18",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CCD.png",
+    "url": "/airline-logos/operators/CCD.png"
+  },
+  "CEY": {
+    "iata": "Y2",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Century",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b8109e9d3ada68c399ba7833a913ad751633fba5af48413f5e6f49706f75f090",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CEY.png",
+    "url": "/airline-logos/operators/CEY.png"
+  },
+  "CFC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Royal Canadian Air Force",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2ce8df67988ce174e9e0d9b96dd65626464b3e5d4dc49b70304fc025f9655aa1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CFC.png",
+    "url": "/airline-logos/operators/CFC.png"
+  },
+  "CGF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cargo Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "4fbe171be7d9800ba4387313e6e7484913d7c3c708d1c56d1d14a240f7b38238",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CGF.png",
+    "url": "/airline-logos/operators/CGF.png"
+  },
+  "CHC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "CITIC Offshore Helicopter",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "058f95024dada80540c2b0433ea071674296a38463a27e16a350b5c8f1e5ba3a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CHC.png",
+    "url": "/airline-logos/operators/CHC.png"
+  },
+  "CKS": {
+    "iata": "K4",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Kalitta Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "489e68284c3015f75b381e18c7a0d342a6e1ab3a5219ba663acbcf7b3a624362",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CKS.png",
+    "url": "/airline-logos/operators/CKS.png"
+  },
+  "CLA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Comlux Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "af31adf9eb906b2c748da3cc09e05a344ce849b827fd7515ad5299e6eda49fc2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CLA.png",
+    "url": "/airline-logos/operators/CLA.png"
+  },
+  "CLU": {
+    "iata": "P3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "CargoLogicAir",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "527579081500657d546865bbe5a7306be9a72efe770f57ee0f1cda010bac3b94",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CLU.png",
+    "url": "/airline-logos/operators/CLU.png"
+  },
+  "CMD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Calstar",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "cc03104cabb9ec118a4fcb0fdad8eee0247f303b9f81751c21d3ea8188df4e4e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CMD.png",
+    "url": "/airline-logos/operators/CMD.png"
+  },
+  "CMS": {
+    "iata": "Z7",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Camex Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "70c035859a44f4ee491e8ed4c05dda57cc61e107a9886f0e75c7dbf525289fd6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CMS.png",
+    "url": "/airline-logos/operators/CMS.png"
+  },
+  "CNK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sunwest Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8c0d79569f483da158dd3a2fadfdfd154bed1e9186ef67e8998fbef230e31dba",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CNK.png",
+    "url": "/airline-logos/operators/CNK.png"
+  },
+  "CNM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air China Inner Mongolia",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b3d38a4e07766fd8f8a19d3ec7a67d5c2205c1360d7763241bc40fe01441af92",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CNM.png",
+    "url": "/airline-logos/operators/CNM.png"
+  },
+  "CNS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "PlaneSense",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "37b7293cc01b362d8b0b903545310a1935566a8d81c8d580d5c3b14d0e45f080",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CNS.png",
+    "url": "/airline-logos/operators/CNS.png"
+  },
+  "CPN": {
+    "iata": "RV",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Caspian Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8cf60f348ef22fc437006f8471505e5e8bad8c67d91a012f2a6b3297e783d8cc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CPN.png",
+    "url": "/airline-logos/operators/CPN.png"
+  },
+  "CQN": {
+    "iata": "OQ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Chongqing Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2c8b0d8c6971d5e0d3cdf8c61009953a53fe67628dcaef15c2a067a055f2c7e7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CQN.png",
+    "url": "/airline-logos/operators/CQN.png"
+  },
+  "CRN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Carson Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "1aea1fa02833f24c8ba75c5269e5a06e842fcd996f92b2973b69decf729bbe6b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CRN.png",
+    "url": "/airline-logos/operators/CRN.png"
+  },
+  "CRQ": {
+    "iata": "YN",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Creebec",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "4adbcaf390cb785b8b5aa9e64cf6f3b41bf5378d1c8c53917916aa0f5abd04fc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CRQ.png",
+    "url": "/airline-logos/operators/CRQ.png"
+  },
+  "CSA": {
+    "iata": "OK",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Czech Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "950886c534534ce77c208bc5984a085d73ed218023f21d1098f087af51829319",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CSA.png",
+    "url": "/airline-logos/operators/CSA.png"
+  },
+  "CSB": {
+    "iata": "2I",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "21 Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "36e1fea4f370467be5ec5726dc36a233e2120ad1c55694ff00b0aae28d3ae120",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CSB.png",
+    "url": "/airline-logos/operators/CSB.png"
+  },
+  "CSI": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "CSI Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "60b27b754dfaff3767c9d7f4375997dff911ecd98037ed57889322cc27ddbdbe",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CSI.png",
+    "url": "/airline-logos/operators/CSI.png"
+  },
+  "CSJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Castle Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "03185ab31ab5ad31eda538949f3d3b56473516d487cb8e3d136d22851bceb788",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CSJ.png",
+    "url": "/airline-logos/operators/CSJ.png"
+  },
+  "CVK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cavok Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9e89badf1689ce9058eaf3b9bd161f9f44ef0fe49c5a133cbc6b239f9f9ee60d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CVK.png",
+    "url": "/airline-logos/operators/CVK.png"
+  },
+  "CVU": {
+    "iata": "YR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Grand Canyon Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e855c9c62de2293be1baa9b04404899afe09088be1067b496efecf53c84cb9d9",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/CVU.png",
+    "url": "/airline-logos/operators/CVU.png"
+  },
+  "DAN": {
+    "iata": "9J",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Dana Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "09a292b8ba02797a5e7be5fdbf556565aa864dd75c469878ac98422a8c364376",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DAN.png",
+    "url": "/airline-logos/operators/DAN.png"
+  },
+  "DAO": {
+    "iata": "D3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Daallo Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6149c6212a5df6eb41dc1a88e6dbb3ce1aeeede5fefd99ca500853ee47b50af0",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DAO.png",
+    "url": "/airline-logos/operators/DAO.png"
+  },
+  "DCS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "DC Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "94fd562b87d4297811eb6f8700ada40bf992b71a1e74b7837a5dce3e76b2016d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DCS.png",
+    "url": "/airline-logos/operators/DCS.png"
+  },
+  "DER": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Deer Jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b413277e48342a44dc1591653a231551db76638ace85f27b251309f4a885715a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DER.png",
+    "url": "/airline-logos/operators/DER.png"
+  },
+  "DFC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aeropartner",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "045f11eac566fb5da43e117f6e1d9d398d015a4171bc0355cf34ccccf15449ab",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DFC.png",
+    "url": "/airline-logos/operators/DFC.png"
+  },
+  "DFL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Babcock Scandinavian AirAmbulance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ff43d3b6f9904582205da8fc3bad4d190777ebf88c807e6abc6c2b81c6917e37",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DFL.png",
+    "url": "/airline-logos/operators/DFL.png"
+  },
+  "DLX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Dreamline Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ee1c0dc642b96c9fac4f8bd52670c6e8ff18bd7e6efa99aef06aa36e9195101e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DLX.png",
+    "url": "/airline-logos/operators/DLX.png"
+  },
+  "DPJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Delta Private Jets",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "94ad52e5c11c7b733a62634a6ed4942b24ddc724c8797ddb2c6e7da9eb5e0d35",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DPJ.png",
+    "url": "/airline-logos/operators/DPJ.png"
+  },
+  "DQA": {
+    "iata": "Q2",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Maldivian",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "89d2496242af2f067d78917f9eb0c8c5dfde5e4cec1c8987e8f83c5b00625d29",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DQA.png",
+    "url": "/airline-logos/operators/DQA.png"
+  },
+  "DRL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Omni Air Transport",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ab84a63e6744e7300372f299f73c03aefcb4d7747f55bcf8fcd44db605acbbad",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DRL.png",
+    "url": "/airline-logos/operators/DRL.png"
+  },
+  "DRU": {
+    "iata": "6R",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alrosa",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "60a133e85701e9015c1c0d4ff09f66d36e5aca34ecf54c725d0da87a09633a2d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DRU.png",
+    "url": "/airline-logos/operators/DRU.png"
+  },
+  "DTR": {
+    "iata": "DX",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "DAT",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8a0e57a7523a3f0c7ee6dd5c11fad12353c90d6defb4b947a31620b81a7fdee7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DTR.png",
+    "url": "/airline-logos/operators/DTR.png"
+  },
+  "DUB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Dubai Air Wing",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "06d60c5295802901ef0c774f8b9a6f5fc3adc0367c19d63269ecd4f105e4ad27",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DUB.png",
+    "url": "/airline-logos/operators/DUB.png"
+  },
+  "DZR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Midwest Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fe86a07d4e7bd732fdae71edf8226a48cbe1854ded90b4b473441eec9e4cd84a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/DZR.png",
+    "url": "/airline-logos/operators/DZR.png"
+  },
+  "ECA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Excellent Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ec291862e2c28704fe53ce292980d7bf1c690f084e3bd4eb1327764592a08d43",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ECA.png",
+    "url": "/airline-logos/operators/ECA.png"
+  },
+  "EDC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Charter Scotland",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ba99e3b92e7d2df2078223cd893b06054df317587d4c1a10c415ae2015f9c24d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EDC.png",
+    "url": "/airline-logos/operators/EDC.png"
+  },
+  "EDG": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jet Edge",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ea9c2a887cebf39250c7a373edf5138136f0d3c235defd16d9fb9af6cc2d638e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EDG.png",
+    "url": "/airline-logos/operators/EDG.png"
+  },
+  "EDR": {
+    "iata": "8W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fly AllWays",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f0ff58ed4f6c1e597a3a4feba3c653511dbf081a0c4274259a2facc66e48d75b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EDR.png",
+    "url": "/airline-logos/operators/EDR.png"
+  },
+  "EGC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Eagle Creek Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "18277b14401e7274be49981bb47ea4d0251e9a4aa9aa77612c1359193e3c727d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EGC.png",
+    "url": "/airline-logos/operators/EGC.png"
+  },
+  "EGL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Capital Air Ambulance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "68f801aba30e1d38c658524505c23d1ea85c59d3211c650afd2cd612751ec5e5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EGL.png",
+    "url": "/airline-logos/operators/EGL.png"
+  },
+  "EJM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Executive Jet Management",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b62b9acdbb0863f132b8fb162db4f2f9018f71d59e2d4a465b6930f383931904",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EJM.png",
+    "url": "/airline-logos/operators/EJM.png"
+  },
+  "EMB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Embraer",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d5adeb6d15acee858f39c95ed7b7a81abe0fe828a254757fa5a8119542285efc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EMB.png",
+    "url": "/airline-logos/operators/EMB.png"
+  },
+  "EMM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Emperor Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ad70ab0fc9a01c39b89d5233337868ab813a46bf140bdda16fe9bee4eb9055ef",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EMM.png",
+    "url": "/airline-logos/operators/EMM.png"
+  },
+  "EPA": {
+    "iata": "DZ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Donghai Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0ff03fe30b2eac7ee2b9b4df0699e36e6e47d8ee8fa49196ff9aac716894d794",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EPA.png",
+    "url": "/airline-logos/operators/EPA.png"
+  },
+  "EST": {
+    "iata": "EE",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Xfly",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9ccbc07ffbb7666bbf77176150737dfda3bdc15c300d879d97a9cf1c84b8b6c7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EST.png",
+    "url": "/airline-logos/operators/EST.png"
+  },
+  "EUW": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "European Flight Service",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "516d8d93eb65deeaf2d8464cc17498d1dc177508ea93506368ac8b3ee23cc18f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EUW.png",
+    "url": "/airline-logos/operators/EUW.png"
+  },
+  "EWR": {
+    "iata": "ZD",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "EWA Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dcfbd646548692094af1df24b9c58399bc0a965fdb90d03a8e5474627b5de29a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EWR.png",
+    "url": "/airline-logos/operators/EWR.png"
+  },
+  "EXS": {
+    "iata": "LS",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jet2",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "862b8ffffc571074d09a094c2fe21ad9faaa4b8fe1c5b197d8ae58cea83ce2e3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EXS.png",
+    "url": "/airline-logos/operators/EXS.png"
+  },
+  "EXV": {
+    "iata": "8D",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "FitsAir",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "32531db5544083fe6b910ae3d17543c78daa9d65b77cceebabb3fb66e10f11ce",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EXV.png",
+    "url": "/airline-logos/operators/EXV.png"
+  },
+  "EZA": {
+    "iata": "MG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Eznis Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "69421d54bc5e314f7a1cda62b8d5b569670e8e1019d47e09e77aced24b251a3e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EZA.png",
+    "url": "/airline-logos/operators/EZA.png"
+  },
+  "EZE": {
+    "iata": "T3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Eastern Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "683397c6edbfde537229af309040f73acc3ac2f021dc04b7299c7cb447cd9fa9",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EZE.png",
+    "url": "/airline-logos/operators/EZE.png"
+  },
+  "EZR": {
+    "iata": "7Z",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "EZ Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "940855c6b89760ac806a5af3880be8097a9637d800e3308a8083916ee032c3bc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/EZR.png",
+    "url": "/airline-logos/operators/EZR.png"
+  },
+  "FCK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flight Calibration Services",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "bd79e8d2d295c4c5d735b96396552e5c1dffb8c4061e2bd02dbdae393d0e1913",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FCK.png",
+    "url": "/airline-logos/operators/FCK.png"
+  },
+  "FDA": {
+    "iata": "JH",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fuji Dream Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "40bf4df1f33e0c5679e1b7ffe11aad6237139b656a17344589d242050912d960",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FDA.png",
+    "url": "/airline-logos/operators/FDA.png"
+  },
+  "FDY": {
+    "iata": "9X",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Southern Airways Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "af2bdd62da778c397d4233c8e41957c5035cde69b21df31a77e370c8c1b48f71",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FDY.png",
+    "url": "/airline-logos/operators/FDY.png"
+  },
+  "FEI": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Eagle Air Iceland",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3b97b0e2b6ef0f5d5f75743954bccf79f1adc4b44e10ecb16cf939c961e4c0f2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FEI.png",
+    "url": "/airline-logos/operators/FEI.png"
+  },
+  "FFD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Feuerwehr-Flugdienst Niedersachsen",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6a952db8b78ba7eef02790dfeeeff5cbc7e793d4fd0975c95c922e7b1a963ea6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FFD.png",
+    "url": "/airline-logos/operators/FFD.png"
+  },
+  "FGD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Conair",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e510960ddfdc5199a7de29e633954881e06e45a07b1da3c172de91ee549d5d84",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FGD.png",
+    "url": "/airline-logos/operators/FGD.png"
+  },
+  "FGW": {
+    "iata": "4V",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fly Gangwon",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5763c98cd54a9fc19e2ed9f56a66d4f5ca7999bf09ccfd2a499aac88ab31a084",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FGW.png",
+    "url": "/airline-logos/operators/FGW.png"
+  },
+  "FJL": {
+    "iata": "9P",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fly Jinnah",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dcbb41c116943d39576bbe521dfce6f173fbeeda8b7cde643d67dc979e44ffd6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FJL.png",
+    "url": "/airline-logos/operators/FJL.png"
+  },
+  "FJO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flexjet Operations Malta",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "858ae0dc1e9c41166c5ae7c41e543f75ebf80a72f4c925a410a8aedf5ea8320e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FJO.png",
+    "url": "/airline-logos/operators/FJO.png"
+  },
+  "FLE": {
+    "iata": "F8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flair Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3c852538011eed663b562af5093cf0e94ee0a471b8b7331703aefc77676e54ee",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FLE.png",
+    "url": "/airline-logos/operators/FLE.png"
+  },
+  "FLJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flexjet Europe",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "858ae0dc1e9c41166c5ae7c41e543f75ebf80a72f4c925a410a8aedf5ea8320e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FLJ.png",
+    "url": "/airline-logos/operators/FLJ.png"
+  },
+  "FNX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fenix Air Charter",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "21740e345754b5097b4603bb49d26bfd454f4f02f38478ee8f3bf70e59611f5c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FNX.png",
+    "url": "/airline-logos/operators/FNX.png"
+  },
+  "FPY": {
+    "iata": "OG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Play",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dc25f8d08b7b886137c907971710a3a9a3615293450652b85c849385c78df108",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FPY.png",
+    "url": "/airline-logos/operators/FPY.png"
+  },
+  "FRE": {
+    "iata": "FP",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "FlyPelican",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "416a686ef35ddfbb0d376daca9efeb77dd57269a3e56a3c656be84ab5ea49068",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FRE.png",
+    "url": "/airline-logos/operators/FRE.png"
+  },
+  "FRF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fleet Air International",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "015f8cbb73b919e7e4124b922015c7dbbb795f536c1700e320d318b2affd5bdb",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FRF.png",
+    "url": "/airline-logos/operators/FRF.png"
+  },
+  "FRG": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Freight Runners Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "85116315cdef690d2d2c3ab4bff64d834b7fdccea5ae9ab25a3c80ae765ca427",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FRG.png",
+    "url": "/airline-logos/operators/FRG.png"
+  },
+  "FSE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alpine Flightservice",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "991801bb136ea39cc8481494ae3526b943f264af5936206d86aeb07d50175585",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FSE.png",
+    "url": "/airline-logos/operators/FSE.png"
+  },
+  "FSF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fly 7",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2ef328ebb4aff57b1441bf984d25709da869606a3eab1f17b60a3cd1fc8996fa",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FSF.png",
+    "url": "/airline-logos/operators/FSF.png"
+  },
+  "FTH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Mountain Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9e538b74aeda63884c7e8e15689a234bc0384cf9bc152ffa4be45e6c37fb779d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FTH.png",
+    "url": "/airline-logos/operators/FTH.png"
+  },
+  "FTL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flightline",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c70bc41bfd8735d7c0376206a65373cdd4cd48f49fea4f4773419bd30f1ee30f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FTL.png",
+    "url": "/airline-logos/operators/FTL.png"
+  },
+  "FTY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fly Tyrol",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "14747d120f09859938ecba49f615dcfa2eb87d1a7d15ea74ebd110f9abda0200",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/FTY.png",
+    "url": "/airline-logos/operators/FTY.png"
+  },
+  "GAC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "GlobeAir",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0add3cbc3cc06af21b086b0e8ba84732d1dc8335feadff10613e5c36ff00052a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GAC.png",
+    "url": "/airline-logos/operators/GAC.png"
+  },
+  "GAJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Wheels Up",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "bfd38ffeb526224e8354d8a008af15a4ca613b8b8cb3cb083ff45efb53fd1130",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GAJ.png",
+    "url": "/airline-logos/operators/GAJ.png"
+  },
+  "GEC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Lufthansa Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fe4c488d15eb0bac9e325d14ede8556a177c7547cbea2b72961959b6ec6c87e3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GEC.png",
+    "url": "/airline-logos/operators/GEC.png"
+  },
+  "GGT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Trans Island Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "85b804ba5c8c4ad41a7ce797b5bc8d454b1ff90f1cca2e0f8ff89a32f144f55d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GGT.png",
+    "url": "/airline-logos/operators/GGT.png"
+  },
+  "GLR": {
+    "iata": "9M",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Central Mountain Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9bb95cdcc85c62c5ab6770ea43ec2109979b422b0d3204440d0b6b719590b4db",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GLR.png",
+    "url": "/airline-logos/operators/GLR.png"
+  },
+  "GMA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Gama Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "bfd38ffeb526224e8354d8a008af15a4ca613b8b8cb3cb083ff45efb53fd1130",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GMA.png",
+    "url": "/airline-logos/operators/GMA.png"
+  },
+  "GOW": {
+    "iata": "G8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Go First",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9a55cf8677ef16b8f694c4c3892a2a6e9543b2437f6d4733665ab5bf7119c76d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GOW.png",
+    "url": "/airline-logos/operators/GOW.png"
+  },
+  "GSW": {
+    "iata": "GM",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Chair Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "50e3ab9ddba249f9ca6ffae7b41084c956fb1b83a9b4f631847a1dd8fb4cebd3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GSW.png",
+    "url": "/airline-logos/operators/GSW.png"
+  },
+  "GUA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Guna Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "baba12f1b6bda67dfea731bdb07da95f068d39380a4aac8488c8fe865371305b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GUA.png",
+    "url": "/airline-logos/operators/GUA.png"
+  },
+  "GZP": {
+    "iata": "4G",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Gazpromavia",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d312e5d53b47819afdf3dd0da7e2a701221cca6a3d78bbbb391a0633cca6fb2e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/GZP.png",
+    "url": "/airline-logos/operators/GZP.png"
+  },
+  "HER": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Hera Flight",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "28b85e77a3569f70c094f5519d6ddca1a594eba000bbdf80bea45f8057e0ca1b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HER.png",
+    "url": "/airline-logos/operators/HER.png"
+  },
+  "HFY": {
+    "iata": "5K",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Hi Fly",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "093bb4ac86be2f2052bfd2f3f56097fe37507b29a5fa0e6aeb85cc8d5ea8e0bb",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HFY.png",
+    "url": "/airline-logos/operators/HFY.png"
+  },
+  "HGT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Intel Air Shuttle",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2baa9765a230a63dea56c1fd3231684fce9e16350a2956cc95aef25afa7c9844",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HGT.png",
+    "url": "/airline-logos/operators/HGT.png"
+  },
+  "HHE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Heli Holland",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5fdc2a23ef2d5ebf1dc918609f55301fdfe660600d1d4617fd2c3dcf27d3733f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HHE.png",
+    "url": "/airline-logos/operators/HHE.png"
+  },
+  "HHN": {
+    "iata": "HR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Hahn Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6e9e383bb8848b57a2ba41779e1c6b4e19946d5b4d5843b116f9efbcdecec8b1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HHN.png",
+    "url": "/airline-logos/operators/HHN.png"
+  },
+  "HMB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "CHC Helicopter",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "058f95024dada80540c2b0433ea071674296a38463a27e16a350b5c8f1e5ba3a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HMB.png",
+    "url": "/airline-logos/operators/HMB.png"
+  },
+  "HMF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sweden - Swedish Maritime Administration",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f658f3a0df783a238c8d75095252935f5abb46e809bedffe7183292ca0ed664d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HMF.png",
+    "url": "/airline-logos/operators/HMF.png"
+  },
+  "HRN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Heron Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "51505cdd97dfec3f1fa3a5b79c4b1ab6c035187ea05bdd34e2fb70fc7cbe4977",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HRN.png",
+    "url": "/airline-logos/operators/HRN.png"
+  },
+  "HRT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Chartright Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b21d037a766c6c2b08834bc2450ba1c374ed7216957d61b18ec3a817a5eb1efc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HRT.png",
+    "url": "/airline-logos/operators/HRT.png"
+  },
+  "HSO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Heli Service International",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "aa4cac95aad8823caab92b521f497d7179b06c71cfcf7da4e0dda54cb688c1ae",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HSO.png",
+    "url": "/airline-logos/operators/HSO.png"
+  },
+  "HTM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "HTM Helicopter Travel Munich",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dcfc7ca77391d1b2c4d9c73719134d84d2b053fb8e7f2a30f305a3dd5d33fde4",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HTM.png",
+    "url": "/airline-logos/operators/HTM.png"
+  },
+  "HYD": {
+    "iata": "0Q",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Hydro Quebec",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "543d3e8f389b763bce64b60c97e0e60265859eeedd95d19af8686673b563ccf4",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/HYD.png",
+    "url": "/airline-logos/operators/HYD.png"
+  },
+  "IAW": {
+    "iata": "IA",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Iraqi Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "41c5d04e4ececc56e1f51bc9f1577947194ab34eaaff23bbea9b46a2156fb524",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IAW.png",
+    "url": "/airline-logos/operators/IAW.png"
+  },
+  "IBS": {
+    "iata": "I2",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Iberia Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ce5660a78ab0acc28c0349cb35a0b5ed45be5c60ef44d8b8feaeaf7b9394b989",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IBS.png",
+    "url": "/airline-logos/operators/IBS.png"
+  },
+  "IBX": {
+    "iata": "FW",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ibex Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0476bd23b42ac8de54388501326141096807621dc7e49eb6e2079438289289ac",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IBX.png",
+    "url": "/airline-logos/operators/IBX.png"
+  },
+  "IFA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "FAI rent-a-jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3721423d56852ba52f31279611fa72018768010f51a0962d07d6de8090abad6b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IFA.png",
+    "url": "/airline-logos/operators/IFA.png"
+  },
+  "IHO": {
+    "iata": "FE",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "748 Air Services",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e08828c23d165a952f9d0accde40f98e5be84ac0beb19877659f77481f1481f7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IHO.png",
+    "url": "/airline-logos/operators/IHO.png"
+  },
+  "IJM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "International Jet Management",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "76f7a0fe8ffc9536932623f6d09cbfdfd8721f9cba6c5d9e6e87c7af9a6d7057",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IJM.png",
+    "url": "/airline-logos/operators/IJM.png"
+  },
+  "IOS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Skybus",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fc0c8afe1f86a9b582397ffe68d8b6148a2fbbfa193cfe44908f7dcd87f8bc7e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IOS.png",
+    "url": "/airline-logos/operators/IOS.png"
+  },
+  "IYE": {
+    "iata": "IY",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Yemenia",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "66f471ca9dd24ffc92308eca2372db4c647e704564ebfa66535f92cce92b5169",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IYE.png",
+    "url": "/airline-logos/operators/IYE.png"
+  },
+  "IZA": {
+    "iata": "I8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Izhavia",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "02707f8d255810dff9a25a01ddb5ecf3336ab6f1157d730dd7bce0c0173d2e49",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IZA.png",
+    "url": "/airline-logos/operators/IZA.png"
+  },
+  "IZG": {
+    "iata": "ZO",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Zagros Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "be4528b706f35daf3c45fd2c24f46c3a68627b2795e690e442ab86bc06ea4bbc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/IZG.png",
+    "url": "/airline-logos/operators/IZG.png"
+  },
+  "JAC": {
+    "iata": "3X",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Japan Air Commuter",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c972b1bda9ce873d42129175e80cbbe0e46be63dacfbbb5768312458dab3811b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JAC.png",
+    "url": "/airline-logos/operators/JAC.png"
+  },
+  "JAI": {
+    "iata": "9W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jet Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "df0adbfaf83914f6279541c474dbff743273b3d5bc2852b66ba4bace7f87f9e9",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JAI.png",
+    "url": "/airline-logos/operators/JAI.png"
+  },
+  "JAR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Airlink",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e8334e3703ebd7c043fcf973c0e145303b1c8e3cb951386e1d6ff5872c2f4957",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JAR.png",
+    "url": "/airline-logos/operators/JAR.png"
+  },
+  "JBC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jetbee Czech",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "98874dfae7d2974658740b6bbc630c02651352fa532a67f0f44fdecbd66490d5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JBC.png",
+    "url": "/airline-logos/operators/JBC.png"
+  },
+  "JDI": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jet Story",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c4a80763af8d8a63833aae20c64530682f8e40a37377d51c35977e965ad9a850",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JDI.png",
+    "url": "/airline-logos/operators/JDI.png"
+  },
+  "JFA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jetfly Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f887309264b3fb3f5ca67c61f1f00ae3adbe1c143444bbb4585dee1e7e65ab69",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JFA.png",
+    "url": "/airline-logos/operators/JFA.png"
+  },
+  "JIT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jet It",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c39fc9114168f5d90cc34a10eb1b4dd9f0d7f1d034c0de58e2f97d2b69042ed1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JIT.png",
+    "url": "/airline-logos/operators/JIT.png"
+  },
+  "JKH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jetkontor",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "698a70d6a7c60e12867c7adaf9260946eb39718238fe93b1755696eec7e46e4c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JKH.png",
+    "url": "/airline-logos/operators/JKH.png"
+  },
+  "JME": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "EJM Europe",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b62b9acdbb0863f132b8fb162db4f2f9018f71d59e2d4a465b6930f383931904",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JME.png",
+    "url": "/airline-logos/operators/JME.png"
+  },
+  "JMP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Business Wings",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d6346d13f6f48b9e0ec783aacc51a8a8dba2582d3c585b682852692cfe9a7455",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JMP.png",
+    "url": "/airline-logos/operators/JMP.png"
+  },
+  "JNL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "JetNetherlands",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "1427315bc79bbc3cc7daa351802511bd4bdbaf1a0be1f96ce5bfe3b9a292fe95",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JNL.png",
+    "url": "/airline-logos/operators/JNL.png"
+  },
+  "JON": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jonair",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5f804ce6305531a98dc062c362159c5c9edfbfe078b5c447c5243935a6eb971f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JON.png",
+    "url": "/airline-logos/operators/JON.png"
+  },
+  "JRC": {
+    "iata": "4J",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jetair Caribbean",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "87660ae6a45dff7b3592422f1ef962afb4aaba227b45522b217e595903650a74",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JRC.png",
+    "url": "/airline-logos/operators/JRC.png"
+  },
+  "JRE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "flyExclusive",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f28e96371259457be39b34de87d16efdbb30b6dd6d5958559ab8453d1d36126e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JRE.png",
+    "url": "/airline-logos/operators/JRE.png"
+  },
+  "JRT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "JetRight",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "20378794d46e40a3cf01a9a46a34fb61e8338ee684a618cc1135a9b5718b41ce",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JRT.png",
+    "url": "/airline-logos/operators/JRT.png"
+  },
+  "JSH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "JetStream",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "beaadc4c1afa2b7a231b8c9e000a3fc714c3815902b465d1c8dbc7b590d3bcea",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JSH.png",
+    "url": "/airline-logos/operators/JSH.png"
+  },
+  "JTD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jettime",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e0f5d43ad6e49b961ff02f62fbf8d700c9cbddd28848553c50c5d7dc6b412d8c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JTD.png",
+    "url": "/airline-logos/operators/JTD.png"
+  },
+  "JUS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "USA Jet Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5d2cd7a042a587def5bdd606ca138c34dda05d1e28f55fdf89dd2b6acc118d8d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/JUS.png",
+    "url": "/airline-logos/operators/JUS.png"
+  },
+  "KAP": {
+    "iata": "9K",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cape Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f7ea8c9e07d3b6a1b2f6003f37158f79b34b332297510e1e5cc1146bf9427b90",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KAP.png",
+    "url": "/airline-logos/operators/KAP.png"
+  },
+  "KEN": {
+    "iata": "M5",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Kenmore Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b8af98d7894514ed07329bc97f5128d403774785af6cec317e40b3826bd2ff35",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KEN.png",
+    "url": "/airline-logos/operators/KEN.png"
+  },
+  "KFS": {
+    "iata": "K9",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Kalitta Charters",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "12f81aa16657cd9f5f4b10504895529bd1a365753a64ca93f2eae44e88d974fb",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KFS.png",
+    "url": "/airline-logos/operators/KFS.png"
+  },
+  "KIS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Kish Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "67217d2a7676aabd640b4e81246d66ae0b29ec6d83c3f15a349800ebab591f47",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KIS.png",
+    "url": "/airline-logos/operators/KIS.png"
+  },
+  "KMI": {
+    "iata": "8K",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "K-Mile Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d2585af9fcf2dcb59ee32dc1c403fdb6f2ee9ccf4b62a7117b81fbd9f65f26df",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KMI.png",
+    "url": "/airline-logos/operators/KMI.png"
+  },
+  "KMK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Kamaka Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0bffd0662a13e82e5eab988bf59a05b60347d4449556d15e949f3b55a0e1a5bc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KMK.png",
+    "url": "/airline-logos/operators/KMK.png"
+  },
+  "KOW": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Baker Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0ed95b31dde2b09b78dbe28635839def5e7c49a6ee77c94daef3167fb2a6e884",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KOW.png",
+    "url": "/airline-logos/operators/KOW.png"
+  },
+  "KTB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Transaviabaltika",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "88d393e46d129772870a72b26500e104ea8682afc8129b9c4a4e2a44be0b2688",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KTB.png",
+    "url": "/airline-logos/operators/KTB.png"
+  },
+  "KZU": {
+    "iata": "GO",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "ULS Airlines Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "759ca200f89b53ff8a18de6a4df3fe5ec77c2cde29d10f00bad64513d07e05b7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/KZU.png",
+    "url": "/airline-logos/operators/KZU.png"
+  },
+  "LAA": {
+    "iata": "LN",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Libyan Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dd38cf6554ea8188334123d1855eb5bf037ba3e3a349e506919a11dd954990c1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LAA.png",
+    "url": "/airline-logos/operators/LAA.png"
+  },
+  "LAK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Red Wing Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7d501e99eb5346061cfb5c0a4d25cdd66c385f23c53423e455649bb29c0ace25",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LAK.png",
+    "url": "/airline-logos/operators/LAK.png"
+  },
+  "LAL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Legend Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "34a0e21716db59348bb9193d9904e4f4dd0b86fac65c3f6316e0de063ad5e6a2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LAL.png",
+    "url": "/airline-logos/operators/LAL.png"
+  },
+  "LBQ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Quest Diagnostics",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "650ef5bf3fdd060ac0372b5436fd3b0308df76a0eec6fbac5c4c26646d392822",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LBQ.png",
+    "url": "/airline-logos/operators/LBQ.png"
+  },
+  "LBR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Borealis",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d552687ef41ba8b3fff4c01d35140fc5a197da7a3d28965e3bf95c4e31645b0c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LBR.png",
+    "url": "/airline-logos/operators/LBR.png"
+  },
+  "LCT": {
+    "iata": "YQ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "TAR Aerolineas",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "92447668cf67539b879538260112bac69a0993a6d4aae3207eba6e490e1ecc3a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LCT.png",
+    "url": "/airline-logos/operators/LCT.png"
+  },
+  "LDX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sparfell Luftfahrt",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "65e3e80e2bbcefa74ce61b95f91bf4d70ef2d8c72592d8621460ab27e411b6f7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LDX.png",
+    "url": "/airline-logos/operators/LDX.png"
+  },
+  "LIA": {
+    "iata": "LI",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "LIAT",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c6de5ed0b2833824387b1b51967e7ecf24894094843cd53396a59ef6ccff9ac0",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LIA.png",
+    "url": "/airline-logos/operators/LIA.png"
+  },
+  "LKF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aviation Advisor",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e051203c54413782973e40f888931d8dbab3a82d294c4d07efe78737d74f59f8",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LKF.png",
+    "url": "/airline-logos/operators/LKF.png"
+  },
+  "LLR": {
+    "iata": "9I",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alliance Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "58478e268f84a456a75c45ba2c03cbc244adbecda205c793621ebfe88950d915",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LLR.png",
+    "url": "/airline-logos/operators/LLR.png"
+  },
+  "LPR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Polish Medical Air Rescue",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5e3ef1f3d947071cc1ff524504a9d92ca36f78463542a409b255bcfbd35926da",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LPR.png",
+    "url": "/airline-logos/operators/LPR.png"
+  },
+  "LSJ": {
+    "iata": "DU",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Liaison",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8aad29a4b9ba7d3d361316fc70f4e22bf0771d46b08ad1c8272a0e93630f4147",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LSJ.png",
+    "url": "/airline-logos/operators/LSJ.png"
+  },
+  "LTC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Charter Jets",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "571588cf7cf9b8a743b2f374589406eb831a60d5adcd8c279c4853b4fa05a94c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LTC.png",
+    "url": "/airline-logos/operators/LTC.png"
+  },
+  "LTR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Lufttransport",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "891f709251246d92e2c45e8ad495142dfe60e79def2eadf8784b67b482278fad",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LTR.png",
+    "url": "/airline-logos/operators/LTR.png"
+  },
+  "LXJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flexjet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "858ae0dc1e9c41166c5ae7c41e543f75ebf80a72f4c925a410a8aedf5ea8320e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LXJ.png",
+    "url": "/airline-logos/operators/LXJ.png"
+  },
+  "LYD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Lydd Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e0551b005c176b15993d7a8f4a5f80b39e41845b985376dfde382d6244e56fbd",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/LYD.png",
+    "url": "/airline-logos/operators/LYD.png"
+  },
+  "MAR": {
+    "iata": "MV",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Mediterranean",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b42144d709a610a8354f4b050e92968089caac48350ac334460d3fd2bb285bd5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MAR.png",
+    "url": "/airline-logos/operators/MAR.png"
+  },
+  "MAX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Max Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e9c864c8eda28bbdc4889e3e0f4c432052dd1960e5562f8f6a3a6cf5787025ee",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MAX.png",
+    "url": "/airline-logos/operators/MAX.png"
+  },
+  "MAY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Malta Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fc0bf4fdce37c15208948d9ca297e99fce3bea141f9fc0975d3d474b78eb04fc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MAY.png",
+    "url": "/airline-logos/operators/MAY.png"
+  },
+  "MDT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sundt Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "52342ddadc053d5d15efee5d73984ae7f24ba2a6e151b1a8dfe7b92dbaf3d960",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MDT.png",
+    "url": "/airline-logos/operators/MDT.png"
+  },
+  "MGE": {
+    "iata": "P9",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Asia Pacific Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "cea9ea4123e704e912e80bec60b0a0aad989e66ff4e7975537507f757f6fb430",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MGE.png",
+    "url": "/airline-logos/operators/MGE.png"
+  },
+  "MHV": {
+    "iata": "M2",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "MHS Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "12afce9b05634e00649eb89e8b59599ea3c0b76443c7eb22e09d55c5a304a2f8",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MHV.png",
+    "url": "/airline-logos/operators/MHV.png"
+  },
+  "MIM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sparfell France",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "65e3e80e2bbcefa74ce61b95f91bf4d70ef2d8c72592d8621460ab27e411b6f7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MIM.png",
+    "url": "/airline-logos/operators/MIM.png"
+  },
+  "MLD": {
+    "iata": "9U",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Moldova",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fc35369d3e7302cce2d0daf469bf16fc2ec8ca00515058ad9cb130f6d935f9cb",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MLD.png",
+    "url": "/airline-logos/operators/MLD.png"
+  },
+  "MMD": {
+    "iata": "6I",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Alsie",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6986eb181ad90c9fc883077c06380a123cb33315984770e6145e7a0cf56664f3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MMD.png",
+    "url": "/airline-logos/operators/MMD.png"
+  },
+  "MNU": {
+    "iata": "7Q",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Elite Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0f611a762e9b6e37bcf1732e4282c09ce13c80af48f687960280e8cc35036585",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MNU.png",
+    "url": "/airline-logos/operators/MNU.png"
+  },
+  "MRJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Meraj Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "26a7f5a7a8f7210ae789a34f569aee8f5c7e8a7b1398a32a710c888797f48b2f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MRJ.png",
+    "url": "/airline-logos/operators/MRJ.png"
+  },
+  "MSI": {
+    "iata": "M9",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Motor Sich Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0dd48b203483f0673c0e2075a5234b110b257b7e04f6edab0ea70757edcbfb77",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MSI.png",
+    "url": "/airline-logos/operators/MSI.png"
+  },
+  "MSJ": {
+    "iata": "M8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "SkyJet Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2f764b8f8a8f75a1bc5c5acde5d1a25d887ce80c3341076b6096f631fdbfa784",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MSJ.png",
+    "url": "/airline-logos/operators/MSJ.png"
+  },
+  "MSX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "EgyptAir Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7ef13328d5ce8c56c166efbb77a3246d30bd1e45904f82a842e970e5a979da01",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MSX.png",
+    "url": "/airline-logos/operators/MSX.png"
+  },
+  "MWI": {
+    "iata": "3W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Malawian Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "557c6e3f5af5b27ce610d539aeaab36a2f2a4183a8000eb9417dab7142a2dd8c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MWI.png",
+    "url": "/airline-logos/operators/MWI.png"
+  },
+  "MWT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Midwest Aviation Division",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f1f62615b8bf07c87b6bc6f617f61a5e58b681b6ce3b0acea640310bba248e05",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MWT.png",
+    "url": "/airline-logos/operators/MWT.png"
+  },
+  "MYM": {
+    "iata": "Z9",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "MYAirline",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c1a72e29030b5e16b69fcbec58a668c00877b7c94b6ed7bae0cff29c2255c349",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MYM.png",
+    "url": "/airline-logos/operators/MYM.png"
+  },
+  "MYP": {
+    "iata": "7Y",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Mann Yadanarpon Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b04b72148216d07a00d00b13f6997c6b8336274481546df6655107695f97c2b4",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MYP.png",
+    "url": "/airline-logos/operators/MYP.png"
+  },
+  "MYU": {
+    "iata": "2Y",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "My Indo Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "490481a53d253f89e99572bd566245e72f718463327a2028e14c2995f3169a7d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/MYU.png",
+    "url": "/airline-logos/operators/MYU.png"
+  },
+  "NBT": {
+    "iata": "N0",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Norse Atlantic Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d8e14819419f6c971dd41e786808fd8e971affc38b53cb445f3b931c93f3c56c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NBT.png",
+    "url": "/airline-logos/operators/NBT.png"
+  },
+  "NCB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "North Cariboo Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "41266b040df66e8aad350f9d838ff331801949cd487ed1f682ac0359fe6d7984",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NCB.png",
+    "url": "/airline-logos/operators/NCB.png"
+  },
+  "NDA": {
+    "iata": "ND",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Nordica",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f40e9253fac24a33436d6c78e0bae197e3bee1d244d653f1e068f7ced8b3baff",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NDA.png",
+    "url": "/airline-logos/operators/NDA.png"
+  },
+  "NEA": {
+    "iata": "EJ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "New England Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "47c9619919d6663826faa1a279295e98b169f5d62164692a1c66862d80ab72ef",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NEA.png",
+    "url": "/airline-logos/operators/NEA.png"
+  },
+  "NEW": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Northeastern Aviation Corporation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "65225543b0071e610495ec0971fa9b91a2929268dd28a76240fc24b3ff3915fc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NEW.png",
+    "url": "/airline-logos/operators/NEW.png"
+  },
+  "NGL": {
+    "iata": "VM",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Max Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0fe7a347ef87f9ce9e95662b9026807aef936da819ff0b3d735baf78ec028402",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NGL.png",
+    "url": "/airline-logos/operators/NGL.png"
+  },
+  "NHC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "NHC Northern Helicopter",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fc0c61c26cfc8db0a1155897718f9d48b96efce25071f839a46c01fa0742a51f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NHC.png",
+    "url": "/airline-logos/operators/NHC.png"
+  },
+  "NHX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Noordzee Helikopters Vlaanderen",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d1e6cf9645928cafc49de10444992df5d2ed69123a4f9aae5900dbd5915c4ca2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NHX.png",
+    "url": "/airline-logos/operators/NHX.png"
+  },
+  "NIS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "La Costena",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d1a63075551845afa3a4075c57ede8a791a08e00e14b1ad11cb63a524c82e14f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NIS.png",
+    "url": "/airline-logos/operators/NIS.png"
+  },
+  "NJE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "NetJets Europe",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ed0ef92c46a05d079dc61d81f1ab6ff3f43ab21b76d062722f5dd64e984b2201",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NJE.png",
+    "url": "/airline-logos/operators/NJE.png"
+  },
+  "NJM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Northern Jet Management",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8e45b8299622150a49e5c3f7ee877e3801b5fbde8a0b200cd26ba1ed920aced4",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NJM.png",
+    "url": "/airline-logos/operators/NJM.png"
+  },
+  "NJU": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Netjets UK",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ed0ef92c46a05d079dc61d81f1ab6ff3f43ab21b76d062722f5dd64e984b2201",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NJU.png",
+    "url": "/airline-logos/operators/NJU.png"
+  },
+  "NPT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "West Atlantic",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "eecd4518eef44754292f3492c999feffe361f888e2bb4ee1d4785480e9f873ad",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NPT.png",
+    "url": "/airline-logos/operators/NPT.png"
+  },
+  "NSE": {
+    "iata": "9R",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Satena",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "32c81cfa92d3bd0af8643cfa0b275e7eb8a44ccaae51b3625c707c32f6764f6b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NSE.png",
+    "url": "/airline-logos/operators/NSE.png"
+  },
+  "NWG": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Airwing",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6fc7529113bd677f38274d048478a333775195020fd85f6af13c7913fb24987a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NWG.png",
+    "url": "/airline-logos/operators/NWG.png"
+  },
+  "NYT": {
+    "iata": "YT",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Yeti Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "37a952ede6181c0275eeeb1c121c9ad48566007a183838abd3d858371c1b3024",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NYT.png",
+    "url": "/airline-logos/operators/NYT.png"
+  },
+  "NYX": {
+    "iata": "OJ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Nyxair",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dcf43330af7e71779a0dcd76aaa3cb7b30f7f3ec49dfe766c2838a5be22a0ef6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/NYX.png",
+    "url": "/airline-logos/operators/NYX.png"
+  },
+  "OAE": {
+    "iata": "OY",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Omni Air International",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "32049097b5386a9f59a36e7256ee630ee90c1b73355ae84451e58b570760256a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/OAE.png",
+    "url": "/airline-logos/operators/OAE.png"
+  },
+  "OAW": {
+    "iata": "2L",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Helvetic Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0d66c05549ef79412e8b920fd19aa7d3256e1de543ddaa84e1cbf8b3d4bbc94b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/OAW.png",
+    "url": "/airline-logos/operators/OAW.png"
+  },
+  "OPT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Flight options",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a0c828092290a41650d741ac58e8928555c0ac9beeec4129a167aecfe2fdd674",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/OPT.png",
+    "url": "/airline-logos/operators/OPT.png"
+  },
+  "OXF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Oxford Aviation Academy",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fcd827afa93ae9133fab18c55ae61b8239145db61be33680d914ce9eca8bb3df",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/OXF.png",
+    "url": "/airline-logos/operators/OXF.png"
+  },
+  "OYA": {
+    "iata": "YI",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Fly Oya",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "509a02778dd2da66c0e2c6fb82222358a27b630eb6162758fd99f850444a3029",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/OYA.png",
+    "url": "/airline-logos/operators/OYA.png"
+  },
+  "PAV": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "ProAir Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "05c704beaa56d9b14bdd4f7ff19273713d978b1e6cb40f24cf0ea31daa07ecf8",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PAV.png",
+    "url": "/airline-logos/operators/PAV.png"
+  },
+  "PCO": {
+    "iata": "8P",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pacific Coastal Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8f9077e9bce5ecacc1fb4b60d7f6e71978d43e1770a3d4bb7a45f04d5577eabe",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PCO.png",
+    "url": "/airline-logos/operators/PCO.png"
+  },
+  "PEA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pan Europeenne Air Service",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f3479937cfcbc7b477871fa01f7848360df9d7241ab5ddba572ae4c2e03a8c4f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PEA.png",
+    "url": "/airline-logos/operators/PEA.png"
+  },
+  "PEG": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pegasus Elite Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "faba543499176fded814799fc97ee3cf7c61a901dfa7804227a746dab7ceb9a9",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PEG.png",
+    "url": "/airline-logos/operators/PEG.png"
+  },
+  "PFY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pel-Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a3b1aa1e3ca98c90f8ace2c3c4b3ed26bdad50ff2eeab3941059cccab6baf7e5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PFY.png",
+    "url": "/airline-logos/operators/PFY.png"
+  },
+  "PIC": {
+    "iata": "BL",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pacific Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2e22f26d2c14f7faf772e29604c66d811bbf9d4e2f11e909e68b541e54644067",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PIC.png",
+    "url": "/airline-logos/operators/PIC.png"
+  },
+  "PIP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pilot Flight Academy",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a42aa88eef755461beb6d888774f99ab8f3deaf30a3b752bc125c4ea264345df",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PIP.png",
+    "url": "/airline-logos/operators/PIP.png"
+  },
+  "PKW": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sierra West Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "58b4efc2f1640894516ef61ad5bf2b991e5db18fcbc72a1525b5867ab8df0b28",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PKW.png",
+    "url": "/airline-logos/operators/PKW.png"
+  },
+  "PLR": {
+    "iata": "J3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Northwestern Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9049a362ed9861361f6a149f54e7edaec073fc962a3d8661f806f757b90e0346",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PLR.png",
+    "url": "/airline-logos/operators/PLR.png"
+  },
+  "PNK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirPink",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "83b8153ecf9e58c114dbf3659821eaa9c53ff26a71141b4f2026a3ebbf7c4968",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PNK.png",
+    "url": "/airline-logos/operators/PNK.png"
+  },
+  "PNO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Panorama Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "cb49598e92bc4e103493b409d9651ac343da2f6e1804ef782eb53321da1e22be",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PNO.png",
+    "url": "/airline-logos/operators/PNO.png"
+  },
+  "PNP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pineapple Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "04e1910e815d23e96721e757c3345bc49d27bd2ca5f0366e5845257ef8e346ac",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PNP.png",
+    "url": "/airline-logos/operators/PNP.png"
+  },
+  "PNX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AIS Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "da197c8e8d0fb2a6c5d70e8dafd49f2400613191972bc9b7e5883a062a453658",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PNX.png",
+    "url": "/airline-logos/operators/PNX.png"
+  },
+  "PRD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Presidential Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "04528d61c459102432f0d198dc57f29b9e761ac03681282b83ce6675a9964d88",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PRD.png",
+    "url": "/airline-logos/operators/PRD.png"
+  },
+  "PTB": {
+    "iata": "2Z",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "VoePass Linhas Aereas",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "60bb3323ab0364d600f01f5f90994f2614228fddc4f5f435362d2c5071bbaea5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PTB.png",
+    "url": "/airline-logos/operators/PTB.png"
+  },
+  "PTN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Platoon Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a78de2bbe7db60a6a9034e3765214d7e4ef287f8335b0d7c45aa72eb8cbd9046",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PTN.png",
+    "url": "/airline-logos/operators/PTN.png"
+  },
+  "PUL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ornge Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "91cf39ca02feb7527bb09cede4804e0539375c15337d37b21b4153a8b9520193",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PUL.png",
+    "url": "/airline-logos/operators/PUL.png"
+  },
+  "PVL": {
+    "iata": "PB",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "PAL Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "89867d83c86a7c217f79f9155f89333f184e90740a64be7af0fde163e2f0c2c3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PVL.png",
+    "url": "/airline-logos/operators/PVL.png"
+  },
+  "PWA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Priester Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "65fe4b05b53290f21228a93c066a0b0dadb3fe8d08dbaae683b7110cf1f7a9d0",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PWA.png",
+    "url": "/airline-logos/operators/PWA.png"
+  },
+  "PWF": {
+    "iata": "8W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Private Wings",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "4562b0fdb07bb01e49dbd11028900a249c7d6dbe0b53939c112767ce638c63a6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PWF.png",
+    "url": "/airline-logos/operators/PWF.png"
+  },
+  "PXT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Pacific Coast Jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ffda3e81a0c3f165311800e70d911044b3dd13aeac2d338826b3a1f4ba7bc4da",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/PXT.png",
+    "url": "/airline-logos/operators/PXT.png"
+  },
+  "QGA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Windrose Air Jetcharter",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "49ce0ae104648cd2bc2c77312b045c0b6ff29578d8e75a52879821c9728fe3b6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/QGA.png",
+    "url": "/airline-logos/operators/QGA.png"
+  },
+  "QQE": {
+    "iata": "QE",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Qatar Executive",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0bbd152879c9204802d89b67ee8e574b035b93b2f6c1c923e03d3ab3f2861ebc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/QQE.png",
+    "url": "/airline-logos/operators/QQE.png"
+  },
+  "RAX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Royal Air Freight",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "72928c345f3d22bfccadbf4ce541cb49391e17b6b6dd59daeaefa476237601d7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RAX.png",
+    "url": "/airline-logos/operators/RAX.png"
+  },
+  "RBG": {
+    "iata": "E5",
+    "licence": "Apache-2.0; airline trademarks belong to their owners",
+    "name": "Air Arabia Egypt",
+    "revision": "f90a5a8e1481dd0e0379936e4a5b477f4cf9f60e",
+    "sha256": "b482619254ed998769e20548944d1cc1f0af84c93cb7dd8e6220ddd967ea4529",
+    "source": "https://github.com/amannuhman/airlines-and-logos/blob/f90a5a8e1481dd0e0379936e4a5b477f4cf9f60e/data/logos/E5.svg",
+    "url": "/airline-logos/operators/RBG.svg"
+  },
+  "RCH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "US Air Force",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "bf13b6b93801ea57406e836749dcb7c64542720473a9451b9a77f5c323ac571b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RCH.png",
+    "url": "/airline-logos/operators/RCH.png"
+  },
+  "RDF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Eurocopter Deutschland",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "bff5ada4f4087f8ea4e9f114fd8add5d403b60a6a0a1396b4fec02fe0f30e85f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RDF.png",
+    "url": "/airline-logos/operators/RDF.png"
+  },
+  "RGN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cygnus Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f4baa915a72d9474f491a24c43ce4778936cf4913b7c6ff12fa98781172aa605",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RGN.png",
+    "url": "/airline-logos/operators/RGN.png"
+  },
+  "RNA": {
+    "iata": "RA",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Nepal Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c63971c900529ac50c25aef7f9c80c4db738f7a074b87254c2c80121d05415c2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RNA.png",
+    "url": "/airline-logos/operators/RNA.png"
+  },
+  "ROI": {
+    "iata": "9V",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avior Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d8b5cc9ab1594b26cdc1cd2a42c7eba5a9f4ed893fbee4b6a1d880bd2691b2d3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ROI.png",
+    "url": "/airline-logos/operators/ROI.png"
+  },
+  "RSD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Rossiya - Special Flight Squadron",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "1ef49e5cf1df519c05062270484a43b0cf668a5b83ee1ff5c6184b992d8f7258",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RSD.png",
+    "url": "/airline-logos/operators/RSD.png"
+  },
+  "RSP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Jetsuite Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e0a64836e582361f6464030362e110d9e39f9cfc986b512619bdfd0a7deda93c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RSP.png",
+    "url": "/airline-logos/operators/RSP.png"
+  },
+  "RUC": {
+    "iata": "5R",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Rutaca Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0120b1ef688796574bc5cb28db8c8bdb97623b5eceac7525d5fdc53d882df996",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RUC.png",
+    "url": "/airline-logos/operators/RUC.png"
+  },
+  "RUN": {
+    "iata": "9T",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirACT",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c26782401a464f73740d623358764bd6fc88fba468a88c4c917d6b90da0653b9",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RUN.png",
+    "url": "/airline-logos/operators/RUN.png"
+  },
+  "RVP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sevenair",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8d6ea4faae61099e2e0257f2700f61b37937756620e72e0525af1c8b183f58f2",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RVP.png",
+    "url": "/airline-logos/operators/RVP.png"
+  },
+  "RWZ": {
+    "iata": "WZ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Red Wings",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3940a1eefa4f16d1e558b37cfdae57eeebe2e15e8c75b57daed481586276c0be",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RWZ.png",
+    "url": "/airline-logos/operators/RWZ.png"
+  },
+  "RXA": {
+    "iata": "ZL",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Rex",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b7dcf021fb700719a5be8b71a6b3993dcf12be0795c42f554f4c3ebf9d99f15a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RXA.png",
+    "url": "/airline-logos/operators/RXA.png"
+  },
+  "RYA": {
+    "iata": "7S",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ryan Air (USA)",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c72fa8eeeb522543150028cdc4d8e360dfa5a820361a199d5991dbeda38d8330",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RYA.png",
+    "url": "/airline-logos/operators/RYA.png"
+  },
+  "RYS": {
+    "iata": "RR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Buzz",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ef8495f23548058c46f3bdf511165799e9bd80f91ec05a490fc4fd0620c2f491",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/RYS.png",
+    "url": "/airline-logos/operators/RYS.png"
+  },
+  "SAH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Smart Jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "e2e31871457e2b3347ff324455bd0f80af776e901c99b9e713afc42199bdcedf",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SAH.png",
+    "url": "/airline-logos/operators/SAH.png"
+  },
+  "SAW": {
+    "iata": "6Q",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cham Wings Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "055b1c3b80bd07ed5d399ce9db3f183d15d5d0a846653a4a799e25051ed30d9c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SAW.png",
+    "url": "/airline-logos/operators/SAW.png"
+  },
+  "SAZ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Swiss Air-Ambulance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0334b094d2d90ab7f883c3212ee1de0d0c2c37cf7aed237cdbf9551415dfc2fe",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SAZ.png",
+    "url": "/airline-logos/operators/SAZ.png"
+  },
+  "SCM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "American Jet International",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "15c41de233f9328216eec3e06d0e1425bdd1b95d97d26c2917aa4a4b9eb524e6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SCM.png",
+    "url": "/airline-logos/operators/SCM.png"
+  },
+  "SCR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Silver Cloud Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "73e4a1f22c1791d53d48b681ff4fe2c587998e6d833ef4605417ea554fd75482",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SCR.png",
+    "url": "/airline-logos/operators/SCR.png"
+  },
+  "SFJ": {
+    "iata": "7G",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Starflyer",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3ba408a1e360b5d11013666555bc15925879f99f0652dc7a7563c96a5d62d77f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SFJ.png",
+    "url": "/airline-logos/operators/SFJ.png"
+  },
+  "SHI": {
+    "iata": "IS",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sepehran Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "97783721aad5255d3c8cdc653b42e077e2914095cd9ae8952191e874c350ea34",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SHI.png",
+    "url": "/airline-logos/operators/SHI.png"
+  },
+  "SIF": {
+    "iata": "PF",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirSial",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "60bb13d18ad7d8abfc417f200f57250e0758416bf8fc4ecae11ee6ebcf37b841",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SIF.png",
+    "url": "/airline-logos/operators/SIF.png"
+  },
+  "SIL": {
+    "iata": "3M",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Silver Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6f03ed4b7f3b9a755fb5d0053b02bf3273d6081e2bcbd119b5194575bb8a8760",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SIL.png",
+    "url": "/airline-logos/operators/SIL.png"
+  },
+  "SIS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Silver Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "046fd6e624e60441f095fb5f34f03a90cf36184fc8b41b7b0946d67906d12384",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SIS.png",
+    "url": "/airline-logos/operators/SIS.png"
+  },
+  "SJO": {
+    "iata": "IJ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Spring Japan",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c683639f352c36f3feefffd2239abcf1bdec5e5236084fab873cb2e0ef14d50a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SJO.png",
+    "url": "/airline-logos/operators/SJO.png"
+  },
+  "SJV": {
+    "iata": "IU",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Super Air Jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "755747be575df867aa3e515c85ff504e087f02ce80a70db8728f4f2150fa4fad",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SJV.png",
+    "url": "/airline-logos/operators/SJV.png"
+  },
+  "SKP": {
+    "iata": "QN",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Skytrans",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "489b0fe0d8bf421720f45c008c01c9fd66aa045ac67d2a6b5da26369603bb385",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SKP.png",
+    "url": "/airline-logos/operators/SKP.png"
+  },
+  "SKQ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Labcorp",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c9d070eaebb6f3effbac1094ca266cd164ff0110c26c3f08690db64de01d43c1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SKQ.png",
+    "url": "/airline-logos/operators/SKQ.png"
+  },
+  "SKV": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Skyside",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f57f3cd97b2d4bd28bb024c152fba3e4a2a81b7bf2d89edef434618acc603937",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SKV.png",
+    "url": "/airline-logos/operators/SKV.png"
+  },
+  "SKW": {
+    "iata": "OO",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "SkyWest Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "02527e0e1118464789bc4c271b33f6f9c1f9f642c5a11ed321cc2955f1af49ea",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SKW.png",
+    "url": "/airline-logos/operators/SKW.png"
+  },
+  "SLH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Silverhawk Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f452a775a7ec16dc3f8ce4aec2f21990f7df73e844383e98870e36be34ba7181",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SLH.png",
+    "url": "/airline-logos/operators/SLH.png"
+  },
+  "SLM": {
+    "iata": "PY",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Surinam Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "77e803efbc3aba064eea3e411c8d57ca505995c5efa9af26872e47de2bb49a2a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SLM.png",
+    "url": "/airline-logos/operators/SLM.png"
+  },
+  "SLQ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "SkyLink Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ede83e748de59d1b46abce007597c2c729899ecb4c7b0e2d3ebc51896a83e335",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SLQ.png",
+    "url": "/airline-logos/operators/SLQ.png"
+  },
+  "SNC": {
+    "iata": "2Q",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Cargo Carriers",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7673e8496fe5d85dc86798295989cf073e24899e9ea3af5b59c8d769d8ba42a1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SNC.png",
+    "url": "/airline-logos/operators/SNC.png"
+  },
+  "SNJ": {
+    "iata": "6J",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Solaseed Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ee5f6decd2ac92cec7b4ec3550e069ad5f553a3768e699e071845ddc7c91e6af",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SNJ.png",
+    "url": "/airline-logos/operators/SNJ.png"
+  },
+  "SPM": {
+    "iata": "PJ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Saint-Pierre",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dd49ff65c1b0de382c31261f9718c3c3ce5c370456e1cf63e513de658b625c67",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SPM.png",
+    "url": "/airline-logos/operators/SPM.png"
+  },
+  "SPR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "PAL Aerospace",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "aca4a534b1a3139830edf4e999a55b91fa457c3f04a6ef82513c16ef9fc28860",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SPR.png",
+    "url": "/airline-logos/operators/SPR.png"
+  },
+  "SRK": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "EATIS",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "f4ecd6fbec8a0a624ff7948f6d789a7437f02e309dc872674495a78289e25ee4",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SRK.png",
+    "url": "/airline-logos/operators/SRK.png"
+  },
+  "SRR": {
+    "iata": "DJ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Maersk Air Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0e4b8deb39ce20ab34734e38dffe00778cf93bff9a11ab2a9d74e1d431df2ee3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SRR.png",
+    "url": "/airline-logos/operators/SRR.png"
+  },
+  "SRY": {
+    "iata": "VC",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sterling Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c2b972d698b0bf4957be139a83ad569c250a535026700a12bff16f7f73a960b4",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SRY.png",
+    "url": "/airline-logos/operators/SRY.png"
+  },
+  "SSF": {
+    "iata": "D2",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Severstal Aircompany",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "4944fd9cbcbdb666ba1e5a853a49c913681c9539c11013de8c07767aaac1ca33",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SSF.png",
+    "url": "/airline-logos/operators/SSF.png"
+  },
+  "STB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "St Barth Executive",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3f29446d78c030f9cd7361604ac038420be0eb10d09724875b33ad288e72affa",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/STB.png",
+    "url": "/airline-logos/operators/STB.png"
+  },
+  "STQ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Star Wings",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a6ac94f797165f1c1005fca27d392f3dd46b4e778c56c67ba444aa96bb1c7578",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/STQ.png",
+    "url": "/airline-logos/operators/STQ.png"
+  },
+  "SUA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Silesia Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "41578f6a9ac084779badf30b6b39a8108c81741e590a932ba04fce54a655c612",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SUA.png",
+    "url": "/airline-logos/operators/SUA.png"
+  },
+  "SUD": {
+    "iata": "SD",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sudan Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2c9b6a60fbb5b51f58be9a5e2c738d9f2cf8b0f5165409e00cc70568d8bcd434",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SUD.png",
+    "url": "/airline-logos/operators/SUD.png"
+  },
+  "SUM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Russia - Ministry of Emergency Situations (MChS)",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a350e23333306f1c3c6648aed961b03e2b829e4ae3bd991353e81e527d920749",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SUM.png",
+    "url": "/airline-logos/operators/SUM.png"
+  },
+  "SWE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Svenskt Ambulansflyg",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5383ec267dacbe0b026ccba156d63558ad4f4569918b45d9da3237b103a18596",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SWE.png",
+    "url": "/airline-logos/operators/SWE.png"
+  },
+  "SWG": {
+    "iata": "WG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Sunwing Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c48e014335689df63f1a657dc72354910ef257201704ad554621177f57cdaecf",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SWG.png",
+    "url": "/airline-logos/operators/SWG.png"
+  },
+  "SXN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "SaxonAir",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ad3c1c4fb457513490075d1a9c8fbc95222008b7400b3e7622ab25aeffeca1b0",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SXN.png",
+    "url": "/airline-logos/operators/SXN.png"
+  },
+  "SYA": {
+    "iata": "Y3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Syphax Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "841e072213d0019e7ec89e629e45623fc4dedbb99fddc758375f578cdd2b67a8",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SYA.png",
+    "url": "/airline-logos/operators/SYA.png"
+  },
+  "SYB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Skyservice Business Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "98b74f14c8e01d7f2edb98879fd1d6b9f5f5f80467b3ae8834e8b6142f0907cb",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SYB.png",
+    "url": "/airline-logos/operators/SYB.png"
+  },
+  "SYL": {
+    "iata": "R3",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Yakutia Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "068dcb19210fdb3875525b3a5594d02cc177b597a88c0d0a5ad80155eab5e69e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/SYL.png",
+    "url": "/airline-logos/operators/SYL.png"
+  },
+  "TBN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Taban Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6d4c572f498369c22ce6c9f4184f22bf745b75391552d2dec3b0ebe51f3fe4f3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TBN.png",
+    "url": "/airline-logos/operators/TBN.png"
+  },
+  "TCF": {
+    "iata": "S5",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Shuttle America",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7d53da56c5079eccce23d4d63276ceab34cb0b26e17202227a402b766334be47",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TCF.png",
+    "url": "/airline-logos/operators/TCF.png"
+  },
+  "TCV": {
+    "iata": "VR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Cabo Verde Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "29f41cf96903c8f3e088377c7e685d29144adc492f01d2a3ce9ee00167a8ee87",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TCV.png",
+    "url": "/airline-logos/operators/TCV.png"
+  },
+  "TEZ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Tez Jet Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "4eefd74986403e79f7d87338941a5f58ac7569b18162a09a68119fea130f27b0",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TEZ.png",
+    "url": "/airline-logos/operators/TEZ.png"
+  },
+  "TFX": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Toll Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d46b26b69fc1d715487fab0c4dc39d56c1100612899da270e269d69ab24cdadc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TFX.png",
+    "url": "/airline-logos/operators/TFX.png"
+  },
+  "TGN": {
+    "iata": "IL",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Trigana Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "70032d541fc36e92386b267c52181ffd5717014f9f1e38860798b1d97ce4fae1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TGN.png",
+    "url": "/airline-logos/operators/TGN.png"
+  },
+  "TGY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Trans Guyana Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "858148722b0a228f054d08dbcb8f99d4bd07bf69e90087a8f1c4ce0258e8194f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TGY.png",
+    "url": "/airline-logos/operators/TGY.png"
+  },
+  "THD": {
+    "iata": "WE",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Thai Smile",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c6653be771184c3933859955a9a85efff49be365c5b72a743978611a401acee8",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/THD.png",
+    "url": "/airline-logos/operators/THD.png"
+  },
+  "TIE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Time Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a7f1c66c4c5ec717e79d99f5e0bbe66bed552ecae323f3fbab9fb34ccb8fae50",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TIE.png",
+    "url": "/airline-logos/operators/TIE.png"
+  },
+  "TIN": {
+    "iata": "8T",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Tindi",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "4fa40240d92b5e7fea575ca9fcacd5ad894565c2e5dc8e7f1c351fa5415c23b5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TIN.png",
+    "url": "/airline-logos/operators/TIN.png"
+  },
+  "TIV": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Thrive",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "265a121911993f9632e6794332138bc3e20c3932b7324a94f34976ab06d0bafc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TIV.png",
+    "url": "/airline-logos/operators/TIV.png"
+  },
+  "TJD": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aliserio",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2d086738ea33ea23f53171740b1fc92bbb376962b785654d7edbbbca30913afc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TJD.png",
+    "url": "/airline-logos/operators/TJD.png"
+  },
+  "TJS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Tyrolean Jets & Services",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "eeb84d68ae1adb189317e8fe7839a80a7171988b3d83d8ae7403c57013afea06",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TJS.png",
+    "url": "/airline-logos/operators/TJS.png"
+  },
+  "TJT": {
+    "iata": "T7",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Twin Jet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7417ae214f4fc955b6f0b57c19a8c5ddf8ac08dec81b69950cd49294f2ddcad5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TJT.png",
+    "url": "/airline-logos/operators/TJT.png"
+  },
+  "TLK": {
+    "iata": "Q4",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Starlink Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "0316250dee65936ecf08c5d549694bceaeceddc4fcf32d5976450fa3ee34e0ea",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TLK.png",
+    "url": "/airline-logos/operators/TLK.png"
+  },
+  "TLR": {
+    "iata": "7I",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Libya",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "cd73cbc2ca46468878def2f4c2422c192914386d03f36113a75945587ad88325",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TLR.png",
+    "url": "/airline-logos/operators/TLR.png"
+  },
+  "TMB": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Volato",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "555da77bf38f8b62537e13124906a1cdb4a5cd4667e59f81fe8bb9020fa03bdf",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TMB.png",
+    "url": "/airline-logos/operators/TMB.png"
+  },
+  "TMW": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Trans Maldivian Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "45fd4f5cbe597002736382d9dfc032ea8a1197545d4a951f53eaf7c656378ab6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TMW.png",
+    "url": "/airline-logos/operators/TMW.png"
+  },
+  "TOK": {
+    "iata": "CG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "PNG Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a649fe7d4d002041a1d5958c8d7a5d91ca67ee0c280e5a7b614bc4fe3cb50475",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TOK.png",
+    "url": "/airline-logos/operators/TOK.png"
+  },
+  "TOR": {
+    "iata": "SX",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "FlyGTA Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c64ef6907dfa45c428d0f842c855789caafdc48d94d7c63c549f32bcf3842e8b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TOR.png",
+    "url": "/airline-logos/operators/TOR.png"
+  },
+  "TOY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Toyo Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "96354e1b7528b70ce73834cbd840831780ab8d6ee7b6625bf416fbba91ec5b44",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TOY.png",
+    "url": "/airline-logos/operators/TOY.png"
+  },
+  "TPA": {
+    "iata": "QT",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avianca Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8c05c75827771ee8519da00f569f8c4748d58bd3f4793c6af61f405f71f2fdb6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TPA.png",
+    "url": "/airline-logos/operators/TPA.png"
+  },
+  "TUA": {
+    "iata": "T5",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Turkmenistan Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a498be764f272ee7ec478c6f870149790385d4878e62b63f5467387f57afeac5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TUA.png",
+    "url": "/airline-logos/operators/TUA.png"
+  },
+  "TUP": {
+    "iata": "4B",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aviastar-TU",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "a9c8337c4b8e33533cb96750b22c113eee044abb81dbcd0c1e9c818825b2c159",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TUP.png",
+    "url": "/airline-logos/operators/TUP.png"
+  },
+  "TUX": {
+    "iata": "UG",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Tunisair Express",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "27c27e65a017dcac166bd8ac8ccfc582edf7ff56b7c1db0728cf34eb82e73550",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TUX.png",
+    "url": "/airline-logos/operators/TUX.png"
+  },
+  "TWY": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Solairus Aviation",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d357076c6e02e3b60561774ef2e3cf5f9610c06a1f370514a6f022a7c80ff2ea",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TWY.png",
+    "url": "/airline-logos/operators/TWY.png"
+  },
+  "TYW": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Tyrol Air Ambulance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b142d7cb438c2d5cc2f520c9347870cecd9a3f9878380ecbb09e0bd164e321bf",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/TYW.png",
+    "url": "/airline-logos/operators/TYW.png"
+  },
+  "UGD": {
+    "iata": "UR",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Uganda Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "073448889afc94bcdbc5aa58fd2d5858819266625e207ded0e15775dc5768efa",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/UGD.png",
+    "url": "/airline-logos/operators/UGD.png"
+  },
+  "UKL": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ukraine Air Alliance",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "3dba914410569a3db92486e99b4551ddf9a40d84d1af6054b10992c54c6b4289",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/UKL.png",
+    "url": "/airline-logos/operators/UKL.png"
+  },
+  "ULS": {
+    "iata": "U0",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Ultra Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "57dfc666af27a3a1d7ab98221387954ef2c3a226fac5b40f4dad4de5002cc71c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/ULS.png",
+    "url": "/airline-logos/operators/ULS.png"
+  },
+  "UNO": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "United Nations",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "c03b0999f2a874007582dc27ef0ddd7c386ef687be8261e5cfd9ad5c5ace879e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/UNO.png",
+    "url": "/airline-logos/operators/UNO.png"
+  },
+  "URF": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Surf Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5af19c66157318fd39c56fd6f41c2961bcca0a418d43398971a631eb9924de32",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/URF.png",
+    "url": "/airline-logos/operators/URF.png"
+  },
+  "URG": {
+    "iata": "3N",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Urga",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "09a39786761bc6b2539c51ca3d40c2abb5da1f8286eebe111a65941bea3d963b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/URG.png",
+    "url": "/airline-logos/operators/URG.png"
+  },
+  "USC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirNet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "dc5afd987dc1c27a88840d62952d2531d0b162fba275df64cb54beac47e32339",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/USC.png",
+    "url": "/airline-logos/operators/USC.png"
+  },
+  "UTY": {
+    "iata": "QQ",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Alliance Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "caf0bef4822a5a401c39f4daac1e96726669d6597ee68d614a61f783a07c0952",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/UTY.png",
+    "url": "/airline-logos/operators/UTY.png"
+  },
+  "UVT": {
+    "iata": "RT",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "UVT Aero",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9269e9d08f5755d0dde765f92af0e715a1573862daa732098fe33e75fcb8bd7f",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/UVT.png",
+    "url": "/airline-logos/operators/UVT.png"
+  },
+  "VAJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avcon Jet San Marino",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ae42df8ea03ceaf575e1c5e5d2a6ac78453089d937cf893916825b0e7449658c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VAJ.png",
+    "url": "/airline-logos/operators/VAJ.png"
+  },
+  "VAL": {
+    "iata": "VC",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Voyageur Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "03b03dcf14bb6c71f11daff06fad4c633da11d3603f00cd0d0df72567e89676a",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VAL.png",
+    "url": "/airline-logos/operators/VAL.png"
+  },
+  "VAS": {
+    "iata": "V8",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Atran",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9f23a2588d3973812c3c0ed6381c4fce6a38bb49ef55ef21a1d25749f09439b6",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VAS.png",
+    "url": "/airline-logos/operators/VAS.png"
+  },
+  "VBW": {
+    "iata": "2J",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Air Burkina",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9d3297f675ce4e6663d7a4d6a225e1e53fe6589cc609a97f0377ea8e464a93be",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VBW.png",
+    "url": "/airline-logos/operators/VBW.png"
+  },
+  "VCJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Avcon Jet Malta",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ae42df8ea03ceaf575e1c5e5d2a6ac78453089d937cf893916825b0e7449658c",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VCJ.png",
+    "url": "/airline-logos/operators/VCJ.png"
+  },
+  "VCV": {
+    "iata": "V0",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Conviasa",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b998218b3a2369812d35e01dcdab705f5d0c7139a3df620d20738a5d7a99d470",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VCV.png",
+    "url": "/airline-logos/operators/VCV.png"
+  },
+  "VDA": {
+    "iata": "VI",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Volga-Dnepr Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "6a6ac1751f380ed70261b5b552ea7f4b98a6f120bde7c2963796af0ce9b08bda",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VDA.png",
+    "url": "/airline-logos/operators/VDA.png"
+  },
+  "VES": {
+    "iata": "V4",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Vieques Air Link",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7464489f8c1d239773757239fa4baf512f09dab8b497d28490839de7887654cd",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VES.png",
+    "url": "/airline-logos/operators/VES.png"
+  },
+  "VFC": {
+    "iata": "0V",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Vasco",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7bcd5dacc3b5729465073495f4f2251698d4aba47e9a28b18af2f9dcbc9cbe69",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VFC.png",
+    "url": "/airline-logos/operators/VFC.png"
+  },
+  "VIV": {
+    "iata": "VB",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "VivaAerobus",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8ffa44974de33d4f2724f1718e28bb6df04792a3eaae5c1139349ffca0a1ab73",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VIV.png",
+    "url": "/airline-logos/operators/VIV.png"
+  },
+  "VIZ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aerovis Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "9dd0c2718d4ccef022bfecf6958e948df1cef45ca6a2ae8b2b87d0a4aec6c45e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VIZ.png",
+    "url": "/airline-logos/operators/VIZ.png"
+  },
+  "VJT": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "VistaJet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b0a0c293ab788c7e82fc6aaf059167f0b6ce665679aede9c8a030fae6ff5f2fe",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VJT.png",
+    "url": "/airline-logos/operators/VJT.png"
+  },
+  "VLJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Valljet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "d17e2bbb46a95de975f50aac93dacd7844c671322ca1b45edbcca910b1319954",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VLJ.png",
+    "url": "/airline-logos/operators/VLJ.png"
+  },
+  "VNE": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Venezolana",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "5314b92518e549e167ae8c16ee103dc976ff9eac2905d4c4116cb43172676929",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VNE.png",
+    "url": "/airline-logos/operators/VNE.png"
+  },
+  "VRH": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Varesh Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "8b835c96e9f23abfd9d5d2fe739f15cf02b08549a51db46ed8d569d33aa4c628",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VRH.png",
+    "url": "/airline-logos/operators/VRH.png"
+  },
+  "VTI": {
+    "iata": "UK",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Vistara",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b9e2411f23cefaaac27555155cbdef575712dfd44a07fcb56f9b893b8d029dc5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VTI.png",
+    "url": "/airline-logos/operators/VTI.png"
+  },
+  "VTM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Aeronaves TSM",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b22c583d33ebbc81795d4ba3f76d4f98852d5186b36b3c5c1f8e191733de3330",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VTM.png",
+    "url": "/airline-logos/operators/VTM.png"
+  },
+  "VTS": {
+    "iata": "5V",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Everts Air Alaska",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "b1e7ab4e56b6de4baa6c83ab2c0f34e0c6d31a6f557c9e2961e66e48e0800900",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VTS.png",
+    "url": "/airline-logos/operators/VTS.png"
+  },
+  "VTU": {
+    "iata": "T9",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Turpial Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "fda909b12f639448659f2f0469567c5830494971b2e77deef1fa237c5e6b6ccc",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VTU.png",
+    "url": "/airline-logos/operators/VTU.png"
+  },
+  "VXS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Voluxis",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "df4a173fed9e3c40abcced20cece2f835ba36db80b150fae6c995d739c625e00",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/VXS.png",
+    "url": "/airline-logos/operators/VXS.png"
+  },
+  "WAV": {
+    "iata": "4W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Warbelows Air Ventures",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "abf9a1762b50413ccf9a9d17c1887e1cc6a6250c1c843a8b5e2dade43f37a1b3",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WAV.png",
+    "url": "/airline-logos/operators/WAV.png"
+  },
+  "WCC": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "West Coast Charters",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "03a04e55762d9d4e77cae849ecd6d480501561241c5e19bd48aca610adec97f1",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WCC.png",
+    "url": "/airline-logos/operators/WCC.png"
+  },
+  "WHS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Wiking Helikopter Service",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "ee877207f3e65e300da13e539b23017e458e43a7efb3eff06de06ba5a7c178a5",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WHS.png",
+    "url": "/airline-logos/operators/WHS.png"
+  },
+  "WIA": {
+    "iata": "WM",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Winair",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "915073adc5ad48be91757b48d4db07dbd5f3f2a33689cfc2937f0ecbfdef8675",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WIA.png",
+    "url": "/airline-logos/operators/WIA.png"
+  },
+  "WIG": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Wiggins Airways",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "60d759d2002694c8bd7bbc0cd938dcb17e9578e100bf307c4859725986e49f4b",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WIG.png",
+    "url": "/airline-logos/operators/WIG.png"
+  },
+  "WIS": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Paccair",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "85b6309283ab5e98f289b0c6606d94e4ed116af919fdd7ae2c8c67bd8496a64d",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WIS.png",
+    "url": "/airline-logos/operators/WIS.png"
+  },
+  "WMA": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Makers Air",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "49334de1b1bb6bf28832df3fdfb9658e860a7a31dc5312357b3748188085a7de",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WMA.png",
+    "url": "/airline-logos/operators/WMA.png"
+  },
+  "WRC": {
+    "iata": "7W",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Windrose Airlines",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2175128c0a07deb4370afa3acde41cc2b82f490277b52d9904ad11d7aea1eada",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WRC.png",
+    "url": "/airline-logos/operators/WRC.png"
+  },
+  "WSP": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "VeriJet",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "51cdcd9a1387b7d8a08aab1161c04bfda67175f392919d4a6a47b17148cc3b05",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/WSP.png",
+    "url": "/airline-logos/operators/WSP.png"
+  },
+  "XEN": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Zenflight",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "41460637906139a763e0c931f94043a83b14fdf19b353aa0a9278472bab5a451",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/XEN.png",
+    "url": "/airline-logos/operators/XEN.png"
+  },
+  "XOJ": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Xo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "2dbe9622e5626b35baa7448885ee3b59e576d899bd0b81f33b90a1a05a8cea90",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/XOJ.png",
+    "url": "/airline-logos/operators/XOJ.png"
+  },
+  "XRC": {
+    "iata": "7A",
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "Express Air Cargo",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "7b0d99fdb42d540bf673d4249a4dadcc6b5ed5f068cf7e3a426cd2718a3ec205",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/XRC.png",
+    "url": "/airline-logos/operators/XRC.png"
+  },
+  "XSM": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirSmart",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "769912f4e5f89329ecc51a4449cdd76f14d67c590cec8cb8618187610277131e",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/XSM.png",
+    "url": "/airline-logos/operators/XSM.png"
+  },
+  "XSR": {
+    "iata": null,
+    "licence": "MIT (README); airline trademarks belong to their owners",
+    "name": "AirShare",
+    "revision": "7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a",
+    "sha256": "60070750a97a71c5b2ca29e99e89c87b0e2e4d15151b84bb23e7f372377945c7",
+    "source": "https://github.com/imgmongelli/airlines-logos-dataset/blob/7b001fb8d5d0a2f875d57b2b5a8a8056b2fbc63a/images/XSR.png",
+    "url": "/airline-logos/operators/XSR.png"
+  }
+}

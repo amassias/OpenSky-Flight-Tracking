@@ -1,3 +1,4 @@
+import { OPERATOR_LOGOS } from "./airlineOperatorLogos";
 import models from "../data/aircraft-types.json";
 import logoCatalogue from "../data/airline-logos.json";
 import type { Flight } from "./types";
@@ -28,8 +29,9 @@ export function operatorCode(flight: Pick<Flight, "callsign" | "airline_code">):
 }
 
 export function airlineLogo(flight: Pick<Flight, "callsign" | "airline_code">): string | null {
-  const iata = LOGOS[operatorCode(flight)];
-  return iata ? LOGO_URLS.get(iata) ?? null : null;
+  const operator = operatorCode(flight);
+  const iata = LOGOS[operator];
+  return (iata ? LOGO_URLS.get(iata) : null) ?? OPERATOR_LOGOS[operator] ?? null;
 }
 
 export interface AirlineBadge { text: string; color: string }

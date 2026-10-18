@@ -22,6 +22,12 @@ describe("sourced airline and aircraft catalogue", () => {
     }
     expect(airlineLogo({ callsign: "EJU123" })).toContain("U2.png");
   });
+  it("resolves bundled ICAO logos without requiring an IATA code", () => {
+    expect(airlineLogo({ callsign: "ADB123" })).toBe("/airline-logos/operators/ADB.png");
+    expect(airlineLogo({ callsign: "", airline_code: "RCH" })).toBe("/airline-logos/operators/RCH.png");
+    expect(airlineLogo({ callsign: "ZZZ123" })).toBeNull();
+    expect(airlineLogo({ callsign: "AFR123" })).toContain("AF.png");
+  });
   it("identifies sourced type families without confusing business jets with regional airliners", () => {
     expect(aircraftModel("pc24")).toBe("Pilatus PC-24");
     expect(aircraftModel("GL7T")).toBe("Bombardier Global 7500 / 8000");

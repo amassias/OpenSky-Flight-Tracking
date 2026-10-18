@@ -1028,6 +1028,8 @@ html.page-hidden *, html.page-hidden *::before, html.page-hidden *::after { anim
 .show-labels .aircraft-label.label-level-3 i { display: block; }
 
 .airline-badge { grid-column: 1; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 3px; color: #fff; font: 700 9px/1 var(--body); letter-spacing: .02em; }
+/* Leaflet resets marker image width to auto; wide airline marks still need a fixed frame. */
+.leaflet-container .leaflet-marker-pane img.airline-logo { width: 20px; height: 20px; }
 .airline-logo { grid-column: 1; grid-row: 1 / 3; align-self: center; object-fit: contain; border-radius: 3px; background: #fff; }
 .aircraft-marker.kind-turboprop svg { width: 20px; height: 20px; }
 .aircraft-marker.kind-regional svg { width: 19px; height: 19px; }

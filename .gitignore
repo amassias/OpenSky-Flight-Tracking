@@ -56,3 +56,5 @@ node_modules/
 playwright-report/
 test-results/
 .vercel
+
+.cache/airline-logos/
