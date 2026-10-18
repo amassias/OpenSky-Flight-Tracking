@@ -1469,7 +1469,7 @@ export function FlightMap({
     <section className="map-surface" aria-label="Live flight map" inert={readingDetails && isMobile}>
       <MapContainer ref={setMap} center={DEFAULT_CENTER} zoom={6} zoomControl={false} preferCanvas className="leaflet-map">
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Aircraft data: <a href="https://opensky-network.org">OpenSky Network</a>, <a href="https://adsb.fi">adsb.fi</a>, <a href="https://adsb.lol">adsb.lol</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | <a href="https://opensky-network.org">OpenSky</a>, <a href="https://adsb.fi">adsb.fi</a>, <a href="https://adsb.lol">adsb.lol</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           className={theme === "dark" ? "map-tiles-dark" : "map-tiles-light"}
           key={theme}
