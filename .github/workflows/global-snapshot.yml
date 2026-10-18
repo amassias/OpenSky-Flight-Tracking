@@ -1,0 +1,58 @@
+name: Publish global snapshot
+# Vercel cannot connect to opensky-network.org; GitHub runners can. This job
+# fetches the whole world and publishes it on the data/global-snapshot branch,
+# which the app reads (backend/api_client.py, PUBLISHED_SNAPSHOT_URL).
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: global-snapshot
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip alternate runs while only the 400-credit anonymous quota is available
+        id: pace
+        env:
+          OPEN_SKY_CLIENT_ID: ${{ secrets.OPEN_SKY_CLIENT_ID }}
+        run: |
+          # An anonymous world call costs 4 of 400 daily credits (every 10 min is ~144 calls).
+          if [ -z "$OPEN_SKY_CLIENT_ID" ] && [ $(( $(date +%-M) / 5 % 2 )) -eq 1 ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.pace.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+      - name: Fetch the world from OpenSky
+        if: steps.pace.outputs.skip != 'true'
+        env:
+          OPEN_SKY_CLIENT_ID: ${{ secrets.OPEN_SKY_CLIENT_ID }}
+          OPEN_SKY_CLIENT_SECRET: ${{ secrets.OPEN_SKY_CLIENT_SECRET }}
+        run: |
+          pip install --quiet requests
+          python scripts/publish_global_snapshot.py "$RUNNER_TEMP/snapshot.json"
+      - name: Publish on the data branch (a single commit, rewritten each time)
+        if: steps.pace.outputs.skip != 'true'
+        run: |
+          set -e
+          cd "$RUNNER_TEMP"
+          rm -rf publish && mkdir publish && mv snapshot.json publish/
+          cd publish
+          # Vercel builds every branch push; this branch has nothing to build.
+          echo '{ "ignoreCommand": "exit 0" }' > vercel.json
+          git init -q -b data/global-snapshot
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Global snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data/global-snapshot

@@ -29,6 +29,7 @@ DEFAULT_DAILY_BUDGET = 3000
 SECONDS_PER_DAY = 86_400
 # After a failed OpenSky call, wait this long before the next visitor triggers another.
 FAILURE_COOLDOWN_SECONDS = 60
+PUBLISHED_REFRESH_SECONDS = 60
 
 # Compact row layout; `fields` is sent with every payload so clients never
 # depend on positions.
@@ -102,6 +103,7 @@ class GlobalSnapshot:
         self._fetched_at = 0.0
         self._spend_day = -1
         self._spent = 0
+        self._next_call_cost = GLOBAL_CALL_CREDITS
         self._retry_after = 0.0
         self._last_error: Optional[OpenSkyAPIError] = None
         self._lock = threading.Lock()
@@ -111,6 +113,9 @@ class GlobalSnapshot:
         """Seconds between upstream calls that keep the daily credit budget."""
         budget = min(self._daily_budget, ANONYMOUS_DAILY_BUDGET) if self._anonymous else self._daily_budget
         interval = math.ceil(SECONDS_PER_DAY * GLOBAL_CALL_CREDITS / budget)
+        if self._next_call_cost == 0:
+            # Reading the published snapshot is free; only its own cadence limits us.
+            return self._refresh_override or PUBLISHED_REFRESH_SECONDS
         if self._refresh_override and not self._anonymous:
             return self._refresh_override
         return interval
@@ -140,7 +145,7 @@ class GlobalSnapshot:
             if self._snapshot is not None and now - self._fetched_at < self.refresh_seconds:
                 return self._payload(now)
 
-            if self._spent_today(now) + GLOBAL_CALL_CREDITS > self._daily_budget:
+            if self._spent_today(now) + self._next_call_cost > self._daily_budget:
                 if self._snapshot is None:
                     raise OpenSkyAPIError("OpenSky daily credit budget used up.", status_code=429)
                 return self._payload(now, degraded_notice="Daily OpenSky credit budget reached. Showing the last snapshot.", reason="quota")
@@ -166,7 +171,8 @@ class GlobalSnapshot:
 
             self._retry_after = 0.0
             self._last_error = None
-            self._spent += GLOBAL_CALL_CREDITS
+            self._next_call_cost = result.get("credit_cost", GLOBAL_CALL_CREDITS)
+            self._spent += result.get("credit_cost", GLOBAL_CALL_CREDITS)
             self._anonymous = result.get("provider") == "opensky-anonymous"
             snapshot_time = result.get("time") or int(now)
             rows = (_compact_row(state, snapshot_time) for state in result.get("states") or [] if isinstance(state, list))

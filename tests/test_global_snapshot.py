@@ -279,3 +279,16 @@ def test_the_failing_upstream_is_tried_again_after_the_cooldown(client_with):
     response = client.get("/api/global-snapshot")
 
     assert response.status_code == 200 and fake.calls == 2
+
+
+def test_reading_the_published_snapshot_spends_no_opensky_credits(client_with):
+    published = {"time": NOW, "states": [opensky_row()], "provider": "opensky-published", "credit_cost": 0}
+    fake = FakeUpstream(published)
+    clock = Clock()
+    client = client_with(fake, clock=clock, daily_budget=4, refresh_seconds=60)
+
+    for _ in range(3):  # a budget of one real call would be used up after the first
+        assert client.get("/api/global-snapshot").status_code == 200
+        clock.now += 61
+
+    assert fake.calls == 3

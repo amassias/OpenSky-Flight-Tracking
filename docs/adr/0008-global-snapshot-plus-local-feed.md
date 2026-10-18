@@ -23,3 +23,25 @@ Only OpenSky returns the whole world in one request (measured: about 10,000 airc
 
 ## Consequences
 Every aircraft keeps the source and fix age of its latest fix (see [0002](0002-estimates-are-never-observations.md)). Position projection is capped at 150 s ([0007](0007-projection-cap-150-seconds.md)) so aircraft do not freeze between snapshots.
+
+## Update: the world is published by a scheduled workflow (18 October 2026)
+
+Measured after the first production deploy: Vercel's addresses cannot open a
+connection to `opensky-network.org` (connect timeout, with and without the
+private proxy), while a GitHub Actions runner gets the whole world in 3.5 s
+(HTTP 200, 1.7 MB). The OAuth client in `.env` is also rejected by OpenSky
+(401 `invalid_client`), so only the anonymous quota (400 credits a day) is
+available until valid credentials are added.
+
+Consequence: on Vercel the Global snapshot is no longer fetched from OpenSky.
+`.github/workflows/global-snapshot.yml` fetches `/states/all` every 10 minutes
+(every 5 with valid `OPEN_SKY_CLIENT_ID` / `OPEN_SKY_CLIENT_SECRET` secrets) and
+force-pushes it to the `data/global-snapshot` branch;
+`backend/api_client.py` reads it from `raw.githubusercontent.com`. Reading is
+free, so the credit budget is only spent by the workflow. A published snapshot
+older than 45 minutes is refused. Set `SKYTRACE_GLOBAL_SNAPSHOT_URL=off` to use
+the private proxy again, or to another URL to read a different publication.
+
+Cost: wide views show aircraft that are 5 to 20 minutes old, more than the
+150 s projection cap, so they do not move between publications. Close zoom is
+unaffected: the Local feed still refreshes every 8 s.

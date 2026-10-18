@@ -703,6 +703,7 @@ def test_live_failover_never_calls_restricted_airplanes_api(monkeypatch):
 
 
 def test_global_states_use_the_private_proxy_without_a_bounding_box(monkeypatch):
+    monkeypatch.setenv("SKYTRACE_GLOBAL_SNAPSHOT_URL", "off")  # opt out of the published snapshot
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("OPEN_SKY_PROXY_BASE_URL", "https://deployment.example")
     monkeypatch.setenv("OPEN_SKY_PROXY_SECRET", "internal-secret")
@@ -761,6 +762,62 @@ def test_a_rate_limit_is_not_treated_as_an_outage(monkeypatch):
     client.get_states(bbox=(48.0, 2.0, 49.0, 3.0))
 
     assert client._opensky_down_until == 0.0
+
+
+PUBLISHED_URL = "https://example.test/snapshot.json"
+
+
+def _published_client(monkeypatch, snapshot_age=300):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("SKYTRACE_GLOBAL_SNAPSHOT_URL", PUBLISHED_URL)
+    client = OpenSkyClient()
+    now = int(time.time())
+    client.session.get = Mock(return_value=_json_response({"time": now - snapshot_age, "states": [["abc123"]]}))
+    client.session.request = Mock()
+    return client
+
+
+def test_on_vercel_the_world_comes_from_the_published_snapshot_not_from_opensky(monkeypatch):
+    client = _published_client(monkeypatch)
+
+    result = client.get_global_states()
+
+    assert client.session.get.call_args.args[0] == PUBLISHED_URL
+    client.session.request.assert_not_called()  # Vercel cannot reach OpenSky
+    assert result["credit_cost"] == 0 and result["provider"] == "opensky-published"
+    assert result["states"] == [["abc123"]]
+
+
+def test_a_stale_published_snapshot_is_refused_instead_of_shown_as_current(monkeypatch):
+    client = _published_client(monkeypatch, snapshot_age=3 * 3600)
+
+    with pytest.raises(OpenSkyAPIError) as error:
+        client.get_global_states()
+    assert error.value.status_code == 503
+
+
+def test_the_published_snapshot_is_used_on_vercel_without_any_configuration(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("SKYTRACE_GLOBAL_SNAPSHOT_URL", raising=False)
+    client = OpenSkyClient()
+    client.session.get = Mock(return_value=_json_response({"time": int(time.time()), "states": []}))
+
+    client.get_global_states()
+
+    assert "raw.githubusercontent.com/amassias/OpenSky-Flight-Tracking/data/global-snapshot/" in client.session.get.call_args.args[0]
+
+
+def test_off_vercel_the_world_is_fetched_from_opensky_directly(monkeypatch):
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("SKYTRACE_GLOBAL_SNAPSHOT_URL", raising=False)
+    client = OpenSkyClient()
+    client.session.get = Mock()
+    client.session.request = Mock(return_value=_json_response({"time": int(time.time()), "states": []}))
+
+    result = client.get_global_states()
+
+    assert result["credit_cost"] == 4
+    client.session.get.assert_not_called()
 
 
 def test_global_states_never_fall_back_to_a_radius_provider(monkeypatch):

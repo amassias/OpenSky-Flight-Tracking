@@ -20,6 +20,14 @@ load_local_env()
 
 # Local feed (ADR 0008): one or two 250 NM cells, refreshed every 5 to 10 s.
 LOCAL_FEED_MAX_CELLS = 2
+# Vercel cannot connect to opensky-network.org (measured 18 Oct 2026), while GitHub
+# runners can. A scheduled workflow publishes the world here; see
+# .github/workflows/global-snapshot.yml.
+PUBLISHED_SNAPSHOT_URL = (
+    "https://raw.githubusercontent.com/amassias/OpenSky-Flight-Tracking/data/global-snapshot/snapshot.json"
+)
+# A published snapshot older than this is refused rather than shown as current.
+PUBLISHED_SNAPSHOT_MAX_AGE_SECONDS = 45 * 60
 # After an OpenSky outage, viewport requests go straight to the public providers for this long.
 OPENSKY_DOWN_COOLDOWN_SECONDS = 120
 LOCAL_FEED_CACHE_SECONDS = 5.0
@@ -1318,6 +1326,24 @@ class OpenSkyClient:
                 return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)
             raise
 
+    def _get_published_global_states(self, url: str) -> Dict[str, Any]:
+        """Read the world snapshot a scheduled workflow publishes (no OpenSky call from Vercel)."""
+        try:
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            result = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            raise OpenSkyAPIError(f"Published global snapshot unavailable: {exc}", status_code=502) from exc
+        if not isinstance(result, dict) or not isinstance(result.get("states"), list):
+            raise OpenSkyAPIError("Published global snapshot has an unexpected shape.", status_code=502)
+        taken_at = result.get("time")
+        if not isinstance(taken_at, (int, float)) or time.time() - taken_at > PUBLISHED_SNAPSHOT_MAX_AGE_SECONDS:
+            raise OpenSkyAPIError("The published global snapshot is too old to show as current.", status_code=503)
+        result = dict(result)
+        result["provider"] = "opensky-published"
+        result["credit_cost"] = 0
+        return result
+
     def get_global_states(self) -> Dict[str, Any]:
         """Fetch every aircraft in the world with one unbounded OpenSky call.
 
@@ -1325,6 +1351,9 @@ class OpenSkyClient:
         There is deliberately no public ADS-B fallback: those providers are
         capped at a 250 NM radius, so the caller keeps its last snapshot instead.
         """
+        published_url = os.getenv("SKYTRACE_GLOBAL_SNAPSHOT_URL") or (PUBLISHED_SNAPSHOT_URL if os.getenv("VERCEL") else "")
+        if published_url and published_url != "off":
+            return self._get_published_global_states(published_url)
         result = self._make_request("GET", "/states/all", params={"extended": 1})
         if not isinstance(result, dict):
             raise OpenSkyAPIError("OpenSky returned an invalid global state response.", status_code=502)
