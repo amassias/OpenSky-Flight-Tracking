@@ -78,7 +78,7 @@ test('retains one detailed selected model among 900 canvas aircraft', async ({ p
   await page.goto('/?at=48.46,2.2,10');
   await expect(page.locator('.map-status')).toContainText('900 aircraft');
   await expect(page.locator('.aircraft-model')).toHaveCount(0);
-  await expect(page.locator('.leaflet-overlay-pane canvas')).toHaveCount(1);
+  await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
   await page.getByRole('combobox', { name: 'Search flights and airports' }).fill('DENSE32');
   await page.getByRole('option', { name: /DENSE32/ }).first().click();
   await expect(page.locator('.aircraft-marker')).toHaveCount(1);
@@ -101,15 +101,8 @@ test('preserves silhouettes through dense zoom and a less detailed feed', async 
     await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe(String(zoom));
   }
-  const canvas = page.locator('canvas[data-aircraft-renderer="silhouettes"]');
-  await expect(canvas).toHaveCount(1);
-  await expect.poll(() => canvas.evaluate(el => {
-    const canvas = el as HTMLCanvasElement;
-    const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
-    let painted = 0;
-    for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) painted++;
-    return painted;
-  })).toBeGreaterThan(500);
+  await expect(page.locator('canvas[data-aircraft-renderer="maplibre-gl"]')).toHaveCount(1);
+  await expect.poll(async () => Number(await page.locator('.aircraft-gl').getAttribute('data-aircraft-drawn'))).toBeGreaterThan(500);
   for (const zoom of [8, 9, 10]) {
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('at')?.split(',')[2]).toBe(String(zoom));

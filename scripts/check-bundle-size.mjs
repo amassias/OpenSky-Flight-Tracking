@@ -1,8 +1,10 @@
-// Fails when the gzip size of the entry or vendor JS passes its budget (docs/adr/0001, backlog B70).
+// Fails when the gzip size of the entry, vendor or on-demand MapLibre JS passes its budget (docs/adr/0001, docs/adr/0009, backlog B70).
 import { readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 
-const budgets = { index: 78_000, vendor: 175_000 }; // bytes gzip, ~10% above the 2026-10-18 measurement (70.6 / 158.9 kB)
+// bytes gzip, ~10% above the 2026-10-18 measurement of #23 (index 73.8, vendor 158.9, maplibre 256.2 kB).
+// maplibre is a lazy chunk, fetched only when a view holds more than 750 aircraft.
+const budgets = { index: 81_000, vendor: 175_000, maplibre: 282_000 };
 const dir = "dist/assets";
 let failed = false;
 for (const [prefix, limit] of Object.entries(budgets)) {

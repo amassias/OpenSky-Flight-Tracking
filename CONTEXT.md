@@ -10,6 +10,7 @@ Shared vocabulary for code, docs, issues and agents. Use these words exactly; if
 | **Fix** | One reported coordinate pair with its own timestamp. Its age is shown separately from the aircraft's airborne/ground state. |
 | **Projection** | Dead-reckoning between fixes along track and ground speed, capped at 150 s. Unknown-age fixes are never projected. |
 | **Focus label** | The on-map label shown only for the selected aircraft, followed aircraft, emergency squawks and the few aircraft nearest the map centre at close zoom. |
+| **Aircraft layer** | The WebGL (MapLibre GL) symbol layer that draws every aircraft of a view holding more than 750, in step with the Leaflet camera. The selected aircraft keeps its detailed marker. |
 | **Trace** | The recorded path of one aircraft, always validated against its aircraft, callsign and requested time. |
 | **Trail** | The browser-built path since the page opened, from successive live snapshots. Not a trace. |
 | **Callsign** | The ADS-B flight identifier (`AFR1234`). |
