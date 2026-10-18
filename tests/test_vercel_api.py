@@ -84,6 +84,13 @@ def test_live_flights_are_cached_at_the_cdn_unless_degraded():
     assert "s-maxage" not in degraded.headers.get("cache-control", "")
 
 
+def test_local_feed_is_cached_at_the_cdn_for_no_longer_than_its_refresh_window():
+    fresh = {"success": True, "time": 1, "count": 0, "states": []}
+    with patch.object(server.FlightServerHandler, "handle_live_flights", return_value=fresh):
+        response = client.get("/api/live-flights", params={"lamin": 48, "lomin": 1, "lamax": 50, "lomax": 4, "fallback": 1})
+    assert "s-maxage=5" in response.headers["cache-control"]
+
+
 def test_callsign_lookup_finds_the_aircraft_flying_a_callsign():
     aircraft = {"icao24": "406a3d", "callsign": "BAW557H", "latitude": 49.1, "longitude": 3.3, "last_contact": time.time()}
     row = ["406a3d", "BAW557H"]

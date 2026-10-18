@@ -63,3 +63,16 @@ export function preserveAirframeAppearance(incoming: LiveAircraft, known?: LiveA
     aircraft_category: incoming.aircraft_category ?? known.aircraft_category,
   };
 }
+
+/**
+ * Merge by icao24 (ADR 0008): the fix with the newest timestamp wins and keeps
+ * its own source label. An unknown age never beats a known one by itself, but
+ * the incoming row is taken when either age is unknown.
+ */
+export function newestFix(known: LiveAircraft | undefined, incoming: LiveAircraft): LiveAircraft {
+  if (!known) return incoming;
+  const knownTime = known.time_position;
+  const incomingTime = incoming.time_position;
+  if (typeof knownTime === "number" && typeof incomingTime === "number" && knownTime > incomingTime) return known;
+  return incoming;
+}

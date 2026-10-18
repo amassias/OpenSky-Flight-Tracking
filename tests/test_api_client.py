@@ -122,7 +122,7 @@ def test_vercel_live_states_use_fallback_and_convert_units(monkeypatch):
     assert state[10] == 90
     assert state[11] == 2.54
     request_url = client.session.get.call_args.args[0]
-    assert request_url.startswith("https://opendata.adsb.fi/api/v2/lat/")
+    assert request_url.startswith("https://opendata.adsb.fi/api/v3/lat/")
 
 
 def test_vercel_live_states_use_authenticated_proxy_for_complete_bbox(monkeypatch):
@@ -391,7 +391,7 @@ def test_failed_provider_is_tried_last_on_next_viewport(monkeypatch):
     result = client.get_states(bbox=(48, 2, 49, 3))
     assert result["provider"] == "adsb.lol"
     assert [state[0] for state in result["states"]] == ["abc123"]
-    assert "opendata.adsb.fi/api/v2/lat/" in urls[0]
+    assert "opendata.adsb.fi/api/v3/lat/" in urls[0]
     assert "api.adsb.lol" in urls[-1]
 
     urls.clear()
@@ -731,3 +731,88 @@ def test_global_states_never_fall_back_to_a_radius_provider(monkeypatch):
     with pytest.raises(OpenSkyAPIError):
         client.get_global_states()
     client._get_public_live_states.assert_not_called()
+
+
+def test_adsb_fi_v3_is_used_for_areas_but_callsigns_stay_on_the_endpoint_that_exists(monkeypatch):
+    # Measured 2026-10-18: v3 answers lat/lon/dist only; v3 callsign and hex return 400.
+    monkeypatch.setenv("VERCEL", "1")
+    client = OpenSkyClient()
+    response = _json_response({"now": 1_750_000_000_000, "ac": []})
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+
+    client.get_live_callsign_states("AFR35BR")
+
+    assert client.session.get.call_args.args[0] == "https://opendata.adsb.fi/api/v2/callsign/AFR35BR"
+
+
+def _local_feed_client(monkeypatch, aircraft=None):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("SKYTRACE_LIVE_CACHE_SECONDS", raising=False)
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    client = OpenSkyClient()
+    response = _json_response({"now": 1_750_000_000_000, "ac": aircraft or []})
+    response.raise_for_status = Mock()
+    client.session.get = Mock(return_value=response)
+    return client
+
+
+def test_local_feed_asks_to_be_refreshed_every_5_to_10_seconds(monkeypatch):
+    client = _local_feed_client(monkeypatch)
+    result = client.get_live_fallback_states(bbox=(48.0, 2.0, 49.0, 3.0))
+    assert 5 <= result["refresh_after_seconds"] <= 10
+
+
+def test_local_feed_cache_is_short_and_shared_by_viewports_in_the_same_cell(monkeypatch):
+    client = _local_feed_client(monkeypatch)
+    clock = [1_000.0]
+    monkeypatch.setattr("backend.api_client.time.time", lambda: clock[0])
+
+    client.get_live_fallback_states(bbox=(48.000, 2.000, 49.000, 3.000))
+    # A second visitor with a slightly different box lands in the same quantised cell.
+    client.get_live_fallback_states(bbox=(48.004, 2.003, 49.003, 3.004))
+    assert client.session.get.call_count == 1
+
+    clock[0] += 6  # past the 5 s cache, inside the 5 to 10 s refresh window
+    client.get_live_fallback_states(bbox=(48.000, 2.000, 49.000, 3.000))
+    assert client.session.get.call_count == 2
+
+    client.get_live_fallback_states(bbox=(52.0, 2.0, 53.0, 3.0))  # another cell
+    assert client.session.get.call_count == 3
+
+
+def test_overlapping_cells_keep_the_newest_fix_per_aircraft(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    client = OpenSkyClient()
+    # Same aircraft in overlapping cells: seen 30 s ago, then 2 s ago, then 60 s ago.
+    seen = [(48.0, 2.0, 30.0), (48.2, 2.2, 2.0)] + [(47.9, 1.9, 60.0)] * 4
+    answers = iter(seen)
+
+    def fake_get(*_args, **_kwargs):
+        lat, lon, seen_pos = next(answers)
+        return _json_response({"now": 1_750_000_000_000, "ac": [{"hex": "abc123", "lat": lat, "lon": lon, "seen_pos": seen_pos}]})
+
+    client.session.get = Mock(side_effect=fake_get)
+
+    result = client.get_live_fallback_states(bbox=(40.0, -5.0, 55.0, 10.0))
+
+    assert [row[0] for row in result["states"]] == ["abc123"]
+    assert result["states"][0][6] == 48.2
+
+
+def test_each_aircraft_carries_the_label_of_the_feed_that_gave_its_fix(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    client = OpenSkyClient()
+
+    def fake_get(url, **_kwargs):
+        if "adsb.fi" in url:
+            raise requests.Timeout("down")
+        return _json_response({"now": 1_750_000_000_000, "ac": [{"hex": "abc123", "lat": 48.5, "lon": 2.5}]})
+
+    client.session.get = Mock(side_effect=fake_get)
+    result = client.get_live_fallback_states(bbox=(48, 2, 49, 3))
+
+    assert result["provider"] == "adsb.lol"
+    assert result["states"][0][18]["feed"] == "adsb.lol"
