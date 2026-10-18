@@ -184,6 +184,10 @@ export interface LiveFlightsResponse {
   provider?: "opensky" | "adsb.fi" | "adsb.lol" | string;
   credit_cost?: number;
   refresh_after_seconds?: number;
+  /** Global snapshot only: seconds since OpenSky last answered. */
+  age_seconds?: number;
+  /** Global snapshot only: "quota" or "provider" when degraded. */
+  degraded_reason?: string;
   coverage_tiles?: number;
   coverage_complete?: boolean;
 }

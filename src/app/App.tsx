@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { listEmptyMessage, type LiveCause } from "../features/map/liveStatus";
 import { flushSync } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
@@ -135,6 +136,7 @@ export function App() {
   const restoredAirport = useRef(false);
   const restoredFlight = useRef(false);
 
+  const [liveCause, setLiveCause] = useState<LiveCause | null>(null);
   const handleLiveSnapshot = useCallback((data: LiveFlightsResponse, airportIcao: string | null) => {
     setLiveFallbackSnapshot({ data, airportIcao });
   }, []);
@@ -660,6 +662,7 @@ export function App() {
           onSelectFlight={selectFlight}
           onSelectAirport={openAirport}
           onLiveSnapshot={handleLiveSnapshot}
+          onLiveCause={setLiveCause}
           onViewportCenter={setMapCenter}
         />
 
@@ -768,6 +771,7 @@ export function App() {
                     )}
                     <FlightList
                       variant="live"
+                      emptyMessage={liveCause ? listEmptyMessage(liveCause) : undefined}
                       flights={filteredLive}
                       selectedFlight={selectedFlight}
                       loading={false}

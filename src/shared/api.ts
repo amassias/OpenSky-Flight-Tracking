@@ -26,6 +26,8 @@ interface GlobalSnapshotBody {
   degraded?: boolean;
   notice?: string;
   refresh_after_seconds?: number;
+  age_seconds?: number;
+  degraded_reason?: string;
   fields?: string[];
   aircraft?: Array<Array<string | number | null>>;
 }
@@ -193,6 +195,7 @@ export const api = {
     return {
       success: true, time, time_iso: time ? new Date(time * 1000).toISOString() : null, count: states.length, states,
       provider: body.provider, degraded: body.degraded, notice: body.notice, refresh_after_seconds: body.refresh_after_seconds,
+      age_seconds: body.age_seconds, degraded_reason: body.degraded_reason,
     };
   },
   callsignLookup: (callsign: string, signal?: AbortSignal) => request<CallsignLookupResponse>("/api/callsign-lookup", { callsign }, signal),
