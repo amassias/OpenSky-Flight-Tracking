@@ -113,12 +113,14 @@ class GlobalSnapshot:
             self._spend_day, self._spent = day, 0
         return self._spent
 
-    def _payload(self, now: float, *, degraded_notice: Optional[str] = None) -> Dict[str, Any]:
+    def _payload(self, now: float, *, degraded_notice: Optional[str] = None, reason: Optional[str] = None) -> Dict[str, Any]:
         assert self._snapshot is not None
         age = max(0, int(now - self._fetched_at))
         payload = {**self._snapshot, "age_seconds": age, "refresh_after_seconds": self.refresh_seconds}
         if degraded_notice:
             payload["degraded"] = True
+            # "quota" (credit budget or upstream rate limit) or "provider" (OpenSky failing).
+            payload["degraded_reason"] = reason
             payload["notice"] = degraded_notice.format(age=age)
         return payload
 
@@ -132,14 +134,16 @@ class GlobalSnapshot:
             if self._spent_today(now) + GLOBAL_CALL_CREDITS > self._daily_budget:
                 if self._snapshot is None:
                     raise OpenSkyAPIError("OpenSky daily credit budget used up.", status_code=429)
-                return self._payload(now, degraded_notice="Daily OpenSky credit budget reached. Snapshot from {age} s ago.")
+                return self._payload(now, degraded_notice="Daily OpenSky credit budget reached. Snapshot from {age} s ago.", reason="quota")
 
             try:
                 result = self._fetch()
-            except OpenSkyAPIError:
+            except OpenSkyAPIError as exc:
                 if self._snapshot is None:
                     raise
-                return self._payload(now, degraded_notice="Live refresh delayed. Snapshot from {age} s ago.")
+                if exc.status_code == 429:
+                    return self._payload(now, degraded_notice="OpenSky rate limit reached. Snapshot from {age} s ago.", reason="quota")
+                return self._payload(now, degraded_notice="Live refresh delayed. Snapshot from {age} s ago.", reason="provider")
 
             self._spent += GLOBAL_CALL_CREDITS
             self._anonymous = result.get("provider") == "opensky-anonymous"
