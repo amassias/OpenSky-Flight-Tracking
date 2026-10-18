@@ -1,7 +1,7 @@
 import { airlineBadge, airlineLogo, type AirlineBadge } from "../../../shared/aircraftIdentity";
 import { aircraftGlyph } from "../aircraftGlyph";
 import { AircraftHoverStore } from "../aircraftHover";
-import { MAP_COLORS } from "../aircraftLayer";
+import { mapColors } from "../mapColors";
 import { AircraftGlLayer } from "./AircraftGlLayer";
 import { MapCanvas } from "./MapCanvas";
 import { useMapHandle, type MapHandle } from "../mapHandle";
@@ -154,7 +154,7 @@ const USER_LOCATION_LOOK: MarkerLook = {
 
 function routeEndpointIcon(kind: "start" | "end", theme: MapTheme): MarkerLook {
   const start = kind === "start";
-  const color = start ? MAP_COLORS[theme].ground : MAP_COLORS[theme].accent;
+  const color = start ? mapColors(theme).ground : mapColors(theme).accent;
   const path = start
     ? '<path d="M6 21V3m0 0h12l-3 4 3 4H6" />'
     : '<path d="M5 21V3m0 0h13l-3 4 3 4H5m0 0h13v6H5" />';
@@ -871,7 +871,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const startLook = useMemo(() => routeEndpointIcon("start", theme), [theme]);
   const showStart = Boolean(firstPoint && basePoints.length > 1 && fade > 0.5);
 
-  const halo = MAP_COLORS[theme].halo;
+  const halo = mapColors(theme).halo;
   const traceData = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = [];
     if (drawnBase.length > 1) features.push(lineString(drawnBase.map((point) => [point[1], point[2]] as [number, number]), { kind: "halo", color: halo, opacity: 0.7 * fade }));
@@ -893,7 +893,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
   const futurePath = destinationGuide({ ...flight, ...live }, now, head);
   const projectionData = useMemo<GeoJSON.FeatureCollection>(() => {
     if (futurePath) return { type: "FeatureCollection", features: [lineString(futurePath, { kind: "future", color: theme === "dark" ? "#a1a1a6" : "#515154" })] };
-    if (projection) return { type: "FeatureCollection", features: [lineString(projection, { kind: "heading", color: MAP_COLORS[theme].accent })] };
+    if (projection) return { type: "FeatureCollection", features: [lineString(projection, { kind: "heading", color: mapColors(theme).accent })] };
     return { type: "FeatureCollection", features: [] };
   }, [futurePath, projection, theme]);
   useGeoJsonLayers(handle, "projection", PROJECTION_LAYERS, projectionData);
@@ -914,7 +914,7 @@ function SelectedTrack({ flight, track, live, theme, following, onRelease }: Sel
 
   const heading = (live?.true_track ?? flight.true_track ?? 0) - 90;
   const arrowLook = useMemo<MarkerLook>(() => ({ className: "heading-arrow-wrap",
-    html: `<span class="heading-arrow" style="transform:rotate(${heading}deg);color:${MAP_COLORS[theme].accent}"><svg viewBox="0 0 20 20"><path d="m5 4 9 6-9 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>` }), [heading, theme]);
+    html: `<span class="heading-arrow" style="transform:rotate(${heading}deg);color:${mapColors(theme).accent}"><svg viewBox="0 0 20 20"><path d="m5 4 9 6-9 6" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>` }), [heading, theme]);
 
   const followStarted = useRef(false);
   useEffect(() => {
@@ -1014,7 +1014,7 @@ function UserLocationMarker({ location, theme }: { location: UserLocation; theme
   const handle = useMapHandle();
   const data = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: "FeatureCollection",
-    features: [{ type: "Feature", properties: { color: MAP_COLORS[theme].accent },
+    features: [{ type: "Feature", properties: { color: mapColors(theme).accent },
       geometry: { type: "Polygon", coordinates: [circlePolygon([location.latitude, location.longitude], Math.max(location.accuracy, 20))] } }],
   }), [location, theme]);
   useGeoJsonLayers(handle, "accuracy", ACCURACY_LAYERS, data);

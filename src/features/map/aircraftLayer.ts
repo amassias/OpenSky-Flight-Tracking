@@ -2,14 +2,8 @@ import type { LiveAircraft, MapTheme } from "../../shared/types";
 import { aircraftIconKind, emergencyInfo } from "../../shared/utils";
 import { positionAge } from "../flights/flightTelemetry";
 import { aircraftGlyph } from "./aircraftGlyph";
+import { mapColors } from "./mapColors";
 import { catchUpPosition, isPositionEstimated, projectPosition } from "./aircraftMotion";
-
-// Map canvases cannot read CSS custom properties, so the theme tokens they need
-// are mirrored here (see --aircraft / --accent).
-export const MAP_COLORS: Record<MapTheme, { aircraft: string; ground: string; accent: string; halo: string; danger: string }> = {
-  dark: { aircraft: "#f5f5f7", ground: "#8e8e93", accent: "#2997ff", halo: "#0b0b0c", danger: "#ff453a" },
-  light: { aircraft: "#1d1d1f", ground: "#86868b", accent: "#0066cc", halo: "#ffffff", danger: "#d70015" },
-};
 
 /** A fix older than this, or of unknown age, is drawn faded. */
 const OLD_FIX_SECONDS = 60;
@@ -80,7 +74,7 @@ export class AircraftFrames {
   }
 
   frame(now: number, { theme, previewId, excludeId, excludeIds }: AircraftFrameOptions): DrawnAircraft[] {
-    const colors = MAP_COLORS[theme];
+    const colors = mapColors(theme);
     const drawn: DrawnAircraft[] = [];
     for (const item of this.aircraft) {
       if (item.latitude == null || item.longitude == null || item.icao24 === excludeId || excludeIds?.has(item.icao24)) continue;
