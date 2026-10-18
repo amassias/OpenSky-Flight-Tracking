@@ -435,6 +435,7 @@ function AircraftPhotoFigure({ flight, photo, loading }: AircraftPhotoFigureProp
           width={photo.width}
           height={photo.height}
           alt={`${identity || flight.callsign || flight.icao24.toUpperCase()}, photo by ${photo.photographer}`}
+          loading="lazy"
           decoding="async"
           onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
         />

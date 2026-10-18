@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FlightDetails } from "./FlightDetails";
+import type { AircraftPhoto } from "../../../shared/api";
 import type { Flight, TrackResponse } from "../../../shared/types";
 
 const flight = {
@@ -10,17 +11,24 @@ const flight = {
   status: "airborne", on_ground: false, primary_time: 0, data_source: "live-nearby",
 } as Flight;
 
-function renderDetails(overrides: Partial<Flight> = {}, observer: [number, number] | null = null, track?: TrackResponse) {
+function renderDetails(overrides: Partial<Flight> = {}, observer: [number, number] | null = null, track?: TrackResponse, photo?: AircraftPhoto) {
   vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ success: false }), { status: 404 }))));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <FlightDetails flight={{ ...flight, ...overrides }} track={track} trackLoading={false} onRetryTrack={vi.fn()} onClose={vi.fn()} onShare={vi.fn()} observer={observer} />
+      <FlightDetails flight={{ ...flight, ...overrides }} track={track} photo={photo} trackLoading={false} onRetryTrack={vi.fn()} onClose={vi.fn()} onShare={vi.fn()} observer={observer} />
     </QueryClientProvider>,
   );
 }
 
 describe("FlightDetails", () => {
+  it("loads the aircraft photo lazily and decodes it asynchronously", () => {
+    renderDetails({}, null, undefined, { src: "https://t.plnspttrs.net/a.jpg", width: 400, height: 250, link: "https://www.planespotters.net/p", photographer: "Jane" } as AircraftPhoto);
+    const img = screen.getByRole("img", { name: /photo by Jane/ });
+    expect(img).toHaveAttribute("loading", "lazy");
+    expect(img).toHaveAttribute("decoding", "async");
+  });
+
   it("links the aircraft to other trackers by hex, callsign and registration", () => {
     renderDetails();
     const links = screen.getByRole("navigation", { name: /other trackers/ });
