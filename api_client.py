@@ -383,8 +383,8 @@ class OpenSkyClient:
         return result
 
     @staticmethod
-    def _airplanes_live_row(aircraft: Dict[str, Any], now_sec: int):
-        """Convert an Airplanes.live aircraft object to an OpenSky state vector."""
+    def _public_adsb_row(aircraft: Dict[str, Any], now_sec: int):
+        """Convert a public readsb aircraft object to an OpenSky state vector."""
         altitude_ft = aircraft.get("alt_baro")
         on_ground = altitude_ft == "ground"
         baro_altitude = None if altitude_ft is None else (0.0 if on_ground else float(altitude_ft) * 0.3048 if isinstance(altitude_ft, (int, float)) else None)
@@ -469,9 +469,9 @@ class OpenSkyClient:
         except (TypeError, ValueError):
             radius_limit = 1000.0
         radius_limit = max(50.0, min(2500.0, radius_limit))
-        # ADSB.lol documents a 250 NM maximum for /point. Airplanes.live uses
-        # the same public ReAPI shape, so keep every fallback request within
-        # that limit even when the legacy radius setting is larger.
+        # Both public providers cap point queries at 250 NM. Keep every
+        # fallback request within that limit even when the legacy radius
+        # setting is larger.
         provider_radius = min(250.0, radius_limit)
         if corner_distance <= provider_radius:
             endpoint = f"point/{center_lat:.5f}/{center_lon:.5f}/{max(1.0, corner_distance):.1f}"
@@ -517,7 +517,7 @@ class OpenSkyClient:
             return f"https://opendata.adsb.fi/api/v2/{endpoint}"
         return f"https://api.{provider}/v2/{endpoint}"
 
-    def _get_airplanes_live_states(
+    def _get_public_live_states(
         self,
         icao24_list: Optional[Iterable[str]] = None,
         bbox: Optional[tuple] = None,
@@ -627,7 +627,7 @@ class OpenSkyClient:
         except (TypeError, ValueError):
             failure_break_count = 2
         providers = sorted(
-            ("adsb.fi", "adsb.lol", "airplanes.live"),
+            ("adsb.fi", "adsb.lol"),
             key=lambda name: self._live_provider_down_until.get(name, 0.0) > time.time(),
         )
         for candidate in providers:
@@ -721,7 +721,7 @@ class OpenSkyClient:
         refresh_after_seconds = max(20, min(180, 20 * len(endpoints)))
         result = {
             "time": now_sec,
-            "states": [self._airplanes_live_row(item, now_sec) for item in aircraft if item.get("hex")],
+            "states": [self._public_adsb_row(item, now_sec) for item in aircraft if item.get("hex")],
             "provider": provider,
             "refresh_after_seconds": refresh_after_seconds,
             "credit_cost": 0,
@@ -846,7 +846,7 @@ class OpenSkyClient:
             profile = cached_row[18] if len(cached_row) > 18 and isinstance(cached_row[18], dict) else {}
             return {"state": cached_row, "profile": profile, "provider": "cache"}
         try:
-            result = self._get_airplanes_live_states(icao24_list=[code])
+            result = self._get_public_live_states(icao24_list=[code])
         except (OpenSkyAPIError, ValueError, TypeError):
             return None
         if not isinstance(result, dict):
@@ -1261,24 +1261,24 @@ class OpenSkyClient:
             except OpenSkyAPIError:
                 # Public ADS-B providers remain the resilience path when the
                 # proxy or OpenSky itself is briefly unavailable.
-                return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
+                return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)
 
         # Vercel cannot route directly to OpenSky's single public IP when the
         # private proxy is not configured. Keep live traffic available through
         # the public ADS-B fallback in that case.
         if os.getenv("VERCEL") and time_sec is None:
-            return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
+            return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)
 
         try:
             return self._make_request("GET", "/states/all", params=params)
         except OpenSkyAPIError:
             if os.getenv("VERCEL") and time_sec is None:
-                return self._get_airplanes_live_states(icao24_list=icao24_list, bbox=bbox)
+                return self._get_public_live_states(icao24_list=icao24_list, bbox=bbox)
             raise
 
     def get_live_fallback_states(self, bbox: tuple):
         """Fetch one provider-safe live tile without waiting on OpenSky."""
-        return self._get_airplanes_live_states(bbox=bbox)
+        return self._get_public_live_states(bbox=bbox)
 
     def _emergency_payload(self, code, refresh=False):
         # Some edge caches retain an old empty response. Retry with a changing
@@ -1342,7 +1342,7 @@ class OpenSkyClient:
                         if not isinstance(item.get("seen"), (int, float)) or not 0 <= item["seen"] <= 60:
                             continue
                         try:
-                            row = self._airplanes_live_row(item, feed_time)
+                            row = self._public_adsb_row(item, feed_time)
                             if not re.fullmatch(r"[0-9a-f]{6}", str(row[0])) or row[0] in seen_codes:
                                 continue
                             seen_codes.add(row[0])
@@ -1389,11 +1389,11 @@ class OpenSkyClient:
 
     def get_live_callsign_states(self, callsign: str):
         """The aircraft currently flying under one callsign, wherever it is."""
-        return self._get_airplanes_live_states(callsign=callsign)
+        return self._get_public_live_states(callsign=callsign)
 
     def get_live_point_states(self, latitude: float, longitude: float, radius_nm: float):
         """Every aircraft within one public-provider circle (at most 250 NM)."""
-        return self._get_airplanes_live_states(point=(latitude, longitude, radius_nm))
+        return self._get_public_live_states(point=(latitude, longitude, radius_nm))
 
     def get_track(self, icao24: str, time_sec: int, callsign: str = ""):
         if os.getenv("VERCEL"):

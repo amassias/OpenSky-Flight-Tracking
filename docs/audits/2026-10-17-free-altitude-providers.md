@@ -44,3 +44,7 @@ Regression tests cover independent failover, full/recent merging and deduplicati
 Implementation decision: [ADR 0003](../adr/0003-independent-current-flight-traces.md).
 
 Local validation: `npm run check` passed (199 frontend tests, lint, TypeScript and production build); `python3 -m pytest -q` passed (162 tests); Chromium passed 74 tests with 2 intentional mobile-only skips. The UI detector reported no findings.
+
+## Update — 2026-10-18
+
+The operator's reply confirms contributor-only API access from the feeder's IP, with sponsorship requested for applications. Airplanes.live was removed from SkyTrace's live-provider chain; only ADSB.fi and ADSB.lol remain there. TheAirTraffic and ADSB.lol still provide current-flight traces. Historical findings above are retained as the dated investigation record.

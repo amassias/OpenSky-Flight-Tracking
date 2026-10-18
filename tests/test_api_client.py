@@ -231,8 +231,8 @@ def test_live_viewport_stops_fanning_out_when_both_providers_are_down(monkeypatc
 
     assert error.value.status_code == 503
     # A wide viewport may produce many safe cells, but two consecutive
-    # upstream failures are enough to move on to the next provider (three of them).
-    assert client.session.get.call_count == 6
+    # upstream failures per provider are enough; only the two public providers are tried.
+    assert client.session.get.call_count == 4
 
 
 def test_vercel_uses_private_edge_proxy_for_opensky(monkeypatch):
@@ -372,7 +372,7 @@ def test_all_live_providers_unavailable(monkeypatch):
     with pytest.raises(OpenSkyAPIError) as error:
         client.get_states(bbox=(48, 2, 49, 3))
     assert error.value.status_code == 503
-    assert client.session.get.call_count == 3
+    assert client.session.get.call_count == 2
 
 
 def test_failed_provider_is_tried_last_on_next_viewport(monkeypatch):
@@ -687,3 +687,16 @@ def test_public_traces_never_answer_a_historical_request(monkeypatch):
     client.session.get = Mock()
     assert client.get_track("abc123", 1_750_000_000) == {}
     client.session.get.assert_not_called()
+
+
+def test_live_failover_never_calls_restricted_airplanes_api(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("OPEN_SKY_PROXY_SECRET", raising=False)
+    monkeypatch.setenv("SKYTRACE_LIVE_TILE_INTERVAL_SECONDS", "0")
+    client = OpenSkyClient()
+    client.session.get = Mock(side_effect=requests.Timeout("unavailable"))
+    with pytest.raises(OpenSkyAPIError):
+        client.get_states(bbox=(48, 2, 49, 3))
+    urls = [call.args[0] for call in client.session.get.call_args_list]
+    assert len(urls) == 2
+    assert all("airplanes.live" not in url for url in urls)

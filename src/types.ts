@@ -181,7 +181,7 @@ export interface LiveFlightsResponse {
   states: LiveAircraft[];
   degraded?: boolean;
   notice?: string;
-  provider?: "opensky" | "adsb.lol" | "airplanes.live" | string;
+  provider?: "opensky" | "adsb.fi" | "adsb.lol" | string;
   credit_cost?: number;
   refresh_after_seconds?: number;
   coverage_tiles?: number;
